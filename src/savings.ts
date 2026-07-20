@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
+import { loadCatalog } from "./catalog.ts";
 import { EMBEDDED_PRICES_YAML } from "./embedded_defaults.ts";
 import { findPricesPath } from "./paths.ts";
 import type { Usage } from "./backends/types.ts";
@@ -36,8 +37,16 @@ export function loadPrices(cwd: string = process.cwd()): Prices {
   const path = findPricesPath(cwd);
   const text =
     path && existsSync(path) ? readFileSync(path, "utf8") : EMBEDDED_PRICES_YAML;
-  const raw = parseYaml(text);
-  return PricesSchema.parse(raw);
+  const parsed = PricesSchema.parse(parseYaml(text));
+
+  // Catalog supplies prices for every known model; an explicit prices.yaml
+  // entry always wins so users can pin their own numbers.
+  const { catalog } = loadCatalog();
+  const catalogModels: Prices["models"] = {};
+  for (const [id, m] of Object.entries(catalog.models)) {
+    catalogModels[id] = { in: m.in, out: m.out, cache_read: m.cache_read };
+  }
+  return { ...parsed, models: { ...catalogModels, ...parsed.models } };
 }
 
 export function priceTokens(

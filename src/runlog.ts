@@ -75,6 +75,20 @@ export type SavingsSummary = {
   measuredRuns: number;
 };
 
+export type ModelStats = Record<string, { runs: number; ok: number }>;
+
+/** Verify-success counts per model — local ground truth for `relay advise`. */
+export function modelStats(): ModelStats {
+  const stats: ModelStats = {};
+  for (const r of readRuns(10_000)) {
+    if (r.status === "running") continue;
+    const s = (stats[r.model] ??= { runs: 0, ok: 0 });
+    s.runs += 1;
+    if (r.status === "ok") s.ok += 1;
+  }
+  return stats;
+}
+
 export function summarizeSavings(): SavingsSummary {
   const runs = readRuns(10_000).filter((r) => r.status === "ok");
   const byLane: Record<string, number> = {};

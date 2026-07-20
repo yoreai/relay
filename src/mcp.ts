@@ -7,10 +7,11 @@ import {
 import { formatOutcome, runTask } from "./run.ts";
 import { getRun, readRuns, summarizeSavings } from "./runlog.ts";
 import { briefFromTask, parseBrief } from "./brief.ts";
+import { RELAY_VERSION } from "./version.ts";
 
 export async function serveMcp(): Promise<void> {
   const server = new Server(
-    { name: "relay", version: "0.2.0" },
+    { name: "relay", version: RELAY_VERSION },
     { capabilities: { tools: {} } },
   );
 
@@ -19,7 +20,12 @@ export async function serveMcp(): Promise<void> {
       {
         name: "relay_run",
         description:
-          "Route and run a task through relay (cheap capable backend + verify loop). Pass a curated brief when you already understand the problem.",
+          "Delegate a sub-task to the cheapest model that clears its quality bar. " +
+          "Ideal for mechanical work mid-session (bulk edits, test fixes, renames, summaries, status checks) " +
+          "so the expensive session doesn't burn frontier tokens on it. Relay routes via the user's directive, " +
+          "runs a headless backend in the repo, verifies the result (escalating only on failure), leaves edits " +
+          "staged in git, and returns a savings receipt. Pass a curated brief (goal, files, constraints, done_means, " +
+          "context) — you already understand the problem, so a good brief makes the cheap run succeed first try.",
         inputSchema: {
           type: "object",
           properties: {

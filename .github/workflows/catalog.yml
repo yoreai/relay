@@ -1,0 +1,27 @@
+name: Catalog freshness
+
+# The model catalog is relay's "always looked at" table. This job fails
+# when the catalog is inconsistent with the default directive or hasn't
+# been reviewed recently, so drift becomes a red X instead of silent
+# overcharging.
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - "defaults/catalog.yaml"
+      - "defaults/router.yaml"
+      - "defaults/prices.yaml"
+      - "scripts/check-catalog.ts"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run scripts/check-catalog.ts

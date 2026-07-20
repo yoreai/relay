@@ -1,11 +1,13 @@
 #!/usr/bin/env bun
+import { runAdvise } from "./advise.ts";
 import { runDoctor } from "./doctor.ts";
 import { runInit } from "./init.ts";
 import { serveMcp } from "./mcp.ts";
 import { formatOutcome, runTask } from "./run.ts";
-import { getRun, readRuns, summarizeSavings } from "./runlog.ts";
-
-const VERSION = "0.2.0";
+import { getRun, modelStats, readRuns, summarizeSavings } from "./runlog.ts";
+import { runSetup } from "./setup.ts";
+import { runUpdate } from "./update.ts";
+import { RELAY_VERSION as VERSION } from "./version.ts";
 
 function usage(): string {
   return `relay ${VERSION} — interface-independent task router
@@ -13,6 +15,9 @@ function usage(): string {
 Usage:
   relay "fix the flaky retry test in src/api"
   relay -i
+  relay setup                    # register relay as MCP server in installed agents
+  relay update [--check]         # refresh model catalog · check for new release
+  relay advise [--apply]         # cheaper same-class models for your tiers
   relay status [id|--all]
   relay savings [--by-lane|--by-model]
   relay doctor
@@ -71,9 +76,18 @@ function parseArgs(argv: string[]): Parsed {
     } else if (a === "--cwd") {
       out.cwd = args.shift();
     } else if (
-      ["status", "savings", "doctor", "init", "mcp", "help", "version"].includes(
-        a,
-      )
+      [
+        "status",
+        "savings",
+        "doctor",
+        "init",
+        "mcp",
+        "setup",
+        "update",
+        "advise",
+        "help",
+        "version",
+      ].includes(a)
     ) {
       out.command = a;
       out.rest = args;
@@ -153,6 +167,18 @@ async function main(): Promise<void> {
     console.log(runInit(cwd));
     return;
   }
+  if (parsed.command === "setup") {
+    console.log(runSetup());
+    return;
+  }
+  if (parsed.command === "update") {
+    console.log(await runUpdate({ check: parsed.rest.includes("--check") }));
+    return;
+  }
+  if (parsed.command === "advise") {
+    console.log(runAdvise(cwd, parsed.rest.includes("--apply")));
+    return;
+  }
   if (parsed.command === "mcp") {
     if (parsed.rest[0] !== "serve") {
       console.error("usage: relay mcp serve");
@@ -193,8 +219,13 @@ async function main(): Promise<void> {
     }
     if (parsed.rest.includes("--by-model")) {
       console.log("by model:");
+      const stats = modelStats();
       for (const [k, v] of Object.entries(s.byModel)) {
-        console.log(`  ${k}: ~$${v.toFixed(2)}`);
+        const st = stats[k];
+        console.log(
+          `  ${k}: ~$${v.toFixed(2)}` +
+            (st ? `  (verified ${st.ok}/${st.runs} runs)` : ""),
+        );
       }
     }
     if (

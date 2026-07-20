@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-07-19
+
+### Added
+
+- **Model catalog** (`defaults/catalog.yaml`): prices + quality class
+  (`nano/cheap/workhorse/opus-class/frontier`) + serving backends per model;
+  embedded in the binary, feeds receipts for models missing from prices.yaml
+- **`relay update [--check]`** — fetches the latest catalog from the repo
+  (facts only, never touches router.yaml) and reports newer binary releases
+- **`relay advise [--apply]`** — proposes cheaper *same-quality-class* models
+  available on installed backends (e.g. kimi-k3 over fable-5-high at ~91%
+  less); `--apply` prepends them to tier fallbacks as a git-visible edit;
+  cites local verify-success rates when ≥3 runs exist
+- **`relay setup`** — one command to register relay as an MCP server in
+  Cursor (`~/.cursor/mcp.json`) and Claude Code, with backups; prints Codex snippet
+- **Catalog freshness CI** — nightly job fails when the catalog is
+  inconsistent with the default directive or unreviewed for 45 days
+- `relay savings --by-model` now shows verify success per model
+- Latency guard: advise never swaps a fast-flagged model for a slower one
+- MCP `relay_run` description teaches expensive agents when to delegate
+
 ## [0.2.0] — 2026-07-19
 
 ### Added
@@ -48,7 +69,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/yoreai/relay/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/yoreai/relay/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/yoreai/relay/releases/tag/v0.1.1
 [0.1.0]: https://github.com/yoreai/relay/releases/tag/v0.1.0

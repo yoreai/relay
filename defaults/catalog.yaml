@@ -1,0 +1,76 @@
+# relay model catalog — the "always looked at" table.
+# Facts only: what exists, what it costs, what quality class it sits in,
+# and which backend CLIs can serve it. Routing POLICY stays in router.yaml;
+# `relay advise` proposes policy changes from these facts, never applies
+# them silently.
+#
+# classes are ordered weakest → strongest. A model's class is its quality
+# bar: advise only ever suggests swaps WITHIN a class.
+version: 1
+updated: "2026-07-19"
+classes: [nano, cheap, workhorse, opus-class, frontier]
+models:
+  gpt-5.6-luna:
+    class: nano
+    in: 1.0
+    out: 6.0
+    cache_read: 0.10
+    backends: [cursor]
+  haiku-4.5:
+    class: cheap
+    in: 0.80
+    out: 4.0
+    cache_read: 0.08
+    backends: [claude, cursor]
+  glm-5.2:
+    class: cheap
+    in: 1.40
+    out: 4.40
+    cache_read: 0.26
+    backends: [cursor]
+  composer-2.5:
+    class: workhorse
+    fast: true
+    in: 0.90
+    out: 3.60
+    backends: [cursor]
+  grok-4.5:
+    class: workhorse
+    in: 2.0
+    out: 6.0
+    cache_read: 0.50
+    backends: [cursor]
+  grok-4.5-fast:
+    class: workhorse
+    fast: true
+    in: 4.0
+    out: 18.0
+    backends: [cursor]
+  sonnet-5:
+    class: workhorse
+    in: 3.0
+    out: 15.0
+    cache_read: 0.30
+    backends: [claude, cursor]
+  opus-4.8-high:
+    class: opus-class
+    in: 5.0
+    out: 25.0
+    cache_read: 0.50
+    backends: [cursor, claude]
+  gpt-5.6-sol:
+    class: opus-class
+    in: 5.0
+    out: 30.0
+    backends: [cursor]
+  kimi-k3:
+    class: frontier
+    in: 1.0
+    out: 4.0
+    backends: [cursor]
+  fable-5-high:
+    class: frontier
+    in: 10.0
+    out: 50.0
+    cache_read: 1.0
+    backends: [cursor, claude]

@@ -1,6 +1,7 @@
 import { CursorBackend } from "./backends/cursor.ts";
 import { ClaudeBackend } from "./backends/claude.ts";
 import { availableBackends } from "./backends/index.ts";
+import { loadCatalog } from "./catalog.ts";
 import { which } from "./which.ts";
 import { findDirectivePath, relayConfigDir, relayDataDir } from "./paths.ts";
 import { loadDirective, resolveTier } from "./directive.ts";
@@ -21,6 +22,14 @@ export async function runDoctor(cwd: string = process.cwd()): Promise<string> {
 
   lines.push(`config dir: ${relayConfigDir()}${existsSync(relayConfigDir()) ? "" : " (missing — run relay init)"}`);
   lines.push(`data dir:   ${relayDataDir()}`);
+  try {
+    const { catalog, source } = loadCatalog();
+    lines.push(
+      `catalog:    ${Object.keys(catalog.models).length} models · updated ${catalog.updated} · source ${source} (refresh: relay update)`,
+    );
+  } catch (e) {
+    lines.push(`catalog:    ERROR ${(e as Error).message}`);
+  }
   lines.push("");
 
   const reports = await Promise.all([

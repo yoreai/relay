@@ -34,12 +34,16 @@ bun run src/cli.ts doctor
 ## Quick use
 
 ```bash
+relay setup                         # register relay as an MCP tool in Cursor/Claude Code
 relay init                          # write ~/.config/relay/router.yaml
-relay doctor                        # backends found? authed?
+relay doctor                        # backends found? tier resolution on this machine?
 relay "fix the flaky retry test"   # route → run → verify → receipt
 relay --dry-run "review auth.ts"    # see routing without running
 relay -i                            # interactive REPL
 relay savings --by-lane
+relay update                        # refresh the model catalog (facts, not policy)
+relay advise                        # cheaper same-class models for your tiers
+relay advise --apply                # accept the suggestions into router.yaml
 ```
 
 ### MCP (Cursor / Claude Code)
@@ -97,9 +101,30 @@ Repo `./router.yaml` or `.relay/router.yaml` overrides `~/.config/relay/router.y
 People share directives, not tribal knowledge. See [`defaults/router.yaml`](./defaults/router.yaml)
 and [`PLAN.md`](./PLAN.md) for the full schema.
 
+## Staying current (facts vs policy)
+
+The model market moves; a routing table nobody looks at silently overpays. Relay splits this:
+
+- **Facts** — [`defaults/catalog.yaml`](./defaults/catalog.yaml): which models exist, prices,
+  and a *quality class* per model (`nano → cheap → workhorse → opus-class → frontier`).
+  `relay update` fetches the latest catalog; a scheduled CI job keeps the repo copy honest
+  (it fails red when the catalog goes 45 days without review).
+- **Policy** — your `router.yaml`. Relay **never** rewrites it behind your back.
+  `relay advise` diffs your tiers against the catalog and proposes swaps *within the same
+  quality class* (e.g. a frontier-class model at a tenth the price), citing your own local
+  verify-success rates as evidence. `relay advise --apply` accepts — as a visible,
+  git-diffable edit.
+
+## Roadmap
+
+- Codex / Gemini CLI backends (same adapter pattern as claude)
+- Success-rate-aware advise (already logs verify results per model)
+- Frankie adapter as a separate plugin package
+- Windows, npm SDK
+
 ## Status
 
-**v0.2.0** — CLI + MCP + cursor/claude backends with per-tier fallback + verify/escalate + receipts + packaging.
+**v0.3.0** — CLI + MCP + cursor/claude backends with per-tier fallback + verify/escalate + receipts + model catalog with `update`/`advise` + one-command agent setup.
 
 Not v1 yet: Windows, npm SDK, Codex backend, Frankie adapter (planned as a separate plugin).
 
