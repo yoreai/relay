@@ -1,0 +1,20 @@
+---
+description: What to update with each code change or version release
+alwaysApply: true
+---
+
+# Change & Release Checklist
+
+## Every code change
+- `CHANGELOG.md` — add entry under `[Unreleased]`
+- Add/update tests for changed behavior
+- Keep Frankie/Abridge out of core (`src/`)
+
+There is intentionally no `TODO.md`. See `AGENTS.md` for the source-of-truth file list.
+
+## Version bump (before tagging)
+- `package.json` — `version`
+- `src/cli.ts` — `VERSION` constant
+- `CHANGELOG.md` — move `[Unreleased]` to new `[x.y.z]` section, update compare links
+- Tag: `git tag v0.x.y && git push origin v0.x.y` (triggers binary release)
+- Update `yoreai/homebrew-tap` formula URL + sha256 after release assets exist

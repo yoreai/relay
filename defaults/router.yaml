@@ -1,0 +1,37 @@
+version: 1
+baseline: fable-5-high
+tiers:
+  nano: { backend: cursor, model: gpt-5.6-luna, effort: low }
+  cheap: { backend: cursor, model: glm-5.2 }
+  work: { backend: cursor, model: grok-4.5 }
+  fast: { backend: cursor, model: grok-4.5-fast }
+  review: { backend: cursor, model: opus-4.8-high }
+  deep: { backend: cursor, model: fable-5-high }
+lanes:
+  - name: status
+    match: { verbs: [status, summarize, watch, check, list, read] }
+    tier: nano
+    write: none
+  - name: quickfix
+    match: { verbs: [fix, rename, update, bump, add-test], max_files: 5 }
+    tier: work
+    verify: [lint, test]
+    write: stage
+  - name: build
+    match: { verbs: [build, implement, feature], walkaway: true }
+    tier: work
+    write: worktree
+  - name: review
+    match: { verbs: [review, diagnose, root-cause, audit] }
+    tier: review
+    write: none
+default_lane: quickfix
+escalation:
+  widen_after: 1
+  escalate_after: 2
+verify_commands:
+  lint: "auto"
+  test: "auto"
+classifier:
+  tier: nano
+  enabled: true
