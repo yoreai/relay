@@ -29,15 +29,8 @@ export function findDirectivePath(cwd: string): string | null {
   return null;
 }
 
-export function bundledRouterPath(): string {
-  return join(import.meta.dir, "..", "defaults", "router.yaml");
-}
-
-export function bundledPricesPath(): string {
-  return join(import.meta.dir, "..", "defaults", "prices.yaml");
-}
-
-export function findPricesPath(cwd: string): string {
+/** Path to an on-disk prices file, or null to use embedded defaults. */
+export function findPricesPath(cwd: string): string | null {
   const candidates = [
     join(cwd, "prices.yaml"),
     join(cwd, ".relay", "prices.yaml"),
@@ -46,5 +39,5 @@ export function findPricesPath(cwd: string): string {
   for (const p of candidates) {
     if (existsSync(p)) return p;
   }
-  return bundledPricesPath();
+  return null;
 }

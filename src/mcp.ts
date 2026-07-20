@@ -10,7 +10,7 @@ import { briefFromTask, parseBrief } from "./brief.ts";
 
 export async function serveMcp(): Promise<void> {
   const server = new Server(
-    { name: "relay", version: "0.1.0" },
+    { name: "relay", version: "0.1.1" },
     { capabilities: { tools: {} } },
   );
 

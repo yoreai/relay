@@ -1,6 +1,7 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
+import { EMBEDDED_PRICES_YAML } from "./embedded_defaults.ts";
 import { findPricesPath } from "./paths.ts";
 import type { Usage } from "./backends/types.ts";
 
@@ -33,7 +34,9 @@ export type Receipt = {
 
 export function loadPrices(cwd: string = process.cwd()): Prices {
   const path = findPricesPath(cwd);
-  const raw = parseYaml(readFileSync(path, "utf8"));
+  const text =
+    path && existsSync(path) ? readFileSync(path, "utf8") : EMBEDDED_PRICES_YAML;
+  const raw = parseYaml(text);
   return PricesSchema.parse(raw);
 }
 

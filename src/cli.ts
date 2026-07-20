@@ -5,7 +5,7 @@ import { serveMcp } from "./mcp.ts";
 import { formatOutcome, runTask } from "./run.ts";
 import { getRun, readRuns, summarizeSavings } from "./runlog.ts";
 
-const VERSION = "0.1.0";
+const VERSION = "0.1.1";
 
 function usage(): string {
   return `relay ${VERSION} — interface-independent task router

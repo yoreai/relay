@@ -1,10 +1,8 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
-import {
-  bundledRouterPath,
-  findDirectivePath,
-} from "./paths.ts";
+import { EMBEDDED_ROUTER_YAML } from "./embedded_defaults.ts";
+import { findDirectivePath } from "./paths.ts";
 
 const TierSpecSchema = z.object({
   backend: z.enum(["cursor", "claude", "fake"]),
@@ -66,8 +64,10 @@ export function loadDirectiveFromText(text: string): Directive {
 }
 
 export function loadDirective(cwd: string = process.cwd()): Directive {
-  const path = findDirectivePath(cwd) ?? bundledRouterPath();
-  const text = readFileSync(path, "utf8");
+  const path = findDirectivePath(cwd);
+  const text = path && existsSync(path)
+    ? readFileSync(path, "utf8")
+    : EMBEDDED_ROUTER_YAML;
   return loadDirectiveFromText(text);
 }
 
