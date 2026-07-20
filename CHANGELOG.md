@@ -7,11 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-07-20
+
 ### Added
 
+- Release workflow auto-bumps the homebrew-tap formula (deploy-key push;
+  no more manual sha256 ritual)
 - Catalog freshness CI auto-files a `catalog` issue on failure (deduped)
 - AGENTS.md documents the catalog maintenance ritual (data ships from main
   via `relay update`; no release required)
+- README badges, CONTRIBUTING.md, brew caveats pointing at `relay setup`
 
 ## [0.4.0] — 2026-07-20
 
@@ -89,7 +94,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/yoreai/relay/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/yoreai/relay/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/yoreai/relay/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/yoreai/relay/compare/v0.1.1...v0.2.0

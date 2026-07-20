@@ -17,4 +17,5 @@ There is intentionally no `TODO.md`. See `AGENTS.md` for the source-of-truth fil
 - `src/version.ts` — `RELAY_VERSION` constant (cli + mcp + update read it)
 - `CHANGELOG.md` — move `[Unreleased]` to new `[x.y.z]` section, update compare links
 - Tag: `git tag v0.x.y && git push origin v0.x.y` (triggers binary release)
-- Update `yoreai/homebrew-tap` formula URL + sha256 after release assets exist
+- Tap formula bumps automatically (release workflow `bump-tap` job); verify
+  with `brew update && brew info yoreai/tap/relay`

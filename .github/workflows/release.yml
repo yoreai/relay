@@ -74,3 +74,103 @@ jobs:
             dist/relay-darwin-x64
             dist/relay-linux-x64
             dist/relay-linux-arm64
+
+  bump-tap:
+    name: bump homebrew-tap formula
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: relay-binaries
+          path: dist
+      - name: Resolve version
+        id: ver
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "version=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Push formula
+        env:
+          TAP_DEPLOY_KEY: ${{ secrets.TAP_DEPLOY_KEY }}
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          echo "$TAP_DEPLOY_KEY" > ~/.ssh/tap_key
+          chmod 600 ~/.ssh/tap_key
+          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/tap_key -o IdentitiesOnly=yes"
+
+          SHA_DARWIN_ARM64=$(sha256sum dist/relay-darwin-arm64 | cut -d' ' -f1)
+          SHA_DARWIN_X64=$(sha256sum dist/relay-darwin-x64 | cut -d' ' -f1)
+          SHA_LINUX_ARM64=$(sha256sum dist/relay-linux-arm64 | cut -d' ' -f1)
+          SHA_LINUX_X64=$(sha256sum dist/relay-linux-x64 | cut -d' ' -f1)
+
+          git clone git@github.com:yoreai/homebrew-tap.git tap
+          cd tap
+          git config user.name "relay-release-bot"
+          git config user.email "2724321+yoreai@users.noreply.github.com"
+
+          cat > Formula/relay.rb <<EOF
+          class Relay < Formula
+            desc "Interface-independent task router for AI agents"
+            homepage "https://github.com/yoreai/relay"
+            version "${VERSION}"
+            license "Apache-2.0"
+
+            on_macos do
+              on_arm do
+                url "https://github.com/yoreai/relay/releases/download/v${VERSION}/relay-darwin-arm64"
+                sha256 "${SHA_DARWIN_ARM64}"
+              end
+              on_intel do
+                url "https://github.com/yoreai/relay/releases/download/v${VERSION}/relay-darwin-x64"
+                sha256 "${SHA_DARWIN_X64}"
+              end
+            end
+
+            on_linux do
+              on_arm do
+                url "https://github.com/yoreai/relay/releases/download/v${VERSION}/relay-linux-arm64"
+                sha256 "${SHA_LINUX_ARM64}"
+              end
+              on_intel do
+                url "https://github.com/yoreai/relay/releases/download/v${VERSION}/relay-linux-x64"
+                sha256 "${SHA_LINUX_X64}"
+              end
+            end
+
+            def install
+              bin.install Dir["relay-*"].first => "relay"
+            end
+
+            def caveats
+              <<~EOS
+                Next step (one command):
+                  relay setup     # registers relay as an MCP tool in Cursor / Claude Code
+
+                Then check everything is wired:
+                  relay doctor    # which agent CLIs were found + where each tier routes
+
+                relay stores no credentials — it uses your existing cursor-agent /
+                claude / codex logins. To make agents delegate automatically, add the
+                "Delegation policy" snippet from the README to your repo's AGENTS.md.
+              EOS
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/relay --version")
+            end
+          end
+          EOF
+
+          git add Formula/relay.rb
+          if git diff --cached --quiet; then
+            echo "formula unchanged, skipping"
+          else
+            git commit -m "chore: bump relay formula to v${VERSION} (automated)"
+            git push origin main
+          fi

@@ -1,5 +1,11 @@
 # relay
 
+[![CI](https://github.com/yoreai/relay/actions/workflows/ci.yml/badge.svg)](https://github.com/yoreai/relay/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/yoreai/relay?color=0e8a16)](https://github.com/yoreai/relay/releases/latest)
+[![Catalog freshness](https://github.com/yoreai/relay/actions/workflows/catalog.yml/badge.svg)](https://github.com/yoreai/relay/actions/workflows/catalog.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](./LICENSE)
+[![Homebrew](https://img.shields.io/badge/brew-yoreai%2Ftap%2Frelay-fbb040)](https://github.com/yoreai/homebrew-tap)
+
 **The interface-independent task router for AI agents.**
 
 Hand relay a task in plain English — from your terminal, or from any agent that speaks MCP

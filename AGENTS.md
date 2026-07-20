@@ -36,10 +36,11 @@ or goes 45 days without review.
 
 ## Before a version release
 
-1. Bump `version` in `package.json`
+1. Bump `version` in `package.json` and `RELAY_VERSION` in `src/version.ts`
 2. Move `[Unreleased]` entries in `CHANGELOG.md` to a new version section
 3. Commit, tag `vX.Y.Z`, push tag (triggers binary release workflow)
-4. Update `yoreai/homebrew-tap` formula URL + sha256
+4. The release workflow auto-bumps `yoreai/homebrew-tap` (deploy key in
+   `TAP_DEPLOY_KEY` secret) — verify with `brew update && brew upgrade relay`
 
 ## Architecture quick reference
 
