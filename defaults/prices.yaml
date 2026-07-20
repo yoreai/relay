@@ -28,5 +28,13 @@ models:
   gpt-5.6-sol:
     in: 5.0
     out: 30.0
+  sonnet-5:
+    in: 3.0
+    out: 15.0
+    cache_read: 0.30
+  haiku-4.5:
+    in: 0.80
+    out: 4.0
+    cache_read: 0.08
 # Rough bytes→token estimate when a backend does not report usage
 bytes_per_token: 4

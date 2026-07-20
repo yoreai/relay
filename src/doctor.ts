@@ -1,8 +1,9 @@
 import { CursorBackend } from "./backends/cursor.ts";
 import { ClaudeBackend } from "./backends/claude.ts";
+import { availableBackends } from "./backends/index.ts";
 import { which } from "./which.ts";
 import { findDirectivePath, relayConfigDir, relayDataDir } from "./paths.ts";
-import { loadDirective } from "./directive.ts";
+import { loadDirective, resolveTier } from "./directive.ts";
 import { existsSync } from "node:fs";
 
 export async function runDoctor(cwd: string = process.cwd()): Promise<string> {
@@ -31,6 +32,27 @@ export async function runDoctor(cwd: string = process.cwd()): Promise<string> {
     const mark = r.present ? "✓" : "✗";
     lines.push(`${mark} ${r.backend}: ${r.message}`);
     if (r.fix && !r.present) lines.push(`    fix: ${r.fix}`);
+  }
+
+  // Show where each tier actually lands on THIS machine
+  try {
+    const d = loadDirective(cwd);
+    const available = availableBackends();
+    lines.push("");
+    lines.push("tier resolution (on this machine):");
+    for (const tierName of Object.keys(d.tiers)) {
+      try {
+        const t = resolveTier(d, tierName, available);
+        lines.push(
+          `  ${tierName.padEnd(7)} → ${t.backend}/${t.model}` +
+            (t.fallback ? "  (fallback)" : ""),
+        );
+      } catch {
+        lines.push(`  ${tierName.padEnd(7)} → ✗ no installed backend`);
+      }
+    }
+  } catch {
+    // directive already reported above
   }
 
   lines.push("");

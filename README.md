@@ -78,7 +78,10 @@ Tools: `relay_run`, `relay_status`, `relay_savings`.
 
 ## How it works
 
-1. **Directive** — versioned `router.yaml` maps lanes → capability tiers → concrete models
+1. **Directive** — versioned `router.yaml` maps lanes → capability tiers → concrete models.
+   Each tier is an ordered fallback list: the first candidate whose backend CLI is
+   installed wins, so a claude-only (or cursor-only) machine routes every tier with
+   zero config. `relay doctor` shows exactly where each tier lands on your machine.
 2. **Route** — rules-first (verbs, file hints, walkaway); default lane if unsure
 3. **Run** — headless `cursor-agent` or `claude` in your working tree
 4. **Verify → widen → escalate** — thin briefs that self-heal before spending frontier tokens
@@ -96,7 +99,7 @@ and [`PLAN.md`](./PLAN.md) for the full schema.
 
 ## Status
 
-**v0.1.1** — CLI + MCP + cursor/claude backends + verify/escalate + receipts + packaging.
+**v0.2.0** — CLI + MCP + cursor/claude backends with per-tier fallback + verify/escalate + receipts + packaging.
 
 Not v1 yet: Windows, npm SDK, Codex backend, Frankie adapter (planned as a separate plugin).
 

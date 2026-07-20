@@ -2,7 +2,7 @@ import { briefFromTask, parseBrief, type Brief } from "./brief.ts";
 import { loadDirective, resolveTier, type Directive } from "./directive.ts";
 import { routeTask } from "./route.ts";
 import { assembleContext } from "./context/assemble.ts";
-import { getBackend } from "./backends/index.ts";
+import { availableBackends, getBackend } from "./backends/index.ts";
 import { runVerify } from "./verify.ts";
 import { nextEscalation, type EscalationState } from "./escalate.ts";
 import { loadPrices, makeReceipt, type Receipt } from "./savings.ts";
@@ -59,8 +59,11 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
     walkaway: opts.walkaway,
   });
 
+  // With an explicit backend override (tests), skip availability filtering.
+  const available = opts.backendOverride ? undefined : availableBackends();
+
   let tierName = decision.tier;
-  let tier = resolveTier(directive, tierName);
+  let tier = resolveTier(directive, tierName, available);
   if (opts.backendOverride) {
     tier = { ...tier, backend: opts.backendOverride as typeof tier.backend };
   }
@@ -83,7 +86,8 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
       receipt: null,
       output: [
         `lane: ${decision.lane.name}`,
-        `tier: ${tierName} → ${tier.backend}/${tier.model}`,
+        `tier: ${tierName} → ${tier.backend}/${tier.model}` +
+          (tier.fallback ? " (fallback — preferred backend not installed)" : ""),
         `write: ${decision.lane.write}`,
         `reason: ${decision.reason}`,
         `brief.goal: ${brief.goal}`,
@@ -132,7 +136,13 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
 
   while (true) {
     tierName = state.tier;
-    tier = resolveTier(directive, tierName);
+    try {
+      tier = resolveTier(directive, tierName, available);
+    } catch (e) {
+      // escalation landed on a tier with no installed backend — stop here
+      lastOutput += `\n\n[relay] ${(e as Error).message}`;
+      break;
+    }
     if (opts.backendOverride) {
       tier = { ...tier, backend: opts.backendOverride as typeof tier.backend };
     }

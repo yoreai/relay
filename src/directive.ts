@@ -10,6 +10,11 @@ const TierSpecSchema = z.object({
   effort: z.string().optional(),
 });
 
+/** A tier is one spec or an ordered fallback list; first available backend wins. */
+const TierCandidatesSchema = z
+  .union([TierSpecSchema, z.array(TierSpecSchema).min(1)])
+  .transform((v) => (Array.isArray(v) ? v : [v]));
+
 const MatchSchema = z.object({
   verbs: z.array(z.string()).default([]),
   max_files: z.number().int().positive().optional(),
@@ -28,7 +33,7 @@ const LaneSchema = z.object({
 export const DirectiveSchema = z.object({
   version: z.literal(1),
   baseline: z.string().min(1),
-  tiers: z.record(z.string(), TierSpecSchema),
+  tiers: z.record(z.string(), TierCandidatesSchema),
   lanes: z.array(LaneSchema).min(1),
   default_lane: z.string().min(1),
   escalation: z
@@ -71,14 +76,40 @@ export function loadDirective(cwd: string = process.cwd()): Directive {
   return loadDirectiveFromText(text);
 }
 
-export function resolveTier(directive: Directive, tierName: string): TierSpec {
-  const tier = directive.tiers[tierName];
-  if (!tier) {
+export type ResolvedTier = TierSpec & {
+  /** true when an earlier candidate was skipped because its backend is absent */
+  fallback: boolean;
+};
+
+/**
+ * Pick the first tier candidate whose backend is available.
+ * Without an availability set, the first candidate wins (policy order).
+ */
+export function resolveTier(
+  directive: Directive,
+  tierName: string,
+  available?: Set<string>,
+): ResolvedTier {
+  const candidates = directive.tiers[tierName];
+  if (!candidates || candidates.length === 0) {
     throw new Error(
       `Unknown tier "${tierName}". Known: ${Object.keys(directive.tiers).join(", ")}`,
     );
   }
-  return tier;
+  if (!available) return { ...candidates[0]!, fallback: false };
+
+  for (let i = 0; i < candidates.length; i++) {
+    const c = candidates[i]!;
+    if (available.has(c.backend)) {
+      return { ...c, fallback: i > 0 };
+    }
+  }
+
+  const wanted = [...new Set(candidates.map((c) => c.backend))].join(", ");
+  throw new Error(
+    `tier "${tierName}": no candidate backend available (needs one of: ${wanted}). ` +
+      `Run \`relay doctor\` to see what's installed.`,
+  );
 }
 
 export function findLane(directive: Directive, name: string): Lane {

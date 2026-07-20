@@ -3,12 +3,24 @@
 export const EMBEDDED_ROUTER_YAML = `version: 1
 baseline: fable-5-high
 tiers:
-  nano: { backend: cursor, model: gpt-5.6-luna, effort: low }
-  cheap: { backend: cursor, model: glm-5.2 }
-  work: { backend: cursor, model: grok-4.5 }
-  fast: { backend: cursor, model: grok-4.5-fast }
-  review: { backend: cursor, model: opus-4.8-high }
-  deep: { backend: cursor, model: fable-5-high }
+  nano:
+    - { backend: cursor, model: gpt-5.6-luna, effort: low }
+    - { backend: claude, model: haiku-4.5 }
+  cheap:
+    - { backend: cursor, model: glm-5.2 }
+    - { backend: claude, model: haiku-4.5 }
+  work:
+    - { backend: cursor, model: grok-4.5 }
+    - { backend: claude, model: sonnet-5 }
+  fast:
+    - { backend: cursor, model: grok-4.5-fast }
+    - { backend: claude, model: sonnet-5 }
+  review:
+    - { backend: cursor, model: opus-4.8-high }
+    - { backend: claude, model: opus-4.8-high }
+  deep:
+    - { backend: cursor, model: fable-5-high }
+    - { backend: claude, model: fable-5-high }
 lanes:
   - name: status
     match: { verbs: [status, summarize, watch, check, list, read] }
@@ -67,5 +79,13 @@ models:
   gpt-5.6-sol:
     in: 5.0
     out: 30.0
+  sonnet-5:
+    in: 3.0
+    out: 15.0
+    cache_read: 0.30
+  haiku-4.5:
+    in: 0.80
+    out: 4.0
+    cache_read: 0.08
 bytes_per_token: 4
 `;

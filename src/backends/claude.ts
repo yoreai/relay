@@ -9,7 +9,7 @@ import {
   type DoctorReport,
 } from "./types.ts";
 
-function discoverClaudeBinary(override?: string): string | null {
+export function discoverClaudeBinary(override?: string): string | null {
   if (override) return which(override) ? override : null;
   const env = process.env.RELAY_CLAUDE_BIN;
   if (env && which(env)) return env;

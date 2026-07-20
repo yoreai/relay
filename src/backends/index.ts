@@ -1,6 +1,6 @@
 import type { Backend } from "./types.ts";
-import { CursorBackend } from "./cursor.ts";
-import { ClaudeBackend } from "./claude.ts";
+import { CursorBackend, discoverCursorBinary } from "./cursor.ts";
+import { ClaudeBackend, discoverClaudeBinary } from "./claude.ts";
 import { FakeBackend } from "./fake.ts";
 
 export function getBackend(name: string): Backend {
@@ -17,6 +17,14 @@ export function getBackend(name: string): Backend {
           (process.env.RELAY_ALLOW_FAKE ? ", fake" : ""),
       );
   }
+}
+
+/** Backends whose CLI is actually present on this machine right now. */
+export function availableBackends(): Set<string> {
+  const s = new Set<string>(["fake"]);
+  if (discoverCursorBinary()) s.add("cursor");
+  if (discoverClaudeBinary()) s.add("claude");
+  return s;
 }
 
 export type { Backend, BackendResult, DoctorReport, Usage } from "./types.ts";
