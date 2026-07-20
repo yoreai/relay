@@ -96,7 +96,7 @@ and [`PLAN.md`](./PLAN.md) for the full schema.
 
 ## Status
 
-**v0.1.0** — CLI + MCP + cursor/claude backends + verify/escalate + receipts + packaging.
+**v0.1.1** — CLI + MCP + cursor/claude backends + verify/escalate + receipts + packaging.
 
 Not v1 yet: Windows, npm SDK, Codex backend, Frankie adapter (planned as a separate plugin).
 
