@@ -6,21 +6,33 @@ tiers:
   nano:
     - { backend: cursor, model: gpt-5.6-luna, effort: low }
     - { backend: claude, model: haiku-4.5 }
+    - { backend: codex, model: gpt-5.6-luna }
+    - { backend: gemini, model: gemini-3-flash }
   cheap:
     - { backend: cursor, model: glm-5.2 }
     - { backend: claude, model: haiku-4.5 }
+    - { backend: gemini, model: gemini-3-flash }
+    - { backend: codex, model: gpt-5.6-luna }
   work:
     - { backend: cursor, model: grok-4.5 }
     - { backend: claude, model: sonnet-5 }
+    - { backend: codex, model: gpt-5.6-sol }
+    - { backend: gemini, model: gemini-3-pro }
   fast:
     - { backend: cursor, model: grok-4.5-fast }
     - { backend: claude, model: sonnet-5 }
+    - { backend: gemini, model: gemini-3-flash }
+    - { backend: codex, model: gpt-5.6-luna }
   review:
     - { backend: cursor, model: opus-4.8-high }
     - { backend: claude, model: opus-4.8-high }
+    - { backend: codex, model: gpt-5.6-sol }
+    - { backend: gemini, model: gemini-3-pro }
   deep:
     - { backend: cursor, model: fable-5-high }
     - { backend: claude, model: fable-5-high }
+    - { backend: codex, model: gpt-5.6-sol }
+    - { backend: gemini, model: gemini-3-pro }
 lanes:
   - name: status
     match: { verbs: [status, summarize, watch, check, list, read] }

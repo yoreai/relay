@@ -1,5 +1,6 @@
 import { CursorBackend } from "./backends/cursor.ts";
 import { ClaudeBackend } from "./backends/claude.ts";
+import { CLI_SPECS, GenericCliBackend } from "./backends/cli.ts";
 import { availableBackends } from "./backends/index.ts";
 import { loadCatalog } from "./catalog.ts";
 import { which } from "./which.ts";
@@ -35,6 +36,9 @@ export async function runDoctor(cwd: string = process.cwd()): Promise<string> {
   const reports = await Promise.all([
     new CursorBackend().doctor(),
     new ClaudeBackend().doctor(),
+    ...Object.values(CLI_SPECS).map((spec) =>
+      new GenericCliBackend(spec).doctor(),
+    ),
   ]);
 
   for (const r of reports) {

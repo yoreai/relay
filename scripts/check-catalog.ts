@@ -4,6 +4,7 @@
 // — so staleness FAILS the build and pings the maintainer.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { KNOWN_BACKENDS } from "../src/backends/index.ts";
 import { parseCatalog } from "../src/catalog.ts";
 import { loadDirectiveFromText } from "../src/directive.ts";
 
@@ -41,7 +42,17 @@ if (!catalog.models[directive.baseline]) {
   errors.push(`baseline "${directive.baseline}" missing from catalog`);
 }
 
-// 3. freshness — the whole point is that this table is always looked at
+// 3. every catalog backend must have a relay adapter
+const known = new Set<string>(KNOWN_BACKENDS);
+for (const [id, m] of Object.entries(catalog.models)) {
+  for (const b of m.backends) {
+    if (!known.has(b)) {
+      errors.push(`model "${id}": backend "${b}" has no relay adapter`);
+    }
+  }
+}
+
+// 4. freshness — the whole point is that this table is always looked at
 const ageDays =
   (Date.now() - new Date(catalog.updated + "T00:00:00Z").getTime()) / 86_400_000;
 if (ageDays > MAX_AGE_DAYS) {

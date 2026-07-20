@@ -100,7 +100,8 @@ That single paragraph is where most of the savings come from.
    installed wins, so a claude-only (or cursor-only) machine routes every tier with
    zero config. `relay doctor` shows exactly where each tier lands on your machine.
 2. **Route** — rules-first (verbs, file hints, walkaway); default lane if unsure
-3. **Run** — headless `cursor-agent` or `claude` in your working tree
+3. **Run** — headless `cursor-agent`, `claude`, or `codex` in your working tree
+   (experimental adapters: `gemini`, `grok`, `kimi`)
 4. **Verify → widen → escalate** — thin briefs that self-heal before spending frontier tokens
 5. **Receipt** — honest savings vs your baseline (measured when the backend reports usage,
    estimated from bytes for Cursor until its CLI emits tokens)
@@ -130,7 +131,7 @@ The model market moves; a routing table nobody looks at silently overpays. Relay
 
 ## Roadmap
 
-- Codex / Gemini CLI backends (same adapter pattern as claude)
+- Verify gemini/grok/kimi adapter flags against real installs (codex is verified)
 - Success-rate-aware advise (already logs verify results per model)
 - Frankie adapter as a separate plugin package
 - Windows, npm SDK

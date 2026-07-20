@@ -6,21 +6,33 @@ tiers:
   nano:
     - { backend: cursor, model: gpt-5.6-luna, effort: low }
     - { backend: claude, model: haiku-4.5 }
+    - { backend: codex, model: gpt-5.6-luna }
+    - { backend: gemini, model: gemini-3-flash }
   cheap:
     - { backend: cursor, model: glm-5.2 }
     - { backend: claude, model: haiku-4.5 }
+    - { backend: gemini, model: gemini-3-flash }
+    - { backend: codex, model: gpt-5.6-luna }
   work:
     - { backend: cursor, model: grok-4.5 }
     - { backend: claude, model: sonnet-5 }
+    - { backend: codex, model: gpt-5.6-sol }
+    - { backend: gemini, model: gemini-3-pro }
   fast:
     - { backend: cursor, model: grok-4.5-fast }
     - { backend: claude, model: sonnet-5 }
+    - { backend: gemini, model: gemini-3-flash }
+    - { backend: codex, model: gpt-5.6-luna }
   review:
     - { backend: cursor, model: opus-4.8-high }
     - { backend: claude, model: opus-4.8-high }
+    - { backend: codex, model: gpt-5.6-sol }
+    - { backend: gemini, model: gemini-3-pro }
   deep:
     - { backend: cursor, model: fable-5-high }
     - { backend: claude, model: fable-5-high }
+    - { backend: codex, model: gpt-5.6-sol }
+    - { backend: gemini, model: gemini-3-pro }
 lanes:
   - name: status
     match: { verbs: [status, summarize, watch, check, list, read] }
@@ -91,7 +103,7 @@ bytes_per_token: 4
 `;
 
 export const EMBEDDED_CATALOG_YAML = `version: 1
-updated: "2026-07-19"
+updated: "2026-07-20"
 classes: [nano, cheap, workhorse, opus-class, frontier]
 models:
   gpt-5.6-luna:
@@ -99,7 +111,13 @@ models:
     in: 1.0
     out: 6.0
     cache_read: 0.10
-    backends: [cursor]
+    backends: [cursor, codex]
+  gemini-3-flash:
+    class: cheap
+    fast: true
+    in: 0.30
+    out: 2.50
+    backends: [gemini, cursor]
   haiku-4.5:
     class: cheap
     in: 0.80
@@ -123,19 +141,24 @@ models:
     in: 2.0
     out: 6.0
     cache_read: 0.50
-    backends: [cursor]
+    backends: [cursor, grok]
   grok-4.5-fast:
     class: workhorse
     fast: true
     in: 4.0
     out: 18.0
-    backends: [cursor]
+    backends: [cursor, grok]
   sonnet-5:
     class: workhorse
     in: 3.0
     out: 15.0
     cache_read: 0.30
     backends: [claude, cursor]
+  gemini-3-pro:
+    class: opus-class
+    in: 2.50
+    out: 15.0
+    backends: [gemini, cursor]
   opus-4.8-high:
     class: opus-class
     in: 5.0
@@ -146,12 +169,12 @@ models:
     class: opus-class
     in: 5.0
     out: 30.0
-    backends: [cursor]
+    backends: [cursor, codex]
   kimi-k3:
     class: frontier
     in: 1.0
     out: 4.0
-    backends: [cursor]
+    backends: [cursor, kimi]
   fable-5-high:
     class: frontier
     in: 10.0

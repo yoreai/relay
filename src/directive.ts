@@ -5,7 +5,7 @@ import { EMBEDDED_ROUTER_YAML } from "./embedded_defaults.ts";
 import { findDirectivePath } from "./paths.ts";
 
 const TierSpecSchema = z.object({
-  backend: z.enum(["cursor", "claude", "fake"]),
+  backend: z.enum(["cursor", "claude", "codex", "gemini", "grok", "kimi", "fake"]),
   model: z.string().min(1),
   effort: z.string().optional(),
 });

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-07-20
+
+### Added
+
+- **Codex backend** (verified against codex-cli 0.139): `codex exec` with
+  workspace-write sandbox — never passes approval-bypass flags
+- **Experimental gemini / grok / kimi adapters** via a spec-driven generic
+  CLI backend — adding a new agent CLI is now one table entry
+- Catalog: `gemini-3-flash`, `gemini-3-pro`; codex/grok/kimi serving entries
+  for existing models
+- Default directive: codex + gemini fallback candidates on every tier, so
+  codex-only or gemini-only machines route out of the box
+- Catalog CI now fails if a catalog backend has no relay adapter
+
 ## [0.3.0] — 2026-07-19
 
 ### Added
@@ -69,7 +83,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/yoreai/relay/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/yoreai/relay/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/yoreai/relay/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/yoreai/relay/releases/tag/v0.1.1
