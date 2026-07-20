@@ -1,6 +1,7 @@
 import { which } from "../which.ts";
 import type { Brief } from "../brief.ts";
 import { renderBriefPrompt } from "../brief.ts";
+import { runCli } from "./spawn.ts";
 import {
   estimateTokensFromText,
   type Backend,
@@ -45,18 +46,9 @@ export class CursorBackend implements Backend {
       args.push("--effort", opts.effort);
     }
 
-    const proc = Bun.spawn([bin, ...args], {
+    const { stdout, stderr, exitCode } = await runCli([bin, ...args], {
       cwd: opts.cwd,
-      stdout: "pipe",
-      stderr: "pipe",
-      env: { ...process.env },
     });
-
-    const [stdout, stderr, exitCode] = await Promise.all([
-      new Response(proc.stdout).text(),
-      new Response(proc.stderr).text(),
-      proc.exited,
-    ]);
 
     const output = stdout || stderr;
     const filesChanged = parseChangedFiles(stdout);

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- All backend invocations get a hard timeout (default 10 min,
+  `RELAY_BACKEND_TIMEOUT_MS` to override): a hung CLI now fails over to the
+  next fallback backend instead of stalling the run — found because codex
+  hangs silently on unknown model ids
+
 ## [0.4.2] — 2026-07-20
 
 ### Fixed (found by dogfooding relay on itself)
