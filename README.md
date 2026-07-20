@@ -80,6 +80,19 @@ relay mcp serve
 
 Tools: `relay_run`, `relay_status`, `relay_savings`.
 
+**Make your agent actually delegate.** Registering the tool isn't enough — agents keep doing
+everything themselves unless told otherwise. Add this to your repo's `AGENTS.md` (or
+`CLAUDE.md`):
+
+```markdown
+## Delegation policy
+For mechanical subtasks — bulk edits, renames, test fixes, log/status summaries,
+lint cleanups — call the `relay_run` MCP tool with a curated brief instead of
+doing them inline. Reserve your own context for design, review, and hard debugging.
+```
+
+That single paragraph is where most of the savings come from.
+
 ## How it works
 
 1. **Directive** — versioned `router.yaml` maps lanes → capability tiers → concrete models.
