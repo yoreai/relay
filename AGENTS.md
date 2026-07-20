@@ -18,6 +18,22 @@ There is intentionally **no `TODO.md`**. Released history → `CHANGELOG.md`. De
 3. Run `bun test` and `bun run typecheck`
 4. Keep Abridge/Frankie references out of core — Frankie is an optional adapter (M6)
 
+## Catalog maintenance (every few weeks — the "always looked at" table)
+
+`defaults/catalog.yaml` is **data on main**: installed relays fetch it via
+`relay update` directly from the repo — catalog changes need **no release**.
+
+1. Review model prices/classes against provider price pages and coding-agent
+   leaderboards; add new models, drop dead ones (keep classes honest — a
+   model's class is its quality bar, advise swaps only within a class)
+2. Mirror every change in `EMBEDDED_CATALOG_YAML` (`src/embedded_defaults.ts`)
+3. Bump the `updated:` date in BOTH copies
+4. `bun run scripts/check-catalog.ts` + `bun test`, then push to main
+
+The nightly "Catalog freshness" workflow fails and auto-files a `catalog`
+issue if the table is inconsistent, references a backend with no adapter,
+or goes 45 days without review.
+
 ## Before a version release
 
 1. Bump `version` in `package.json`

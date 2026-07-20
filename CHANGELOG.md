@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Catalog freshness CI auto-files a `catalog` issue on failure (deduped)
+- AGENTS.md documents the catalog maintenance ritual (data ships from main
+  via `relay update`; no release required)
+
 ## [0.4.0] — 2026-07-20
 
 ### Added

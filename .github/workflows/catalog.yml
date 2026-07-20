@@ -15,6 +15,10 @@ on:
       - "defaults/prices.yaml"
       - "scripts/check-catalog.ts"
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -24,4 +28,22 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-      - run: bun run scripts/check-catalog.ts
+      - id: check
+        run: |
+          set -o pipefail
+          bun run scripts/check-catalog.ts 2>&1 | tee check-output.txt
+      - name: File a review issue when the check fails
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create catalog --color 0e8a16 \
+            --description "model catalog maintenance" --force || true
+          open=$(gh issue list --repo "$GITHUB_REPOSITORY" --label catalog \
+            --state open --json number --jq length)
+          if [ "$open" = "0" ]; then
+            gh issue create --repo "$GITHUB_REPOSITORY" \
+              --title "Catalog review needed ($(date -u +%Y-%m-%d))" \
+              --label catalog \
+              --body "$(printf 'The nightly catalog check failed:\n\n```\n%s\n```\n\nMaintenance ritual: see AGENTS.md → "Catalog maintenance". Push the fix to main — installed relays pick it up via `relay update`, no release needed.\n' "$(cat check-output.txt)")"
+          fi
