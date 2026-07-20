@@ -60,6 +60,8 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
   });
 
   // With an explicit backend override (tests), skip availability filtering.
+  // Mutable during the run: a backend that hard-fails (auth, crash) is
+  // dropped so retries re-resolve onto the next fallback candidate.
   const available = opts.backendOverride ? undefined : availableBackends();
 
   let tierName = decision.tier;
@@ -155,27 +157,53 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
     });
     const runBrief: Brief = { ...brief, context };
 
+    // Snapshot the tree so we only attribute (and stage) files THIS run
+    // touched — never the user's pre-existing uncommitted work.
+    const preexisting = new Set(await listChangedFiles(workCwd));
+
     const backend = getBackend(tier.backend);
     const result = await backend.run(runBrief, {
       cwd: workCwd,
       model: tier.model,
       effort: tier.effort,
+      write: decision.lane.write,
     });
     lastOutput = result.output;
     usage = result.usage;
     filesChanged = result.filesChanged.length
       ? result.filesChanged
-      : await listChangedFiles(workCwd);
+      : (await listChangedFiles(workCwd)).filter((f) => !preexisting.has(f));
 
-    if (decision.lane.write === "stage" || decision.lane.write === "worktree") {
+    if (
+      (decision.lane.write === "stage" || decision.lane.write === "worktree") &&
+      filesChanged.length > 0
+    ) {
       await stagePaths(workCwd, filesChanged);
-      filesChanged = await listChangedFiles(workCwd);
     }
 
     const verify = await runVerify(workCwd, directive, decision.lane.verify);
     verifyOk = verify.ok && result.exitCode === 0;
 
     if (verifyOk) break;
+
+    // Backend-level failure (non-zero exit, nothing produced): the backend
+    // itself is broken here (unauthenticated, crashed) — drop it and retry
+    // the SAME tier on the next fallback candidate before escalating models.
+    if (
+      result.exitCode !== 0 &&
+      filesChanged.length === 0 &&
+      available?.has(tier.backend) &&
+      available.size > 1
+    ) {
+      available.delete(tier.backend);
+      try {
+        resolveTier(directive, tierName, available);
+        lastOutput += `\n\n[relay] backend ${tier.backend} failed (exit ${result.exitCode}) → trying next fallback backend`;
+        continue;
+      } catch {
+        // no other backend can serve this tier — fall through to escalation
+      }
+    }
 
     const action = nextEscalation(directive, state);
     if (action.kind === "stop") {

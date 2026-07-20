@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] — 2026-07-20
+
+### Fixed (found by dogfooding relay on itself)
+
+- Backend hard-failure (auth error, crash) now retries the same tier on the
+  next fallback backend instead of pointlessly escalating models
+- Claude backend maps catalog ids to the CLI's model aliases
+  (sonnet-5 → sonnet), passes `--verbose` (required for stream-json), and
+  uses `--permission-mode acceptEdits` for edit lanes — still never
+  `--dangerously-skip-permissions`
+- Only files touched by the run are attributed/staged — pre-existing
+  uncommitted work is left alone
+- `relay doctor` probes cursor headless auth with a real invocation
+  (interactive login does not imply `-p` mode works)
+- `fake` backend removed from availability unless `RELAY_ALLOW_FAKE` is set
+
 ## [0.4.1] — 2026-07-20
 
 ### Added
@@ -94,7 +110,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/yoreai/relay/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/yoreai/relay/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/yoreai/relay/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/yoreai/relay/compare/v0.2.0...v0.3.0

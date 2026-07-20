@@ -81,15 +81,48 @@ export class CursorBackend implements Backend {
         fix: "Install Cursor CLI and ensure `cursor-agent` (or `agent`) is on PATH, then run `cursor-agent login`",
       };
     }
+    const authed = await probeCursorAuth(bin);
     return {
       backend: this.name,
       present: true,
       binary: bin,
-      authed: "unknown",
+      authed,
       modelsListable: false,
-      message: `found ${bin} (auth not probed; run \`${bin} login\` if calls fail)`,
-      fix: `${bin} login`,
+      message:
+        authed === true
+          ? `found ${bin} (authenticated)`
+          : authed === false
+            ? `found ${bin} — NOT authenticated for headless runs`
+            : `found ${bin} (auth probe inconclusive)`,
+      fix: authed === false ? `${bin} login  (or set CURSOR_API_KEY)` : undefined,
     };
+  }
+}
+
+/**
+ * Headless (-p) mode can require CURSOR_API_KEY even when interactive login
+ * succeeded — probe with a tiny real invocation so doctor tells the truth.
+ */
+async function probeCursorAuth(bin: string): Promise<boolean | "unknown"> {
+  try {
+    const proc = Bun.spawn(
+      [bin, "-p", "say only: ok", "--model", "gpt-5.6-luna", "--output-format", "text"],
+      { stdout: "pipe", stderr: "pipe", env: { ...process.env } },
+    );
+    const timeout = setTimeout(() => proc.kill(), 20_000);
+    const [out, err, code] = await Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+      proc.exited,
+    ]);
+    clearTimeout(timeout);
+    const text = out + err;
+    if (/authentication required|not authenticated|login/i.test(text) && code !== 0) {
+      return false;
+    }
+    return code === 0 ? true : "unknown";
+  } catch {
+    return "unknown";
   }
 }
 

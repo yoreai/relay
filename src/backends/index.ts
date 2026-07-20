@@ -32,7 +32,8 @@ export function getBackend(name: string): Backend {
 
 /** Backends whose CLI is actually present on this machine right now. */
 export function availableBackends(): Set<string> {
-  const s = new Set<string>(["fake"]);
+  const s = new Set<string>();
+  if (process.env.RELAY_ALLOW_FAKE) s.add("fake");
   if (discoverCursorBinary()) s.add("cursor");
   if (discoverClaudeBinary()) s.add("claude");
   for (const [name, spec] of Object.entries(CLI_SPECS)) {

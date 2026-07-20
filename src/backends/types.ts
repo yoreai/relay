@@ -18,6 +18,12 @@ export type BackendRunOpts = {
   cwd: string;
   model: string;
   effort?: string;
+  /**
+   * Lane write mode. Backends may translate this into their narrowest
+   * edit-permission flag (e.g. claude --permission-mode acceptEdits) —
+   * never into blanket permission bypasses.
+   */
+  write?: "none" | "stage" | "worktree";
   /** Injected binary override (tests / config). */
   binary?: string;
   signal?: AbortSignal;

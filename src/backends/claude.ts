@@ -9,6 +9,21 @@ import {
   type DoctorReport,
 } from "./types.ts";
 
+/**
+ * The claude CLI resolves model ALIASES (sonnet/haiku/opus), not the
+ * canonical catalog ids relay uses for pricing. Map what we know; pass
+ * unknown ids through so users can pin exact model strings.
+ */
+export function claudeModelId(canonical: string): string {
+  const map: Record<string, string> = {
+    "sonnet-5": "sonnet",
+    "haiku-4.5": "haiku",
+    "opus-4.8-high": "opus",
+    "fable-5-high": "opus", // best claude-served tier until fable alias confirmed
+  };
+  return map[canonical] ?? canonical;
+}
+
 export function discoverClaudeBinary(override?: string): string | null {
   if (override) return which(override) ? override : null;
   const env = process.env.RELAY_CLAUDE_BIN;
@@ -34,9 +49,15 @@ export class ClaudeBackend implements Backend {
       prompt,
       "--output-format",
       "stream-json",
+      "--verbose",
       "--model",
-      opts.model,
+      claudeModelId(opts.model),
     ];
+    if (opts.write === "stage" || opts.write === "worktree") {
+      // narrowest flag that lets the lane do its job: file edits only,
+      // still NOT --dangerously-skip-permissions
+      args.push("--permission-mode", "acceptEdits");
+    }
 
     const proc = Bun.spawn([bin, ...args], {
       cwd: opts.cwd,
