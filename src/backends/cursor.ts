@@ -109,10 +109,13 @@ export async function probeCursorAuth(bin: string): Promise<boolean | "unknown">
     ]);
     clearTimeout(timeout);
     const text = out + err;
+    // Workspace-trust prompt means auth already succeeded — trust is per-repo
+    // and real runs pass --force. Don't mistake it for a login failure.
+    if (/workspace trust/i.test(text)) return true;
     if (/authentication required|not authenticated|login/i.test(text) && code !== 0) {
       return false;
     }
-    return code === 0 ? true : "unknown";
+    return code === 0 && /\bok\b/i.test(text) ? true : "unknown";
   } catch {
     return "unknown";
   }
