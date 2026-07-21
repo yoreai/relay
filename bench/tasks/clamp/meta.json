@@ -1,0 +1,4 @@
+{
+  "name": "clamp",
+  "prompt": "fix the failing clamp tests in src/clamp.js"
+}

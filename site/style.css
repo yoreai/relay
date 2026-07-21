@@ -208,6 +208,39 @@ section h2 {
 .steps b { color: var(--ink); }
 .mcp-note { margin-top: 30px; color: var(--ink-dim); font-size: 14px; max-width: 720px; }
 
+/* proof / bench */
+.method { color: var(--ink-dim); font-size: 14px; max-width: 780px; margin-bottom: 28px; }
+.method b, .method em { color: var(--ink); font-style: normal; }
+
+.bench-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 26px; }
+.stat {
+  background: var(--bg-raise); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 20px; min-width: 180px; flex: 1;
+}
+.stat b { display: block; color: var(--green); font-size: 22px; margin-bottom: 4px; }
+.stat span { color: var(--ink-dim); font-size: 12.5px; }
+
+.bench-grid {
+  border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+  font-size: 13px;
+}
+.bench-row {
+  display: grid; grid-template-columns: 1.1fr 1.6fr 1.6fr 0.7fr;
+  padding: 9px 16px; border-bottom: 1px solid var(--line);
+}
+.bench-row:last-child { border-bottom: none; }
+.bench-row.bench-head { background: var(--bg-raise); color: var(--ink-dim); font-size: 12px; }
+.bench-row .pass { color: var(--green); }
+.bench-row .ratio { color: var(--amber); text-align: right; }
+.bench-row span:first-child { color: var(--ink); }
+@media (max-width: 700px) {
+  .bench-row { grid-template-columns: 1fr 1fr; row-gap: 4px; }
+  .bench-row .ratio { text-align: left; }
+}
+
+.caveats { color: var(--ink-dim); font-size: 12.5px; max-width: 780px; margin-top: 20px; }
+.caveats em { color: var(--ink); font-style: normal; }
+
 /* install */
 .install-steps { display: flex; flex-direction: column; gap: 14px; }
 .step {

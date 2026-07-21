@@ -1,0 +1,1 @@
+{ "name": "bench-slugify", "scripts": { "test": "node --test src/*.test.js" } }

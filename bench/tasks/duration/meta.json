@@ -1,0 +1,4 @@
+{
+  "name": "duration",
+  "prompt": "fix the failing duration formatting tests in src/duration.js"
+}

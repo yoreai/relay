@@ -1,0 +1,1 @@
+{ "name": "bench-brackets", "scripts": { "test": "node --test src/*.test.js" } }

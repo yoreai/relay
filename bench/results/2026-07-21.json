@@ -1,0 +1,142 @@
+{
+  "date": "2026-07-21",
+  "tasks": 6,
+  "routed_pass": 6,
+  "frontier_pass": 6,
+  "median_cost_ratio": 5.2,
+  "note": "cursor-backend costs are byte-estimated; identical estimator in both arms, so ratios are comparable. grading = each repo's own tests.",
+  "results": [
+    {
+      "task": "brackets",
+      "arm": "routed",
+      "model": "grok-4.5",
+      "backend": "cursor",
+      "pass": true,
+      "escalations": 0,
+      "costUsd": 0.07310599999999999,
+      "estimated": true,
+      "seconds": 46.7
+    },
+    {
+      "task": "brackets",
+      "arm": "frontier",
+      "model": "fable-5-high",
+      "backend": "cursor",
+      "pass": true,
+      "escalations": 0,
+      "costUsd": 0.37904,
+      "estimated": true,
+      "seconds": 131.2
+    },
+    {
+      "task": "clamp",
+      "arm": "routed",
+      "model": "grok-4.5",
+      "backend": "cursor",
+      "pass": true,
+      "escalations": 0,
+      "costUsd": 0.064172,
+      "estimated": true,
+      "seconds": 20.6
+    },
+    {
+      "task": "clamp",
+      "arm": "frontier",
+      "model": "fable-5-high",
+      "backend": "cursor",
+      "pass": true,
+      "escalations": 1,
+      "costUsd": 0.23956,
+      "estimated": true,
+      "seconds": 708.3
+    },
+    {
+      "task": "csvline",
+      "arm": "routed",
+      "model": "grok-4.5",
+      "backend": "cursor",
+      "pass": true,
+      "escalations": 0,
+      "costUsd": 0.059882000000000005,
+      "estimated": true,
+      "seconds": 33.3
+    },
+    {
+      "task": "csvline",
+      "arm": "frontier",
+      "model": "fable-5-high",
+      "backend": "cursor",
+      "pass": true,
+      "escalations": 1,
+      "costUsd": 0.31344999999999995,
+      "estimated": true,
+      "seconds": 683.1
+    },
+    {
+      "task": "duration",
+      "arm": "routed",
+      "model": "grok-4.5",
+      "backend": "cursor",
+      "pass": true,
+      "escalations": 0,
+      "costUsd": 0.04855,
+      "estimated": true,
+      "seconds": 19.3
+    },
+    {
+      "task": "duration",
+      "arm": "frontier",
+      "model": "fable-5-high",
+      "backend": "claude",
+      "pass": true,
+      "escalations": 1,
+      "costUsd": 0.10827999999999999,
+      "estimated": false,
+      "seconds": 1258
+    },
+    {
+      "task": "paginate",
+      "arm": "routed",
+      "model": "grok-4.5",
+      "backend": "cursor",
+      "pass": true,
+      "escalations": 0,
+      "costUsd": 0.037194,
+      "estimated": true,
+      "seconds": 16.1
+    },
+    {
+      "task": "paginate",
+      "arm": "frontier",
+      "model": "fable-5-high",
+      "backend": "cursor",
+      "pass": true,
+      "escalations": 0,
+      "costUsd": 0.30602999999999997,
+      "estimated": true,
+      "seconds": 102.3
+    },
+    {
+      "task": "slugify",
+      "arm": "routed",
+      "model": "grok-4.5",
+      "backend": "cursor",
+      "pass": true,
+      "escalations": 0,
+      "costUsd": 0.053236,
+      "estimated": true,
+      "seconds": 17.8
+    },
+    {
+      "task": "slugify",
+      "arm": "frontier",
+      "model": "fable-5-high",
+      "backend": "cursor",
+      "pass": true,
+      "escalations": 1,
+      "costUsd": 0.46295,
+      "estimated": true,
+      "seconds": 791.3
+    }
+  ]
+}

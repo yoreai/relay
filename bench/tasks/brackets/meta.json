@@ -1,0 +1,4 @@
+{
+  "name": "brackets",
+  "prompt": "fix the failing bracket-balance tests in src/brackets.js"
+}

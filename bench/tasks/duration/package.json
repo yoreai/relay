@@ -1,0 +1,1 @@
+{ "name": "bench-duration", "scripts": { "test": "node --test src/*.test.js" } }

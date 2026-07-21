@@ -1,0 +1,4 @@
+{
+  "name": "slugify",
+  "prompt": "fix the failing slugify tests in src/slugify.js"
+}

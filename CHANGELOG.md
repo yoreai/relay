@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `bench/`: open micro-benchmark — six deterministic bug-fix fixtures run
+  through routed vs forced-frontier arms with identical prompts, graded by
+  each repo's own tests; results in `bench/results/` (2026-07-21: quality
+  parity 6/6 = 6/6, median cost ratio 5.2×)
+- Site: "proof" section with methodology, per-task results grid, and
+  claim/non-claim caveats
+
 ## [0.5.1] — 2026-07-20
 
 ### Fixed

@@ -1,0 +1,1 @@
+{ "name": "bench-csvline", "scripts": { "test": "node --test src/*.test.js" } }

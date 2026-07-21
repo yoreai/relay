@@ -1,0 +1,1 @@
+{ "name": "bench-clamp", "scripts": { "test": "node --test src/*.test.js" } }

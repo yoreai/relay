@@ -1,0 +1,4 @@
+{
+  "name": "paginate",
+  "prompt": "fix the failing pagination tests in src/paginate.js"
+}
