@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] — 2026-07-21
+
 ### Added
 
 - **Recursion guard**: backends spawn workers with `RELAY_WORKER=1`; every
@@ -189,7 +191,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/yoreai/relay/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/yoreai/relay/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/yoreai/relay/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/yoreai/relay/compare/v0.4.2...v0.5.0
