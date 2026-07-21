@@ -1,36 +1,49 @@
-// Terminal demo: replays a real relay session (the receipt lines mirror
-// actual dogfood runs — sonnet-5 fixing a failing test, verified by npm test).
+// Demo: the rider's view. You talk to your coding agent (any of them —
+// Cursor, Claude Code, Codex); the agent quietly delegates mechanical work
+// to relay over MCP; relay sub-routes to whichever CLI+model clears the
+// quality bar cheapest, verifies with YOUR tests, and returns a receipt.
+// Receipt lines mirror real measured runs from relay's own dogfooding.
 const SCRIPT = [
-  { type: "cmd", text: "brew install yoreai/tap/relay" },
-  { type: "out", text: "🍺  relay 0.4.2: 4 files, 64.6MB, built in 2 seconds" },
-  { type: "out", text: "Next step (one command):" },
-  { type: "out", text: "  relay setup" },
-  { type: "gap" },
-  { type: "cmd", text: "relay setup" },
-  { type: "ok", text: "✓ registered relay in ~/.cursor/mcp.json" },
-  { type: "ok", text: "✓ registered relay in ~/.claude.json" },
-  { type: "gap" },
-  { type: "cmd", text: 'relay "fix the failing slugify tests in src/"' },
-  { type: "out", text: "→ lane: quickfix · sonnet-5 · verify: lint+test ✓ · 1 file changed (staged)" },
-  { type: "money", text: "relay: ~$0.02 saved (sonnet-5 vs fable-5-high) [measured]" },
-  { type: "gap" },
-  { type: "cmd", text: 'relay "summarize the last 3 commits"' },
-  { type: "out", text: "→ lane: status · haiku-4.5 · verify: ✓ · read-only" },
-  { type: "money", text: "relay: ~$0.05 saved (haiku-4.5 vs fable-5-high) [measured]" },
-  { type: "gap" },
-  { type: "cmd", text: "relay advise" },
-  { type: "out", text: "  deep    fable-5-high → kimi-k2.7-code — ~91% cheaper, same frontier class" },
-  { type: "out", text: "  work    grok-4.5 → composer-2.5 — ~48% cheaper, same workhorse class" },
-  { type: "gap" },
-  { type: "cmd", text: "relay savings" },
-  { type: "money", text: "total saved: adds up while your agents work — receipts, not vibes" },
+  { r: "you", text: "the retry tests are flaky again — fix them, I'm jumping on a call" },
+  { r: "agent", text: "mechanical fix — handing it to relay with a tight brief while I hold context" },
+  { r: "tool", text: "relay_run · lane: quickfix" },
+  { r: "relay", text: "routing → cursor CLI ⚡ grok-4.5 (workhorse class)" },
+  { r: "relay", text: "verify → lint ✓ · your tests ✓ · edits staged in git" },
+  { r: "receipt", text: "receipt: ~$0.48 saved vs frontier [measured]" },
+  { r: "agent", text: "done — diff is staged for your review. I never dropped our design thread." },
+  { r: "gap" },
+
+  { r: "you", text: "what changed while I was out?" },
+  { r: "agent", text: "status question — relay routes it to the cheapest reader" },
+  { r: "tool", text: "relay_run · lane: status (read-only)" },
+  { r: "relay", text: "routing → claude CLI ⚡ haiku (nano class)" },
+  { r: "receipt", text: "receipt: ~$0.05 saved [measured]" },
+  { r: "gap" },
+
+  { r: "you", text: "why does auth break on token refresh? something deeper is wrong" },
+  { r: "agent", text: "this one needs real judgment — no shortcuts" },
+  { r: "tool", text: "relay_run · lane: review" },
+  { r: "relay", text: "routing → opus-class model, full effort — hard problems keep frontier power" },
+  { r: "relay", text: "savings come from everything else, never from your quality bar" },
+  { r: "gap" },
+
+  { r: "ticker", text: "session: ~$1.24 saved · 29 verified runs · quality floor: your own tests" },
 ];
 
 const body = document.getElementById("term-body");
-const TYPE_MS = 26;
-const LINE_PAUSE = 420;
-const CMD_PAUSE = 700;
-const RESTART_PAUSE = 6000;
+const TYPE_MS = 24;
+const LINE_PAUSE = 520;
+const CMD_PAUSE = 620;
+const RESTART_PAUSE = 7000;
+
+const ROLES = {
+  you: { cls: "you", prefix: "you ▸ ", type: true },
+  agent: { cls: "agent", prefix: "agent ▸ ", type: false },
+  tool: { cls: "tool", prefix: "⚙ ", type: false },
+  relay: { cls: "relay", prefix: "relay ▸ ", type: false },
+  receipt: { cls: "money", prefix: "  ", type: false },
+  ticker: { cls: "ticker", prefix: "", type: false },
+};
 
 function el(cls, text) {
   const span = document.createElement("span");
@@ -39,55 +52,51 @@ function el(cls, text) {
   return span;
 }
 
-async function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function typeCommand(text) {
+async function typeLine(role, text) {
   const line = document.createElement("div");
-  line.appendChild(el("ps1", "$ "));
+  line.className = `line ${role.cls}`;
+  line.appendChild(el("prefix", role.prefix));
   const target = el("", "");
   line.appendChild(target);
   const caret = el("caret", "");
-  line.appendChild(caret);
   body.appendChild(line);
-  for (const ch of text) {
-    target.textContent += ch;
-    await sleep(TYPE_MS + Math.random() * 22);
-  }
-  await sleep(CMD_PAUSE);
-  caret.remove();
-}
 
-async function printLine(cls, text) {
-  const line = document.createElement("div");
-  line.appendChild(el(cls, text));
-  body.appendChild(line);
-  await sleep(LINE_PAUSE);
+  if (role.type) {
+    line.appendChild(caret);
+    for (const ch of text) {
+      target.textContent += ch;
+      await sleep(TYPE_MS + Math.random() * 20);
+    }
+    await sleep(CMD_PAUSE);
+    caret.remove();
+  } else {
+    target.textContent = text;
+    await sleep(LINE_PAUSE);
+  }
 }
 
 async function run() {
   body.textContent = "";
   for (const step of SCRIPT) {
-    if (step.type === "gap") {
+    if (step.r === "gap") {
       body.appendChild(document.createElement("br"));
-      await sleep(260);
-    } else if (step.type === "cmd") {
-      await typeCommand(step.text);
-    } else {
-      await printLine(step.type, step.text);
+      await sleep(320);
+      continue;
     }
+    await typeLine(ROLES[step.r], step.text);
     body.scrollTop = body.scrollHeight;
   }
   const line = document.createElement("div");
-  line.appendChild(el("ps1", "$ "));
+  line.className = "line you";
+  line.appendChild(el("prefix", "you ▸ "));
   line.appendChild(el("caret", ""));
   body.appendChild(line);
   await sleep(RESTART_PAUSE);
   run();
 }
 
-// copy buttons
 for (const btn of document.querySelectorAll(".copy")) {
   btn.addEventListener("click", async () => {
     await navigator.clipboard.writeText(btn.dataset.copy);
