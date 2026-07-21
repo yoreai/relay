@@ -19,8 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Activate flow simplified: no skill / policy-file setup — after
-  `relay setup`, users just say "relay this: …" to their agent (site + README)
+- Site + README copy aligned: no delegation-policy / skill setup — just
+  `relay setup` then "relay this: …"; README status section updated
+- Probe tests: longer timeout on auth-heavy cases (real CLIs can exceed 5s)
 
 ## [0.6.0] — 2026-07-21
 

@@ -134,9 +134,9 @@ The model market moves; a routing table nobody looks at silently overpays. Relay
 
 ## Status
 
-**v0.3.0** — CLI + MCP + cursor/claude backends with per-tier fallback + verify/escalate + receipts + model catalog with `update`/`advise` + one-command agent setup.
-
-Not v1 yet: Windows, npm SDK, Codex backend, Frankie adapter (planned as a separate plugin).
+**v0.6.1** — recursion guard, pull-only freshness hints, relayagent.dev site,
+open bench (6/6 quality parity, ~5.2× median savings). Not v1 yet: Windows,
+npm SDK, verified gemini/grok/kimi adapters.
 
 ## License
 

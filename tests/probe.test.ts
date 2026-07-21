@@ -17,18 +17,24 @@ afterEach(() => {
 });
 
 describe("probe", () => {
-  test("reports all primary tools with plain-language summaries", async () => {
-    const tools = await probeTools();
-    const ids = tools.map((t) => t.id);
-    expect(ids).toContain("cursor");
-    expect(ids).toContain("claude");
-    expect(ids).toContain("codex");
-    for (const t of tools) {
-      expect(t.summary.length).toBeGreaterThan(0);
-    }
-  });
+  test(
+    "reports all primary tools with plain-language summaries",
+    async () => {
+      const tools = await probeTools();
+      const ids = tools.map((t) => t.id);
+      expect(ids).toContain("cursor");
+      expect(ids).toContain("claude");
+      expect(ids).toContain("codex");
+      for (const t of tools) {
+        expect(t.summary.length).toBeGreaterThan(0);
+      }
+    },
+    { timeout: 60_000 },
+  );
 
-  test("auth results are cached to the data dir", async () => {
+  test(
+    "auth results are cached to the data dir",
+    async () => {
     const tools = await probeTools();
     // only tools whose CLI is present get auth-probed (and cached) —
     // on a bare CI runner that set is legitimately empty
@@ -46,7 +52,9 @@ describe("probe", () => {
     for (const entry of Object.values(cache)) {
       expect(entry.ts).toBeGreaterThan(Date.now() - 120_000);
     }
-  });
+    },
+    { timeout: 60_000 },
+  );
 
   test("second probe reuses cache (no fresh flag)", async () => {
     await probeTools();
