@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-07-20
+
+### Added
+
+- **Probe layer**: distinguishes app-installed / CLI-installed / signed-in-for-
+  headless per tool (they really are three different things); auth checks
+  cached 24h in `~/.local/share/relay/probe.json`, presence always live
+- **Guided `relay setup`**: plain-language tool status, *offers to run*
+  sign-ins (browser pops) instead of printing commands; `--yes` / `--no-input`
+- **`relay login <tool>`**: one command to run any backend's sign-in flow
+- **MCP `relay_doctor` + `relay_login`**: agents can diagnose missing/
+  unauthenticated tools and fix them for the user mid-conversation
+- `relay doctor [--fresh]` leads with the plain-language tool picture
+
 ### Fixed
 
 - All backend invocations get a hard timeout (default 10 min,
@@ -117,7 +131,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/yoreai/relay/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/yoreai/relay/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/yoreai/relay/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/yoreai/relay/compare/v0.3.0...v0.4.0

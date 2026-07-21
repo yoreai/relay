@@ -5,6 +5,7 @@ import { runInit } from "./init.ts";
 import { serveMcp } from "./mcp.ts";
 import { formatOutcome, runTask } from "./run.ts";
 import { getRun, modelStats, readRuns, summarizeSavings } from "./runlog.ts";
+import { runLogin } from "./probe.ts";
 import { runSetup } from "./setup.ts";
 import { runUpdate } from "./update.ts";
 import { RELAY_VERSION as VERSION } from "./version.ts";
@@ -15,7 +16,8 @@ function usage(): string {
 Usage:
   relay "fix the flaky retry test in src/api"
   relay -i
-  relay setup                    # register relay as MCP server in installed agents
+  relay setup [--yes]            # probe tools, guide sign-ins, register MCP
+  relay login <tool>             # run a tool's sign-in flow (pops browser)
   relay update [--check]         # refresh model catalog · check for new release
   relay advise [--apply]         # cheaper same-class models for your tiers
   relay status [id|--all]
@@ -83,6 +85,7 @@ function parseArgs(argv: string[]): Parsed {
         "init",
         "mcp",
         "setup",
+        "login",
         "update",
         "advise",
         "help",
@@ -160,7 +163,7 @@ async function main(): Promise<void> {
     return;
   }
   if (parsed.command === "doctor") {
-    console.log(await runDoctor(cwd));
+    console.log(await runDoctor(cwd, parsed.rest.includes("--fresh")));
     return;
   }
   if (parsed.command === "init") {
@@ -168,7 +171,21 @@ async function main(): Promise<void> {
     return;
   }
   if (parsed.command === "setup") {
-    console.log(runSetup());
+    await runSetup({
+      yes: parsed.rest.includes("--yes"),
+      noInput: parsed.rest.includes("--no-input"),
+    });
+    return;
+  }
+  if (parsed.command === "login") {
+    const target = parsed.rest.find((r) => !r.startsWith("-"));
+    if (!target) {
+      console.error("usage: relay login <cursor|claude|codex|gemini|grok|kimi>");
+      process.exit(2);
+    }
+    const result = await runLogin(target);
+    console.log(result.message);
+    if (!result.ok) process.exit(1);
     return;
   }
   if (parsed.command === "update") {

@@ -95,7 +95,7 @@ export class CursorBackend implements Backend {
  * Headless (-p) mode can require CURSOR_API_KEY even when interactive login
  * succeeded — probe with a tiny real invocation so doctor tells the truth.
  */
-async function probeCursorAuth(bin: string): Promise<boolean | "unknown"> {
+export async function probeCursorAuth(bin: string): Promise<boolean | "unknown"> {
   try {
     const proc = Bun.spawn(
       [bin, "-p", "say only: ok", "--model", "gpt-5.6-luna", "--output-format", "text"],

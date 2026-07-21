@@ -40,7 +40,8 @@ bun run src/cli.ts doctor
 ## Quick use
 
 ```bash
-relay setup                         # register relay as an MCP tool in Cursor/Claude Code
+relay setup                         # probe your tools, guide sign-ins, register MCP
+relay login cursor                  # run a tool's sign-in flow (pops your browser)
 relay init                          # write ~/.config/relay/router.yaml
 relay doctor                        # backends found? tier resolution on this machine?
 relay "fix the flaky retry test"   # route → run → verify → receipt
@@ -84,7 +85,12 @@ relay mcp serve
 }
 ```
 
-Tools: `relay_run`, `relay_status`, `relay_savings`.
+Tools: `relay_run`, `relay_status`, `relay_savings`, `relay_doctor`, `relay_login`.
+
+Agents can self-serve the whole lifecycle: `relay_doctor` reports which CLIs exist
+and whether each is signed in for background runs (plain language, cached 24h);
+`relay_login` runs a tool's sign-in flow on the user's machine — the browser pops,
+the user clicks, done. Vibe coders never type a command.
 
 **Make your agent actually delegate.** Registering the tool isn't enough — agents keep doing
 everything themselves unless told otherwise. Add this to your repo's `AGENTS.md` (or

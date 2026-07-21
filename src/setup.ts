@@ -9,6 +9,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { discoverClaudeBinary } from "./backends/claude.ts";
 import { discoverCursorBinary } from "./backends/cursor.ts";
+import { probeTools, runLogin, type ToolProbe } from "./probe.ts";
 import { which } from "./which.ts";
 
 const RELAY_SERVER = { command: "relay", args: ["mcp", "serve"] };
@@ -46,51 +47,104 @@ function registerInJsonConfig(path: string, createIfMissing: boolean): string {
   return `✓ registered relay in ${path}${exists ? ` (backup: ${path}.relay-bak)` : ""}`;
 }
 
-export function runSetup(): string {
-  const lines: string[] = ["relay setup — registering the MCP server", ""];
+function statusMark(t: ToolProbe): string {
+  if (!t.cliPresent) return t.appDetected ? "◐" : "·";
+  if (t.authed === true) return "✓";
+  if (t.authed === false) return "◐";
+  return "✓";
+}
 
-  if (!which("relay")) {
-    lines.push(
-      "! `relay` is not on PATH — agents launched outside this shell may not find it.",
-      "  brew install yoreai/tap/relay  (or add the binary's directory to PATH)",
-      "",
-    );
+async function askYesNo(question: string): Promise<boolean> {
+  process.stdout.write(`${question} [Y/n] `);
+  const line: string = await new Promise((resolve) => {
+    const onData = (chunk: Buffer) => {
+      process.stdin.off("data", onData);
+      resolve(chunk.toString("utf8"));
+    };
+    process.stdin.on("data", onData);
+  });
+  return !/^n/i.test(line.trim());
+}
+
+/**
+ * Guided setup for people who should never need to memorize CLI commands:
+ * probe what's here, say it in plain language, OFFER to run the sign-ins
+ * (browser pops where the CLI supports it), then wire up MCP.
+ */
+export async function runSetup(
+  opts: { yes?: boolean; noInput?: boolean } = {},
+): Promise<string> {
+  const interactive =
+    !opts.noInput && (opts.yes === true || process.stdin.isTTY === true);
+  const out: string[] = [];
+  const say = (s: string) => {
+    out.push(s);
+    console.log(s);
+  };
+
+  say("relay setup");
+  say("");
+  say("checking which AI coding tools this machine has…");
+  const tools = await probeTools({ fresh: true });
+  say("");
+  for (const t of tools) {
+    if (!t.cliPresent && !t.appDetected) continue; // don't advertise absent optional tools
+    say(`  ${statusMark(t)} ${t.label.padEnd(26)} ${t.summary}`);
   }
-
-  // Cursor: global MCP config
-  if (discoverCursorBinary() || existsSync(join(homedir(), ".cursor"))) {
-    lines.push(
-      `cursor: ${registerInJsonConfig(join(homedir(), ".cursor", "mcp.json"), true)}`,
-    );
-  } else {
-    lines.push("cursor: not detected — skipped");
+  const absent = tools.filter((t) => !t.cliPresent && !t.appDetected);
+  if (absent.length) {
+    say(`  · not installed (all optional): ${absent.map((t) => t.id).join(", ")}`);
   }
+  say("");
 
-  // Claude Code: merge only if its config already exists (it owns the file)
+  // offer to fix sign-ins
+  for (const t of tools) {
+    if (!t.cliPresent || t.authed !== false || !t.login) continue;
+    if (t.login.interactive) {
+      say(`→ ${t.label}: ${t.login.note}`);
+      continue;
+    }
+    let doIt = opts.yes === true;
+    if (!doIt && interactive) {
+      doIt = await askYesNo(`→ sign in to ${t.label} now? (${t.login.note})`);
+    }
+    if (doIt) {
+      say(`  signing in — finish in the browser if one opens…`);
+      const result = await runLogin(t.id);
+      say(`  ${result.message}`);
+    } else {
+      say(`  later: ${t.login.cmd.join(" ")}`);
+    }
+  }
+  say("");
+
+  // MCP registration
+  if (tools.find((t) => t.id === "cursor")?.appDetected || discoverCursorBinary()) {
+    say(`cursor: ${registerInJsonConfig(join(homedir(), ".cursor", "mcp.json"), true)}`);
+  }
   if (discoverClaudeBinary()) {
     const claudeCfg = join(homedir(), ".claude.json");
     if (existsSync(claudeCfg)) {
-      lines.push(`claude: ${registerInJsonConfig(claudeCfg, false)}`);
+      say(`claude: ${registerInJsonConfig(claudeCfg, false)}`);
     } else {
-      lines.push(
-        "claude: detected — register with:  claude mcp add relay -- relay mcp serve",
-      );
+      say("claude: register with:  claude mcp add relay -- relay mcp serve");
     }
-  } else {
-    lines.push("claude: not detected — skipped");
   }
-
-  // Codex: print the snippet; its TOML is too easy to corrupt to edit blindly
   if (existsSync(join(homedir(), ".codex"))) {
-    lines.push(
-      "codex: add to ~/.codex/config.toml:",
-      "         [mcp_servers.relay]",
-      '         command = "relay"',
-      '         args = ["mcp", "serve"]',
-    );
+    say("codex: add to ~/.codex/config.toml:");
+    say("         [mcp_servers.relay]");
+    say('         command = "relay"');
+    say('         args = ["mcp", "serve"]');
   }
 
-  lines.push("");
-  lines.push("done. verify with `relay doctor`; agents get relay_run / relay_status / relay_savings.");
-  return lines.join("\n");
+  if (!which("relay")) {
+    say("");
+    say("! `relay` is not on PATH — agents launched outside this shell may not find it.");
+    say("  brew install yoreai/tap/relay  (or add the binary's directory to PATH)");
+  }
+
+  say("");
+  say("done. your agents now have relay_run / relay_status / relay_savings.");
+  say("anytime: `relay doctor` shows this picture again.");
+  return out.join("\n");
 }

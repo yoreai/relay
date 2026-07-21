@@ -1,15 +1,37 @@
-import { CursorBackend } from "./backends/cursor.ts";
-import { ClaudeBackend } from "./backends/claude.ts";
-import { CLI_SPECS, GenericCliBackend } from "./backends/cli.ts";
 import { availableBackends } from "./backends/index.ts";
+import { probeTools } from "./probe.ts";
 import { loadCatalog } from "./catalog.ts";
 import { which } from "./which.ts";
 import { findDirectivePath, relayConfigDir, relayDataDir } from "./paths.ts";
 import { loadDirective, resolveTier } from "./directive.ts";
 import { existsSync } from "node:fs";
 
-export async function runDoctor(cwd: string = process.cwd()): Promise<string> {
+export async function runDoctor(
+  cwd: string = process.cwd(),
+  fresh = false,
+): Promise<string> {
   const lines: string[] = ["relay doctor", ""];
+
+  const tools = await probeTools({ fresh });
+  lines.push("tools:");
+  for (const t of tools) {
+    if (!t.cliPresent && !t.appDetected) continue;
+    const mark = !t.cliPresent ? "◐" : t.authed === false ? "◐" : "✓";
+    lines.push(`  ${mark} ${t.label.padEnd(26)} ${t.summary}`);
+    if (t.cliPresent && t.authed === false && t.login) {
+      lines.push(
+        `      fix: relay login ${t.id}` +
+          (t.login.interactive ? `  (${t.login.note})` : ""),
+      );
+    }
+    if (!t.cliPresent && t.appDetected && t.install) {
+      lines.push(`      fix: ${t.install}`);
+    }
+  }
+  lines.push(
+    `  (auth checks cached 24h — \`relay doctor --fresh\` re-probes now)`,
+  );
+  lines.push("");
 
   const dirPath = findDirectivePath(cwd);
   try {
@@ -32,20 +54,6 @@ export async function runDoctor(cwd: string = process.cwd()): Promise<string> {
     lines.push(`catalog:    ERROR ${(e as Error).message}`);
   }
   lines.push("");
-
-  const reports = await Promise.all([
-    new CursorBackend().doctor(),
-    new ClaudeBackend().doctor(),
-    ...Object.values(CLI_SPECS).map((spec) =>
-      new GenericCliBackend(spec).doctor(),
-    ),
-  ]);
-
-  for (const r of reports) {
-    const mark = r.present ? "✓" : "✗";
-    lines.push(`${mark} ${r.backend}: ${r.message}`);
-    if (r.fix && !r.present) lines.push(`    fix: ${r.fix}`);
-  }
 
   // Show where each tier actually lands on THIS machine
   try {

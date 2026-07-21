@@ -7,6 +7,7 @@ import {
 import { formatOutcome, runTask } from "./run.ts";
 import { getRun, readRuns, summarizeSavings } from "./runlog.ts";
 import { briefFromTask, parseBrief } from "./brief.ts";
+import { probeTools, runLogin } from "./probe.ts";
 import { RELAY_VERSION } from "./version.ts";
 
 export async function serveMcp(): Promise<void> {
@@ -57,6 +58,36 @@ export async function serveMcp(): Promise<void> {
         name: "relay_savings",
         description: "Cumulative savings summary from local runs.jsonl.",
         inputSchema: { type: "object", properties: {} },
+      },
+      {
+        name: "relay_doctor",
+        description:
+          "Probe which AI coding CLIs exist on this machine and whether each is signed in for background runs. " +
+          "Use before delegating (or when a run fails with an auth error) to know what to fix. " +
+          "Returns plain-language status per tool plus machine-runnable fixes; pass fresh=true to bypass the 24h auth cache.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            fresh: { type: "boolean", description: "re-run auth probes now" },
+          },
+        },
+      },
+      {
+        name: "relay_login",
+        description:
+          "Run a tool's sign-in flow on the user's machine (pops their browser where the CLI supports it, e.g. cursor/codex). " +
+          "Call when relay_doctor reports a tool 'needs a one-time sign-in'. Tell the user a browser window may open. " +
+          "Tools needing an interactive terminal (claude) return instructions instead.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            tool: {
+              type: "string",
+              description: "cursor | claude | codex | gemini | grok | kimi",
+            },
+          },
+          required: ["tool"],
+        },
       },
     ],
   }));
@@ -161,6 +192,44 @@ export async function serveMcp(): Promise<void> {
               text: JSON.stringify(summarizeSavings(), null, 2),
             },
           ],
+        };
+      }
+
+      if (name === "relay_doctor") {
+        const tools = await probeTools({ fresh: args.fresh === true });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                tools.map((t) => ({
+                  tool: t.id,
+                  label: t.label,
+                  installed: t.cliPresent,
+                  app_detected: t.appDetected,
+                  signed_in: t.authed,
+                  status: t.summary,
+                  fix:
+                    t.cliPresent && t.authed === false
+                      ? `call relay_login with tool="${t.id}"` +
+                        (t.login?.interactive ? ` — but note: ${t.login.note}` : "")
+                      : !t.cliPresent && t.appDetected
+                        ? t.install
+                        : undefined,
+                })),
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
+
+      if (name === "relay_login") {
+        const result = await runLogin(String(args.tool ?? ""));
+        return {
+          content: [{ type: "text", text: result.message }],
+          isError: !result.ok,
         };
       }
 
