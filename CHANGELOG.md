@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Recursion guard**: backends spawn workers with `RELAY_WORKER=1`; every
+  worker brief opens with a do-not-re-delegate line; `relay_run` (MCP) and
+  `runTask` (CLI/REPL) hard-refuse inside a worker (`RELAY_ALLOW_NESTED=1`
+  overrides) — fixes workers inheriting global "use relay" instructions and
+  looping
+
+### Changed
+
+- Activate flow simplified: no skill / policy-file setup — after
+  `relay setup`, users just say "relay this: …" to their agent (site + README)
+
 ## [0.6.0] — 2026-07-21
 
 ### Added

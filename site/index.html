@@ -272,10 +272,8 @@ lanes:
   <section id="activate">
     <h2><span class="prompt">$</span> activate</h2>
     <p class="method">
-      <code>relay setup</code> registers the MCP tools. A short <b>delegation
-      policy</b> in whatever instruction file your agent reads
-      (<code>AGENTS.md</code>, <code>CLAUDE.md</code>, …) makes it actually
-      call them — across sessions, across hosts.
+      <code>relay setup</code> registers the MCP tools. From then on, just
+      say it — no skills, no policy files, no per-agent config.
     </p>
     <div class="install-steps">
       <div class="step">
@@ -290,30 +288,18 @@ lanes:
       </div>
       <div class="step">
         <span class="n">3</span>
-        <span class="note">paste this to any agent</span>
+        <span class="note">then tell your agent things like:</span>
       </div>
     </div>
     <div class="prompt-wrap">
-      <pre class="prompt-box" id="activate-prompt">Hey agent — activate relay for me across sessions.
-1) brew install yoreai/tap/relay &amp;&amp; relay setup
-2) Add this delegation policy to AGENTS.md (or CLAUDE.md / whatever your agent reads), so it sticks for future chats:
-
-## Delegation policy
-For mechanical subtasks — bulk edits, renames, test fixes, log/status summaries,
-lint cleanups — call the relay_run MCP tool with a curated brief instead of
-doing them inline. Reserve your own context for design, review, and hard debugging.</pre>
-      <button class="copy" data-copy="Hey agent — activate relay for me across sessions.
-1) brew install yoreai/tap/relay && relay setup
-2) Add this delegation policy to AGENTS.md (or CLAUDE.md / whatever your agent reads), so it sticks for future chats:
-
-## Delegation policy
-For mechanical subtasks — bulk edits, renames, test fixes, log/status summaries,
-lint cleanups — call the relay_run MCP tool with a curated brief instead of
-doing them inline. Reserve your own context for design, review, and hard debugging.">copy</button>
+      <pre class="prompt-box" id="activate-prompt">"relay this: fix the flaky retry test"
+"use relay to bump the deps and clean up lint"
+"relay the rename, you review the diff"</pre>
+      <button class="copy" data-copy="relay this: fix the flaky retry test">copy</button>
     </div>
     <p class="sub">
-      Cursor · Claude Code · Codex — same MCP, same policy file pattern.
-      You can't force an agent; you make the cheap path the obvious one.
+      Cursor · Claude Code · Codex — same MCP, any agent. Built-in recursion
+      guard: relay workers can't re-delegate to relay.
     </p>
   </section>
 

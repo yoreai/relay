@@ -99,6 +99,11 @@ export async function serveMcp(): Promise<void> {
 
     try {
       if (name === "relay_run") {
+        if (process.env.RELAY_WORKER) {
+          throw new Error(
+            "recursion guard: you are already relay's delegated worker — execute the task directly instead of calling relay_run",
+          );
+        }
         const task = String(args.task ?? "");
         if (!task) throw new Error("task is required");
         const wait = args.wait !== false;

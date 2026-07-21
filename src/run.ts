@@ -49,6 +49,11 @@ export type RunOutcome = {
 };
 
 export async function runTask(opts: RunOpts): Promise<RunOutcome> {
+  if (process.env.RELAY_WORKER && !process.env.RELAY_ALLOW_NESTED) {
+    throw new Error(
+      "recursion guard: this process is already a relay worker — do the task directly instead of re-delegating (RELAY_ALLOW_NESTED=1 overrides)",
+    );
+  }
   const cwd = opts.cwd ?? process.cwd();
   const directive = loadDirective(cwd);
   const brief = normalizeBrief(opts);

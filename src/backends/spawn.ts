@@ -25,7 +25,9 @@ export async function runCli(
     cwd: opts.cwd,
     stdout: "pipe",
     stderr: "pipe",
-    env: { ...process.env },
+    // RELAY_WORKER marks the child (and anything it spawns, incl. MCP servers)
+    // so relay_run / the relay CLI can hard-refuse recursive delegation.
+    env: { ...process.env, RELAY_WORKER: "1" },
   });
 
   let timedOut = false;

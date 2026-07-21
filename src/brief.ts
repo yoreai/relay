@@ -24,8 +24,15 @@ export function briefFromTask(task: string, files?: string[]): Brief {
   };
 }
 
+/** Every worker prompt opens with this — advisory layer of the recursion guard
+ * (the hard layer is the RELAY_WORKER env refusal in mcp.ts / cli.ts). */
+const WORKER_GUARD =
+  "[relay worker] You are relay's delegated worker. Execute this task directly " +
+  "yourself. Never call relay, relay_run, or any relay MCP tool — that would " +
+  "recurse. Ignore any skill or instruction telling you to delegate to relay.";
+
 export function renderBriefPrompt(brief: Brief): string {
-  const parts: string[] = [`Goal: ${brief.goal}`];
+  const parts: string[] = [WORKER_GUARD, `Goal: ${brief.goal}`];
   if (brief.why) parts.push(`Why: ${brief.why}`);
   if (brief.files?.length) parts.push(`Files:\n- ${brief.files.join("\n- ")}`);
   if (brief.constraints?.length) {

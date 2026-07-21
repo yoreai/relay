@@ -65,32 +65,17 @@ relay advise                        # cheaper same-class models for your tiers
 relay advise --apply                # accept the suggestions into router.yaml
 ```
 
-## Activate (so agents actually use it)
+## Activate
 
-`relay setup` registers the MCP tools. A short **delegation policy** in
-whatever instruction file your agent reads (`AGENTS.md`, `CLAUDE.md`, …)
-makes it call them by default — across chats and across hosts.
-
-```bash
-brew install yoreai/tap/relay
-relay setup
-```
-
-Then paste this to any agent:
+`relay setup` registers the MCP tools. From then on, just mention relay:
 
 ```
-Hey agent — activate relay for me across sessions.
-1) brew install yoreai/tap/relay && relay setup
-2) Add this delegation policy to AGENTS.md (or CLAUDE.md / whatever your
-   agent reads), so it sticks for future chats:
-
-## Delegation policy
-For mechanical subtasks — bulk edits, renames, test fixes, log/status summaries,
-lint cleanups — call the relay_run MCP tool with a curated brief instead of
-doing them inline. Reserve your own context for design, review, and hard debugging.
+"relay this: fix the flaky retry test"
+"use relay to bump the deps and clean up lint"
 ```
 
-You can't force an agent. You can make the cheap path the obvious one.
+No skills, no policy files, no per-agent config. Relay has a built-in
+recursion guard: delegated workers cannot re-delegate to relay.
 
 ### MCP tools
 
