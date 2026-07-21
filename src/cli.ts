@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { runAdvise } from "./advise.ts";
 import { runDoctor } from "./doctor.ts";
+import { freshnessHint } from "./freshness.ts";
 import { runInit } from "./init.ts";
 import { serveMcp } from "./mcp.ts";
 import { formatOutcome, runTask } from "./run.ts";
@@ -214,14 +215,16 @@ async function main(): Promise<void> {
     const runs = readRuns(parsed.rest.includes("--all") ? 200 : 20);
     if (!runs.length) {
       console.log("no runs yet");
-      return;
+    } else {
+      for (const r of runs) {
+        console.log(
+          `${r.ts}  ${r.id}  ${r.status.padEnd(7)}  ${r.lane}/${r.model}` +
+            (r.saved_usd != null ? `  ~$${r.saved_usd.toFixed(2)}` : ""),
+        );
+      }
     }
-    for (const r of runs) {
-      console.log(
-        `${r.ts}  ${r.id}  ${r.status.padEnd(7)}  ${r.lane}/${r.model}` +
-          (r.saved_usd != null ? `  ~$${r.saved_usd.toFixed(2)}` : ""),
-      );
-    }
+    const hint = await freshnessHint();
+    if (hint) console.log(`\n⟳ ${hint.split("\n").join("\n⟳ ")}`);
     return;
   }
   if (parsed.command === "savings") {

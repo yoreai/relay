@@ -7,6 +7,7 @@ import {
 import { formatOutcome, runTask } from "./run.ts";
 import { getRun, readRuns, summarizeSavings } from "./runlog.ts";
 import { briefFromTask, parseBrief } from "./brief.ts";
+import { freshnessHint } from "./freshness.ts";
 import { probeTools, runLogin } from "./probe.ts";
 import { RELAY_VERSION } from "./version.ts";
 
@@ -174,11 +175,16 @@ export async function serveMcp(): Promise<void> {
             ],
           };
         }
+        const hint = await freshnessHint();
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(readRuns(20), null, 2),
+              text: JSON.stringify(
+                { runs: readRuns(20), ...(hint ? { update_hint: hint } : {}) },
+                null,
+                2,
+              ),
             },
           ],
         };
@@ -197,26 +203,36 @@ export async function serveMcp(): Promise<void> {
 
       if (name === "relay_doctor") {
         const tools = await probeTools({ fresh: args.fresh === true });
+        const hint = await freshnessHint();
         return {
           content: [
             {
               type: "text",
               text: JSON.stringify(
-                tools.map((t) => ({
-                  tool: t.id,
-                  label: t.label,
-                  installed: t.cliPresent,
-                  app_detected: t.appDetected,
-                  signed_in: t.authed,
-                  status: t.summary,
-                  fix:
-                    t.cliPresent && t.authed === false
-                      ? `call relay_login with tool="${t.id}"` +
-                        (t.login?.interactive ? ` — but note: ${t.login.note}` : "")
-                      : !t.cliPresent && t.appDetected
-                        ? t.install
-                        : undefined,
-                })),
+                {
+                  tools: tools.map((t) => ({
+                    tool: t.id,
+                    label: t.label,
+                    installed: t.cliPresent,
+                    app_detected: t.appDetected,
+                    signed_in: t.authed,
+                    status: t.summary,
+                    fix:
+                      t.cliPresent && t.authed === false
+                        ? `call relay_login with tool="${t.id}"` +
+                          (t.login?.interactive ? ` — but note: ${t.login.note}` : "")
+                        : !t.cliPresent && t.appDetected
+                          ? t.install
+                          : undefined,
+                  })),
+                  ...(hint
+                    ? {
+                        update_hint: hint,
+                        update_hint_note:
+                          "relay never phones home — this comes from a cached (24h) pull of the public catalog/release on GitHub. Suggest the fix command to the user when convenient.",
+                      }
+                    : {}),
+                },
                 null,
                 2,
               ),

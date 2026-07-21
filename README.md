@@ -21,6 +21,10 @@ Hand relay a task in plain English — from your terminal, or from any agent tha
 cheapest-and-fastest capable backend + model, relay runs it headless in your repo, verifies
 the result, escalates only when verification fails, and prints a receipt for what it saved you.
 
+**Local harness.** No relay cloud, no accounts, no telemetry, no stored credentials.
+`relay update` only *pulls* the public model catalog (and a release tag check) from
+GitHub — it never uploads your tasks, code, or usage.
+
 ```
 relay "fix the flaky retry test in src/api"
 # → lane: quickfix · grok-4.5 · verify: lint+test ✓ · changes staged
@@ -61,57 +65,44 @@ relay advise                        # cheaper same-class models for your tiers
 relay advise --apply                # accept the suggestions into router.yaml
 ```
 
-### MCP (Cursor / Claude Code)
+## Activate (so agents actually use it)
+
+`relay setup` registers the MCP tools. A short **delegation policy** in
+whatever instruction file your agent reads (`AGENTS.md`, `CLAUDE.md`, …)
+makes it call them by default — across chats and across hosts.
 
 ```bash
-relay mcp serve
+brew install yoreai/tap/relay
+relay setup
 ```
 
-**Cursor** — add to `.cursor/mcp.json` (or global MCP config):
+Then paste this to any agent:
 
-```json
-{
-  "mcpServers": {
-    "relay": {
-      "command": "relay",
-      "args": ["mcp", "serve"]
-    }
-  }
-}
 ```
+Hey agent — activate relay for me across sessions.
+1) brew install yoreai/tap/relay && relay setup
+2) Add this delegation policy to AGENTS.md (or CLAUDE.md / whatever your
+   agent reads), so it sticks for future chats:
 
-**Claude Code** — add to MCP settings:
-
-```json
-{
-  "mcpServers": {
-    "relay": {
-      "command": "relay",
-      "args": ["mcp", "serve"]
-    }
-  }
-}
-```
-
-Tools: `relay_run`, `relay_status`, `relay_savings`, `relay_doctor`, `relay_login`.
-
-Agents can self-serve the whole lifecycle: `relay_doctor` reports which CLIs exist
-and whether each is signed in for background runs (plain language, cached 24h);
-`relay_login` runs a tool's sign-in flow on the user's machine — the browser pops,
-the user clicks, done. Vibe coders never type a command.
-
-**Make your agent actually delegate.** Registering the tool isn't enough — agents keep doing
-everything themselves unless told otherwise. Add this to your repo's `AGENTS.md` (or
-`CLAUDE.md`):
-
-```markdown
 ## Delegation policy
 For mechanical subtasks — bulk edits, renames, test fixes, log/status summaries,
-lint cleanups — call the `relay_run` MCP tool with a curated brief instead of
+lint cleanups — call the relay_run MCP tool with a curated brief instead of
 doing them inline. Reserve your own context for design, review, and hard debugging.
 ```
 
-That single paragraph is where most of the savings come from.
+You can't force an agent. You can make the cheap path the obvious one.
+
+### MCP tools
+
+`relay_run`, `relay_status`, `relay_savings`, `relay_doctor`, `relay_login`.
+
+`relay setup` wires Cursor + Claude Code. Codex: add to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.relay]
+command = "relay"
+args = ["mcp", "serve"]
+```
 
 ## How it works
 

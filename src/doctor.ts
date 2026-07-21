@@ -1,6 +1,7 @@
 import { availableBackends } from "./backends/index.ts";
 import { probeTools } from "./probe.ts";
 import { loadCatalog } from "./catalog.ts";
+import { freshnessHint } from "./freshness.ts";
 import { which } from "./which.ts";
 import { findDirectivePath, relayConfigDir, relayDataDir } from "./paths.ts";
 import { loadDirective, resolveTier } from "./directive.ts";
@@ -80,6 +81,12 @@ export async function runDoctor(
   lines.push(`git: ${which("git") ? "✓ on PATH" : "✗ missing"}`);
   lines.push(`gh:  ${which("gh") ? "✓ on PATH (draft PRs for worktree lanes)" : "· not found (optional)"}`);
   lines.push(`bd:  ${which("bd") ? "✓ on PATH (beads context)" : "· not found (optional)"}`);
+
+  const hint = await freshnessHint();
+  if (hint) {
+    lines.push("");
+    lines.push(...hint.split("\n").map((h) => `⟳ ${h}`));
+  }
 
   lines.push("");
   lines.push("Auth is delegated — relay stores no credentials.");

@@ -7,8 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-07-21
+
 ### Added
 
+- **Freshness reminders, pull-only**: doctor/status (CLI and MCP) now surface
+  a one-line hint when the public catalog on main is newer than the local one
+  or a newer release exists — backed by a quiet 24h-cached GET of two public
+  GitHub files, so agents see "run `relay update`" where they already look;
+  no telemetry, opt out with `RELAY_NO_UPDATE_CHECK=1`; offline machines get
+  a network-free stale-catalog hint after 45 days
+
+- Site + README: activate section — install, `relay setup`, and a copyable
+  agent-independent prompt that adds a delegation policy to `AGENTS.md` /
+  `CLAUDE.md` (no Cursor-only skill path)
+- Site: trust section — local harness, no telemetry / no phone-home; catalog
+  and binary freshness via pull-only `relay update`
 - `bench/`: open micro-benchmark — six deterministic bug-fix fixtures run
   through routed vs forced-frontier arms with identical prompts, graded by
   each repo's own tests; results in `bench/results/` (2026-07-21: quality
@@ -162,7 +176,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/yoreai/relay/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/yoreai/relay/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/yoreai/relay/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/yoreai/relay/compare/v0.4.1...v0.4.2
