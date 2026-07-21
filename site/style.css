@@ -60,10 +60,9 @@ nav {
 .nav-links a:hover { color: var(--green); text-decoration: none; }
 .nav-links .gh { color: var(--ink); }
 
-.hero-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start;
+.hero-copy {
+  max-width: 720px; margin: 0 auto 48px; text-align: center;
 }
-@media (max-width: 900px) { .hero-grid { grid-template-columns: 1fr; } }
 
 h1 {
   font-size: clamp(30px, 4.2vw, 44px);
@@ -78,6 +77,7 @@ h1 em { color: var(--green); font-style: normal; }
   display: flex; align-items: center; gap: 10px;
   background: var(--bg-raise); border: 1px solid var(--line);
   border-radius: 8px; padding: 12px 16px; width: fit-content;
+  margin-left: auto; margin-right: auto;
 }
 .install-line code { background: none; border: none; padding: 0; color: var(--green); }
 .install-line code::before { content: "$ "; color: var(--ink-dim); }
@@ -93,6 +93,7 @@ h1 em { color: var(--green); font-style: normal; }
 
 /* ---------- terminal ---------- */
 .term {
+  max-width: 880px; width: 100%; margin: 0 auto;
   background: #0a0c0a; border: 1px solid var(--line); border-radius: 10px;
   box-shadow: 0 0 60px rgba(74, 222, 128, 0.06), 0 24px 48px rgba(0,0,0,0.5);
   overflow: hidden;
