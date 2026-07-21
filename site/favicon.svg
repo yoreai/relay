@@ -1,4 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="6" fill="#0b0e0c"/>
-  <text x="6" y="23" font-family="ui-monospace, Menlo, monospace" font-size="18" fill="#4ade80">¸_</text>
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1.1" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- dark tile -->
+  <rect width="32" height="32" rx="7" fill="#0b0e0c"/>
+  <rect x="0.5" y="0.5" width="31" height="31" rx="6.5" fill="none" stroke="#1f2a20"/>
+
+  <!-- unchosen routes (dim): the paths relay considered -->
+  <g stroke="#2a5c40" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M13 16 L18.5 10.5 H24"/>
+    <path d="M13 16 L18.5 21.5 H24"/>
+  </g>
+  <circle cx="26" cy="10.5" r="1.6" fill="#2a5c40"/>
+  <circle cx="26" cy="21.5" r="1.6" fill="#2a5c40"/>
+
+  <!-- chosen route (lit): signal in, cheapest capable path out -->
+  <g filter="url(#glow)">
+    <path d="M4 16 H23" stroke="#4ade80" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+    <circle cx="26" cy="16" r="2.1" fill="#4ade80"/>
+  </g>
+
+  <!-- routing node -->
+  <circle cx="13" cy="16" r="2.6" fill="#0b0e0c" stroke="#4ade80" stroke-width="1.8"/>
 </svg>
