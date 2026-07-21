@@ -1,0 +1,4 @@
+[test]
+# bench/tasks/**/*.test.js are fixtures with DELIBERATE bugs — they must not
+# run as relay's own suite. Scope the runner to tests/.
+root = "tests"
