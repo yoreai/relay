@@ -1,12 +1,20 @@
 # relay
 
-[![CI](https://github.com/yoreai/relay/actions/workflows/ci.yml/badge.svg)](https://github.com/yoreai/relay/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/yoreai/relay?color=0e8a16)](https://github.com/yoreai/relay/releases/latest)
-[![Catalog freshness](https://github.com/yoreai/relay/actions/workflows/catalog.yml/badge.svg)](https://github.com/yoreai/relay/actions/workflows/catalog.yml)
-[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](./LICENSE)
-[![Homebrew](https://img.shields.io/badge/brew-yoreai%2Ftap%2Frelay-fbb040)](https://github.com/yoreai/homebrew-tap)
+<p align="center">
+  <img src="assets/banner.png" alt="relay — route the work. keep the quality. keep the money." width="720" />
+</p>
+
+<p align="center">
+  <a href="https://relayagent.dev"><img src="https://img.shields.io/badge/site-relayagent.dev-4ade80?style=flat-square" alt="site" /></a>
+  <a href="https://github.com/yoreai/relay/actions/workflows/ci.yml"><img src="https://github.com/yoreai/relay/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/yoreai/relay/releases/latest"><img src="https://img.shields.io/github/v/release/yoreai/relay?color=0e8a16" alt="Release" /></a>
+  <a href="https://github.com/yoreai/homebrew-tap"><img src="https://img.shields.io/badge/brew-yoreai%2Ftap%2Frelay-fbb040" alt="Homebrew" /></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License" /></a>
+</p>
 
 **The interface-independent task router for AI agents.**
+
+Site: [relayagent.dev](https://relayagent.dev)
 
 Hand relay a task in plain English — from your terminal, or from any agent that speaks MCP
 (Cursor, Claude Code, Codex). A shareable *directive* (`router.yaml`) picks the

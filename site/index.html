@@ -4,13 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>relay — route the work. keep the quality. keep the money.</title>
-  <meta name="description" content="relay is an interface-independent task router for AI agents. One shareable directive picks the cheapest model that clears the quality bar — across Cursor, Claude Code, Codex and more — verifies the result, and prints an honest savings receipt." />
-  <meta property="og:title" content="relay — the task router for AI agents" />
-  <meta property="og:description" content="Stop paying frontier prices for mechanical work. brew install yoreai/tap/relay" />
+  <meta name="description" content="relay is the routing agent for AI agents. One shareable directive picks the cheapest model that clears the quality bar — across Cursor, Claude Code, Codex, Gemini, Grok, Kimi — verifies the result, and prints an honest savings receipt." />
+  <meta property="og:title" content="relay — route the work. keep the quality. keep the money." />
+  <meta property="og:description" content="The routing agent under your agents. brew install yoreai/tap/relay" />
   <meta property="og:type" content="website" />
-  <meta property="og:image" content="https://relay-sh.vercel.app/icon-1024.png" />
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:image" content="https://relay-sh.vercel.app/icon-1024.png" />
+  <meta property="og:url" content="https://relayagent.dev" />
+  <meta property="og:image" content="https://relayagent.dev/og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://relayagent.dev/og.png" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
@@ -21,10 +22,11 @@
 
   <header class="hero">
     <nav>
-      <span class="brand">relay<span class="cursor">▊</span></span>
+      <span class="brand"><img class="brand-mark" src="favicon.svg" alt="" width="32" height="32" />relay<span class="cursor">▊</span></span>
       <div class="nav-links">
         <a href="#why">why</a>
         <a href="#how">how</a>
+        <a href="#clis">clis</a>
         <a href="#proof">proof</a>
         <a href="#install">install</a>
         <a href="#about">about</a>
@@ -33,13 +35,14 @@
     </nav>
 
     <div class="hero-copy">
+      <img class="hero-mark" src="favicon.svg" alt="relay" width="64" height="64" />
       <h1>route the work.<br/>keep the quality.<br/><em>keep the money.</em></h1>
       <p class="lede">
         Your agents run everything through a frontier model — including the
-        70% of work a mid-tier model does just as well. relay is a tiny
-        router that sits under <b>any</b> agent surface and sends each task
-        to the <em>cheapest model that clears its quality bar</em>, verifies
-        the result, escalates only on failure, and hands you a receipt.
+        70% of work a mid-tier model does just as well. <b>relay</b> is the
+        routing agent under any surface: it sends each task to the
+        <em>cheapest model that clears its quality bar</em>, verifies the
+        result, escalates only on failure, and hands you a receipt.
       </p>
       <div class="install-line">
         <code id="install-cmd">brew install yoreai/tap/relay</code>
@@ -130,9 +133,31 @@ lanes:
     </div>
     <p class="mcp-note">
       Two mouths, one brain: a human CLI and an MCP server. Register once with
-      <code>relay setup</code> and every agent — Cursor, Claude Code, Codex —
-      can delegate sub-tasks with <code>relay_run</code> mid-session.
+      <code>relay setup</code>, then either call <code>relay_run</code> when
+      you want a handoff — or drop a short rule/skill so your agent routes
+      mechanical work through relay by default. You can't force an agent;
+      you can make the cheap path the obvious one.
     </p>
+  </section>
+
+  <section id="clis">
+    <h2><span class="prompt">$</span> backends — the CLIs relay drives</h2>
+    <p class="method">
+      relay never stores credentials. It shells out to the agent CLIs you
+      already installed and signed into. First available backend in each tier
+      wins — a Claude-only machine still routes every lane.
+    </p>
+    <div class="cli-grid">
+      <div class="cli-row cli-head">
+        <span>surface</span><span>CLI</span><span>status</span>
+      </div>
+      <div class="cli-row"><span>Cursor</span><span><code>cursor-agent</code></span><span class="pass">verified</span></div>
+      <div class="cli-row"><span>Claude Code</span><span><code>claude</code></span><span class="pass">verified</span></div>
+      <div class="cli-row"><span>Codex</span><span><code>codex</code></span><span class="pass">verified</span></div>
+      <div class="cli-row"><span>Gemini CLI</span><span><code>gemini</code></span><span class="exp">experimental</span></div>
+      <div class="cli-row"><span>Grok CLI</span><span><code>grok</code></span><span class="exp">experimental</span></div>
+      <div class="cli-row"><span>Kimi CLI</span><span><code>kimi</code></span><span class="exp">experimental</span></div>
+    </div>
   </section>
 
   <section id="proof">
@@ -240,7 +265,7 @@ lanes:
 
   <footer>
     <span>© 2026 YoreAI · Apache-2.0</span>
-    <span><a href="https://github.com/yoreai/relay">github.com/yoreai/relay</a></span>
+    <span><a href="https://relayagent.dev">relayagent.dev</a> · <a href="https://github.com/yoreai/relay">github</a></span>
     <span><code>brew install yoreai/tap/relay</code></span>
   </footer>
 

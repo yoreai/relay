@@ -15,6 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   parity 6/6 = 6/6, median cost ratio 5.2×)
 - Site: "proof" section with methodology, per-task results grid, and
   claim/non-claim caveats
+- Site: backends/CLI support chart (Cursor, Claude Code, Codex verified;
+  Gemini / Grok / Kimi experimental); bolder brand mark + favicon;
+  three-line hero tagline "route the work. keep the quality. keep the money."
+  with larger nav/hero marks
+- Custom domain [relayagent.dev](https://relayagent.dev) (GitHub homepage +
+  README link)
+- Brand banner (`assets/banner.png`) on README + site OG card; larger hero
+  mark; tagline restored to "route the work. keep the quality. keep the money."
+
 
 ## [0.5.1] — 2026-07-20
 
