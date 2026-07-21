@@ -87,6 +87,7 @@ async function typeUser(container, text) {
   container.appendChild(line);
   for (const ch of text) {
     target.textContent += ch;
+    body.scrollTop = body.scrollHeight;
     await sleep(TYPE_MS + Math.random() * 18);
   }
   await sleep(500);

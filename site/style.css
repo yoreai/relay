@@ -109,9 +109,14 @@ h1 em { color: var(--green); font-style: normal; }
 .term-title { color: var(--ink-dim); font-size: 12px; margin-left: 8px; }
 
 .term-body {
-  padding: 18px 18px 12px; min-height: 380px; font-size: 13.5px;
+  padding: 18px 18px 12px; font-size: 13.5px;
+  height: 420px; overflow-y: auto; scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
   line-height: 1.75; white-space: pre-wrap; word-break: break-word;
 }
+.term-body::-webkit-scrollbar { width: 6px; }
+.term-body::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+.term-body::-webkit-scrollbar-track { background: transparent; }
 .term-body .ps1 { color: var(--green); }
 .term-body .out { color: var(--ink-dim); }
 .term-body .ok { color: var(--green); }
