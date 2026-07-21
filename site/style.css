@@ -116,23 +116,45 @@ h1 em { color: var(--green); font-style: normal; }
 .term-body .ok { color: var(--green); }
 .term-body .money { color: var(--amber); }
 
-/* agent-session roles */
-.term-body .line { display: block; }
-.term-body .line .prefix { color: var(--ink-dim); }
-.term-body .you { color: var(--ink); }
-.term-body .you .prefix { color: var(--green); font-weight: 700; }
-.term-body .agent { color: var(--ink-dim); }
-.term-body .agent .prefix { color: var(--ink); }
-.term-body .tool {
-  color: var(--ink-dim); font-size: 12px;
-  border-left: 2px solid var(--line); padding-left: 10px; margin-left: 2px;
+/* agent-session layout */
+.term-body .turn { margin-bottom: 22px; }
+.term-body .msg { display: block; line-height: 1.7; }
+.term-body .msg.user { color: var(--ink); margin-bottom: 8px; }
+.term-body .msg.user .ps { color: var(--green); font-weight: 700; }
+.term-body .msg.agent { color: var(--ink-dim); margin: 6px 0; }
+.term-body .msg.agent .bullet { color: var(--green); }
+
+/* relay tool card — the delegation made visible */
+.term-body .card {
+  border: 1px solid var(--line); border-radius: 8px;
+  background: rgba(74, 222, 128, 0.03);
+  padding: 10px 14px; margin: 10px 0 10px 16px;
+  font-size: 12.8px;
 }
-.term-body .relay { color: var(--green); opacity: 0.92; }
-.term-body .relay .prefix { color: var(--green); font-weight: 700; }
-.term-body .line.money { color: var(--amber); }
+.term-body .card-head {
+  display: flex; align-items: baseline; gap: 8px;
+  padding-bottom: 6px; margin-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.term-body .card-head .glyph { color: var(--green); }
+.term-body .card-head .name { color: var(--green); font-weight: 700; }
+.term-body .card-head .lane {
+  color: var(--ink-dim); border: 1px solid var(--line);
+  border-radius: 999px; padding: 0 9px; font-size: 11px;
+}
+.term-body .card-head .state {
+  margin-left: auto; color: var(--ink-dim); font-size: 11px;
+}
+.term-body .card-head .state.done { color: var(--green); }
+.term-body .card-row { display: block; line-height: 1.9; }
+.term-body .card-row.sub { color: var(--ink); }
+.term-body .card-row.ok { color: var(--green); }
+.term-body .card-row.money { color: var(--amber); }
+.term-body .card-row.note { color: var(--ink-dim); }
+
 .term-body .ticker {
   color: var(--amber); border-top: 1px dashed var(--line);
-  padding-top: 8px; margin-top: 4px; display: block; font-size: 12.5px;
+  padding-top: 10px; margin-top: 4px; display: block; font-size: 12.5px;
 }
 .term-body .caret {
   display: inline-block; width: 8px; height: 15px; vertical-align: -2px;

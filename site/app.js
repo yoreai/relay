@@ -1,99 +1,152 @@
-// Demo: the rider's view. You talk to your coding agent (any of them —
-// Cursor, Claude Code, Codex); the agent quietly delegates mechanical work
-// to relay over MCP; relay sub-routes to whichever CLI+model clears the
-// quality bar cheapest, verifies with YOUR tests, and returns a receipt.
-// Receipt lines mirror real measured runs from relay's own dogfooding.
+// The rider's view: you talk to your agent as usual; relay sub-routes
+// underneath. Each delegation renders as a tool card showing which
+// sub-agent activates. Receipts labeled [measured] mirror real runs.
 const SCRIPT = [
-  { r: "you", text: "the retry tests are flaky again — fix them, I'm jumping on a call" },
-  { r: "agent", text: "mechanical fix — handing it to relay with a tight brief while I hold context" },
-  { r: "tool", text: "relay_run · lane: quickfix" },
-  { r: "relay", text: "routing → cursor CLI ⚡ grok-4.5 (workhorse class)" },
-  { r: "relay", text: "verify → lint ✓ · your tests ✓ · edits staged in git" },
-  { r: "receipt", text: "receipt: ~$0.48 saved vs frontier [measured]" },
-  { r: "agent", text: "done — diff is staged for your review. I never dropped our design thread." },
-  { r: "gap" },
-
-  { r: "you", text: "what changed while I was out?" },
-  { r: "agent", text: "status question — relay routes it to the cheapest reader" },
-  { r: "tool", text: "relay_run · lane: status (read-only)" },
-  { r: "relay", text: "routing → claude CLI ⚡ haiku (nano class)" },
-  { r: "receipt", text: "receipt: ~$0.05 saved [measured]" },
-  { r: "gap" },
-
-  { r: "you", text: "why does auth break on token refresh? something deeper is wrong" },
-  { r: "agent", text: "this one needs real judgment — no shortcuts" },
-  { r: "tool", text: "relay_run · lane: review" },
-  { r: "relay", text: "routing → opus-class model, full effort — hard problems keep frontier power" },
-  { r: "relay", text: "savings come from everything else, never from your quality bar" },
-  { r: "gap" },
-
-  { r: "ticker", text: "session: ~$1.24 saved · 29 verified runs · quality floor: your own tests" },
+  {
+    turn: [
+      { u: "fix the flaky retry tests — I'm heading to a meeting" },
+      { a: "mechanical — delegating to relay" },
+      {
+        card: {
+          lane: "quickfix",
+          rows: [
+            { c: "sub", t: "▸ Cursor sub-agent · grok-4.5" },
+            { c: "ok", t: "✓ lint  ✓ your tests  · edits staged" },
+            { c: "money", t: "~$0.48 saved vs frontier  [measured]" },
+          ],
+        },
+      },
+      { a: "done — diff staged for your review" },
+    ],
+  },
+  {
+    turn: [
+      { u: "what changed while I was out?" },
+      {
+        card: {
+          lane: "status",
+          rows: [
+            { c: "sub", t: "▸ Claude Code sub-agent · haiku" },
+            { c: "money", t: "~$0.05 saved  [measured]" },
+          ],
+        },
+      },
+    ],
+  },
+  {
+    turn: [
+      { u: "bump the deps and clean up lint warnings" },
+      {
+        card: {
+          lane: "quickfix",
+          rows: [
+            { c: "sub", t: "▸ Codex sub-agent · gpt-5.6-luna" },
+            { c: "ok", t: "✓ lint  ✓ build  · edits staged" },
+            { c: "money", t: "~$0.11 saved  [estimated]" },
+          ],
+        },
+      },
+    ],
+  },
+  {
+    turn: [
+      { u: "auth breaks on token refresh — find the root cause" },
+      { a: "needs real judgment — routing to frontier class" },
+      {
+        card: {
+          lane: "review",
+          rows: [
+            { c: "sub", t: "▸ Kimi sub-agent · kimi-k2.7 (frontier class)" },
+            { c: "note", t: "full power for hard problems — still ~10× cheaper" },
+          ],
+        },
+      },
+    ],
+  },
+  { ticker: "~$1.24 saved · 29 verified runs · quality floor: your own tests" },
 ];
 
 const body = document.getElementById("term-body");
 const TYPE_MS = 24;
-const LINE_PAUSE = 520;
-const CMD_PAUSE = 620;
-const RESTART_PAUSE = 7000;
-
-const ROLES = {
-  you: { cls: "you", prefix: "you ▸ ", type: true },
-  agent: { cls: "agent", prefix: "agent ▸ ", type: false },
-  tool: { cls: "tool", prefix: "⚙ ", type: false },
-  relay: { cls: "relay", prefix: "relay ▸ ", type: false },
-  receipt: { cls: "money", prefix: "  ", type: false },
-  ticker: { cls: "ticker", prefix: "", type: false },
-};
-
-function el(cls, text) {
-  const span = document.createElement("span");
-  if (cls) span.className = cls;
-  span.textContent = text;
-  return span;
-}
-
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function typeLine(role, text) {
-  const line = document.createElement("div");
-  line.className = `line ${role.cls}`;
-  line.appendChild(el("prefix", role.prefix));
-  const target = el("", "");
-  line.appendChild(target);
-  const caret = el("caret", "");
-  body.appendChild(line);
+function el(tag, cls, text) {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text != null) node.textContent = text;
+  return node;
+}
 
-  if (role.type) {
-    line.appendChild(caret);
-    for (const ch of text) {
-      target.textContent += ch;
-      await sleep(TYPE_MS + Math.random() * 20);
-    }
-    await sleep(CMD_PAUSE);
-    caret.remove();
-  } else {
-    target.textContent = text;
-    await sleep(LINE_PAUSE);
+async function typeUser(container, text) {
+  const line = el("div", "msg user");
+  line.appendChild(el("span", "ps", "❯ "));
+  const target = el("span", "", "");
+  line.appendChild(target);
+  const caret = el("span", "caret", "");
+  line.appendChild(caret);
+  container.appendChild(line);
+  for (const ch of text) {
+    target.textContent += ch;
+    await sleep(TYPE_MS + Math.random() * 18);
   }
+  await sleep(500);
+  caret.remove();
+}
+
+async function showAgent(container, text) {
+  const line = el("div", "msg agent");
+  line.appendChild(el("span", "bullet", "● "));
+  line.appendChild(el("span", "", text));
+  container.appendChild(line);
+  await sleep(650);
+}
+
+async function showCard(container, card) {
+  const box = el("div", "card");
+  const head = el("div", "card-head");
+  head.appendChild(el("span", "glyph", "⚡"));
+  head.appendChild(el("span", "name", "relay"));
+  head.appendChild(el("span", "lane", card.lane));
+  const state = el("span", "state", "running…");
+  head.appendChild(state);
+  box.appendChild(head);
+  container.appendChild(box);
+  await sleep(600);
+
+  for (const row of card.rows) {
+    box.appendChild(el("div", `card-row ${row.c}`, row.t));
+    body.scrollTop = body.scrollHeight;
+    await sleep(700);
+  }
+  state.textContent = "done ✓";
+  state.classList.add("done");
+  await sleep(400);
 }
 
 async function run() {
   body.textContent = "";
   for (const step of SCRIPT) {
-    if (step.r === "gap") {
-      body.appendChild(document.createElement("br"));
-      await sleep(320);
+    if (step.ticker) {
+      body.appendChild(el("div", "ticker", step.ticker));
+      body.scrollTop = body.scrollHeight;
       continue;
     }
-    await typeLine(ROLES[step.r], step.text);
-    body.scrollTop = body.scrollHeight;
+    const turn = el("div", "turn");
+    body.appendChild(turn);
+    for (const item of step.turn) {
+      if (item.u) await typeUser(turn, item.u);
+      else if (item.a) await showAgent(turn, item.a);
+      else if (item.card) await showCard(turn, item.card);
+      body.scrollTop = body.scrollHeight;
+    }
+    await sleep(700);
   }
-  const line = document.createElement("div");
-  line.className = "line you";
-  line.appendChild(el("prefix", "you ▸ "));
-  line.appendChild(el("caret", ""));
+  const line = el("div", "msg user");
+  line.appendChild(el("span", "ps", "❯ "));
+  line.appendChild(el("span", "caret", ""));
   body.appendChild(line);
-  await sleep(RESTART_PAUSE);
+  body.scrollTop = body.scrollHeight;
+  await sleep(7000);
   run();
 }
 
