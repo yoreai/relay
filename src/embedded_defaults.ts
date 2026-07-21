@@ -17,7 +17,7 @@ tiers:
     - { backend: cursor, model: grok-4.5 }
     - { backend: claude, model: sonnet-5 }
     - { backend: codex, model: gpt-5.6-sol }
-    - { backend: gemini, model: gemini-3-pro }
+    - { backend: gemini, model: gemini-3.1-pro }
   fast:
     - { backend: cursor, model: grok-4.5-fast }
     - { backend: claude, model: sonnet-5 }
@@ -27,12 +27,12 @@ tiers:
     - { backend: cursor, model: opus-4.8-high }
     - { backend: claude, model: opus-4.8-high }
     - { backend: codex, model: gpt-5.6-sol }
-    - { backend: gemini, model: gemini-3-pro }
+    - { backend: gemini, model: gemini-3.1-pro }
   deep:
     - { backend: cursor, model: fable-5-high }
     - { backend: claude, model: fable-5-high }
     - { backend: codex, model: gpt-5.6-sol }
-    - { backend: gemini, model: gemini-3-pro }
+    - { backend: gemini, model: gemini-3.1-pro }
 lanes:
   - name: status
     match: { verbs: [status, summarize, watch, check, list, read] }
@@ -123,7 +123,7 @@ models:
     in: 0.80
     out: 4.0
     cache_read: 0.08
-    backends: [claude, cursor]
+    backends: [claude]
   glm-5.2:
     class: cheap
     in: 1.40
@@ -154,7 +154,7 @@ models:
     out: 15.0
     cache_read: 0.30
     backends: [claude, cursor]
-  gemini-3-pro:
+  gemini-3.1-pro:
     class: opus-class
     in: 2.50
     out: 15.0
@@ -170,7 +170,7 @@ models:
     in: 5.0
     out: 30.0
     backends: [cursor, codex]
-  kimi-k3:
+  kimi-k2.7-code:
     class: frontier
     in: 1.0
     out: 4.0

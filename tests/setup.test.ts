@@ -57,7 +57,7 @@ default_lane: quickfix
         currentModel: "fable-5-high",
         currentCost: 20,
         backend: "cursor",
-        model: "kimi-k3",
+        model: "kimi-k2.7-code",
         cost: 1.75,
         class: "frontier",
         savingsPct: 91,
@@ -66,7 +66,7 @@ default_lane: quickfix
     expect(msg).toContain("router.yaml");
 
     const d = loadDirective(dir);
-    expect(d.tiers.deep?.[0]?.model).toBe("kimi-k3");
+    expect(d.tiers.deep?.[0]?.model).toBe("kimi-k2.7-code");
     expect(d.tiers.deep?.[1]?.model).toBe("fable-5-high");
   });
 

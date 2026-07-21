@@ -33,8 +33,8 @@ describe("catalog", () => {
     }
   });
 
-  test("blended cost favors kimi-k3 over fable at same class", () => {
-    const kimi = catalog.models["kimi-k3"]!;
+  test("blended cost favors kimi-k2.7-code over fable at same class", () => {
+    const kimi = catalog.models["kimi-k2.7-code"]!;
     const fable = catalog.models["fable-5-high"]!;
     expect(kimi.class).toBe(fable.class);
     expect(blendedCost(kimi)).toBeLessThan(blendedCost(fable) * 0.2);
@@ -42,14 +42,14 @@ describe("catalog", () => {
 });
 
 describe("advise", () => {
-  test("suggests kimi-k3 for deep and composer for work when cursor present", () => {
+  test("suggests kimi-k2.7-code for deep and composer for work when cursor present", () => {
     const suggestions = adviseTiers(
       directive,
       catalog,
       new Set(["cursor", "claude"]),
     );
     const byTier = Object.fromEntries(suggestions.map((s) => [s.tier, s]));
-    expect(byTier.deep?.model).toBe("kimi-k3");
+    expect(byTier.deep?.model).toBe("kimi-k2.7-code");
     expect(byTier.deep?.savingsPct).toBeGreaterThan(80);
     expect(byTier.work?.model).toBe("composer-2.5");
   });
@@ -89,7 +89,7 @@ describe("advise", () => {
       directive,
       catalog,
       new Set(["cursor", "claude"]),
-      { "kimi-k3": { runs: 10, ok: 9 } },
+      { "kimi-k2.7-code": { runs: 10, ok: 9 } },
     );
     const deep = suggestions.find((s) => s.tier === "deep");
     expect(deep?.evidence).toContain("9/10");

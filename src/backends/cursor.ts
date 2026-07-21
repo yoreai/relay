@@ -20,6 +20,28 @@ export function discoverCursorBinary(override?: string): string | null {
   return null;
 }
 
+/**
+ * cursor-agent encodes effort in the model id itself (verified against the
+ * CLI's own "Available models" list): `cursor-grok-4.5-medium`,
+ * `gpt-5.6-luna-low`, `claude-fable-5-high`… Map relay's canonical catalog
+ * ids; unknown ids pass through so users can pin exact cursor ids.
+ */
+export function cursorModelId(canonical: string, effort?: string): string {
+  const e = effort ?? "medium";
+  const map: Record<string, string> = {
+    "gpt-5.6-luna": `gpt-5.6-luna-${e}`,
+    "gpt-5.6-sol": `gpt-5.6-sol-${e}`,
+    "grok-4.5": `cursor-grok-4.5-${e}`,
+    "grok-4.5-fast": `cursor-grok-4.5-${e}-fast`,
+    "glm-5.2": "glm-5.2-high",
+    "sonnet-5": `claude-sonnet-5-${e}`,
+    "opus-4.8-high": "claude-opus-4-8-high",
+    "fable-5-high": "claude-fable-5-high",
+    "gemini-3.1-pro": "gemini-3.1-pro",
+  };
+  return map[canonical] ?? canonical;
+}
+
 export class CursorBackend implements Backend {
   name = "cursor";
 
@@ -36,15 +58,11 @@ export class CursorBackend implements Backend {
       "-p",
       prompt,
       "--model",
-      opts.model,
+      cursorModelId(opts.model, opts.effort),
       "--output-format",
       "stream-json",
       "--force",
     ];
-    if (opts.effort) {
-      // feature-detect friendly: pass only if set; CLI may ignore unknown
-      args.push("--effort", opts.effort);
-    }
 
     const { stdout, stderr, exitCode } = await runCli([bin, ...args], {
       cwd: opts.cwd,
@@ -98,7 +116,7 @@ export class CursorBackend implements Backend {
 export async function probeCursorAuth(bin: string): Promise<boolean | "unknown"> {
   try {
     const proc = Bun.spawn(
-      [bin, "-p", "say only: ok", "--model", "gpt-5.6-luna", "--output-format", "text"],
+      [bin, "-p", "say only: ok", "--model", "gpt-5.6-luna-low", "--output-format", "text"],
       { stdout: "pipe", stderr: "pipe", env: { ...process.env } },
     );
     const timeout = setTimeout(() => proc.kill(), 20_000);

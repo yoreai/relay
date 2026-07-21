@@ -19,7 +19,7 @@ const SCRIPT = [
   { type: "money", text: "relay: ~$0.05 saved (haiku-4.5 vs fable-5-high) [measured]" },
   { type: "gap" },
   { type: "cmd", text: "relay advise" },
-  { type: "out", text: "  deep    fable-5-high → kimi-k3 — ~91% cheaper, same frontier class" },
+  { type: "out", text: "  deep    fable-5-high → kimi-k2.7-code — ~91% cheaper, same frontier class" },
   { type: "out", text: "  work    grok-4.5 → composer-2.5 — ~48% cheaper, same workhorse class" },
   { type: "gap" },
   { type: "cmd", text: "relay savings" },

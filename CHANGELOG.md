@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-07-20
+
+### Fixed
+
+- Cursor backend maps catalog ids to cursor-agent's real model ids
+  (`grok-4.5`+effort → `cursor-grok-4.5-medium`, `gpt-5.6-luna` →
+  `gpt-5.6-luna-low`, …) — verified against the CLI's model list; both
+  status and quickfix lanes now complete end-to-end on the cursor backend
+- Auth probe no longer misreads the per-repo workspace-trust prompt as a
+  login failure (real runs pass `--force`)
+- Catalog ids corrected to what cursor actually serves: `kimi-k2.7-code`
+  (was kimi-k3), `gemini-3.1-pro` (was gemini-3-pro); haiku is claude-only
+
 ## [0.5.0] — 2026-07-20
 
 ### Added
@@ -131,7 +144,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/yoreai/relay/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/yoreai/relay/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/yoreai/relay/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/yoreai/relay/compare/v0.4.0...v0.4.1
