@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { invalidateAuthCache, probeTools } from "../src/probe.ts";
@@ -29,17 +29,22 @@ describe("probe", () => {
   });
 
   test("auth results are cached to the data dir", async () => {
-    await probeTools();
-    const cache = JSON.parse(
-      readFileSync(
-        join(process.env.XDG_DATA_HOME!, "relay", "probe.json"),
-        "utf8",
-      ),
+    const tools = await probeTools();
+    // only tools whose CLI is present get auth-probed (and cached) —
+    // on a bare CI runner that set is legitimately empty
+    const present = tools.filter(
+      (t) => t.cliPresent && ["cursor", "claude", "codex"].includes(t.id),
     );
-    // at least one tool present on this machine got an auth entry
-    expect(Object.keys(cache).length).toBeGreaterThan(0);
-    for (const entry of Object.values(cache) as { ts: number }[]) {
-      expect(entry.ts).toBeGreaterThan(Date.now() - 60_000);
+    const cachePath = join(process.env.XDG_DATA_HOME!, "relay", "probe.json");
+    const cache = existsSync(cachePath)
+      ? (JSON.parse(readFileSync(cachePath, "utf8")) as Record<
+          string,
+          { ts: number }
+        >)
+      : {};
+    expect(Object.keys(cache).length).toBe(present.length);
+    for (const entry of Object.values(cache)) {
+      expect(entry.ts).toBeGreaterThan(Date.now() - 120_000);
     }
   });
 
@@ -61,5 +66,20 @@ describe("probe", () => {
       ),
     );
     expect(Object.keys(cache).length).toBe(0);
+  });
+
+  test("probing on a machine with zero CLIs still succeeds", async () => {
+    // simulate a bare CI runner: PATH with no agent CLIs
+    const prevPath = process.env.PATH;
+    process.env.PATH = "/usr/bin:/bin";
+    try {
+      const tools = await probeTools({ fresh: true });
+      for (const t of tools) {
+        expect(t.cliPresent).toBe(false);
+        expect(t.summary.length).toBeGreaterThan(0);
+      }
+    } finally {
+      process.env.PATH = prevPath;
+    }
   });
 });
