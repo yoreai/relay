@@ -81,13 +81,7 @@ recursion guard: delegated workers cannot re-delegate to relay.
 
 `relay_run`, `relay_status`, `relay_savings`, `relay_doctor`, `relay_login`.
 
-`relay setup` wires Cursor + Claude Code. Codex: add to `~/.codex/config.toml`:
-
-```toml
-[mcp_servers.relay]
-command = "relay"
-args = ["mcp", "serve"]
-```
+`relay setup` registers relay in **Cursor, Claude Code, and Codex** automatically.
 
 ## How it works
 

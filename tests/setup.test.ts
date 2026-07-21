@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { applySuggestions } from "../src/advise.ts";
 import { loadDirective } from "../src/directive.ts";
-import { mergeMcpJson } from "../src/setup.ts";
+import { mergeCodexToml, mergeMcpJson } from "../src/setup.ts";
 
 describe("mergeMcpJson", () => {
   test("adds relay to empty config", () => {
@@ -29,6 +29,25 @@ describe("mergeMcpJson", () => {
     const first = mergeMcpJson("").out;
     const second = mergeMcpJson(first);
     expect(second.changed).toBe(false);
+  });
+});
+
+describe("mergeCodexToml", () => {
+  test("appends relay block to empty config", () => {
+    const { out, changed } = mergeCodexToml("");
+    expect(changed).toBe(true);
+    expect(out).toContain("[mcp_servers.relay]");
+    expect(out).toContain('command = "relay"');
+  });
+
+  test("idempotent when relay block already correct", () => {
+    const existing = `[mcp_servers.relay]
+command = "relay"
+args = ["mcp", "serve"]
+enabled = true
+`;
+    const { changed } = mergeCodexToml(existing);
+    expect(changed).toBe(false);
   });
 });
 

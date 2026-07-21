@@ -7,12 +7,19 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { CLI_SPECS, discoverCliBinary } from "./backends/cli.ts";
 import { discoverClaudeBinary } from "./backends/claude.ts";
 import { discoverCursorBinary } from "./backends/cursor.ts";
 import { probeTools, runLogin, type ToolProbe } from "./probe.ts";
 import { which } from "./which.ts";
 
 const RELAY_SERVER = { command: "relay", args: ["mcp", "serve"] };
+
+const RELAY_CODEX_BLOCK = `[mcp_servers.relay]
+command = "relay"
+args = ["mcp", "serve"]
+enabled = true
+`;
 
 /** Merge relay into an mcpServers-style JSON config. Pure for testability. */
 export function mergeMcpJson(text: string): { out: string; changed: boolean } {
@@ -26,6 +33,21 @@ export function mergeMcpJson(text: string): { out: string; changed: boolean } {
   }
   cfg.mcpServers.relay = RELAY_SERVER;
   return { out: JSON.stringify(cfg, null, 2) + "\n", changed: true };
+}
+
+/** Append or skip relay block in Codex config.toml. Fallback when `codex mcp` is unavailable. */
+export function mergeCodexToml(text: string): { out: string; changed: boolean } {
+  if (/^\[mcp_servers\.relay\]/m.test(text)) {
+    const hasCmd = /^\[mcp_servers\.relay\][\s\S]*?^command\s*=\s*"relay"/m.test(text);
+    const hasArgs =
+      /^\[mcp_servers\.relay\][\s\S]*?^args\s*=\s*\[\s*"mcp"\s*,\s*"serve"\s*\]/m.test(
+        text,
+      );
+    if (hasCmd && hasArgs) return { out: text, changed: false };
+  }
+  const trimmed = text.trimEnd();
+  const prefix = trimmed ? `${trimmed}\n\n` : "";
+  return { out: prefix + RELAY_CODEX_BLOCK, changed: true };
 }
 
 function registerInJsonConfig(path: string, createIfMissing: boolean): string {
@@ -45,6 +67,78 @@ function registerInJsonConfig(path: string, createIfMissing: boolean): string {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, merged.out, "utf8");
   return `✓ registered relay in ${path}${exists ? ` (backup: ${path}.relay-bak)` : ""}`;
+}
+
+function registerInCodexToml(path: string): string {
+  const exists = existsSync(path);
+  const text = exists ? readFileSync(path, "utf8") : "";
+  let merged;
+  try {
+    merged = mergeCodexToml(text);
+  } catch {
+    return `✗ could not update ${path}`;
+  }
+  if (!merged.changed) return `· already registered in ${path}`;
+  if (exists) copyFileSync(path, path + ".relay-bak");
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, merged.out, "utf8");
+  return `✓ registered relay in ${path}${exists ? ` (backup: ${path}.relay-bak)` : ""}`;
+}
+
+async function runToolMcpAdd(cmd: string[]): Promise<{ ok: boolean; detail: string }> {
+  if (!which(cmd[0]!)) return { ok: false, detail: `${cmd[0]} not on PATH` };
+  try {
+    const proc = Bun.spawn(cmd, { stdout: "pipe", stderr: "pipe" });
+    const [code, stderr, stdout] = await Promise.all([
+      proc.exited,
+      new Response(proc.stderr).text(),
+      new Response(proc.stdout).text(),
+    ]);
+    if (code !== 0) {
+      return { ok: false, detail: (stderr || stdout || `exit ${code}`).trim() };
+    }
+    const msg = (stdout || stderr).trim().split("\n")[0] ?? "registered";
+    return { ok: true, detail: msg };
+  } catch (e) {
+    return { ok: false, detail: (e as Error).message };
+  }
+}
+
+async function registerClaudeMcp(): Promise<string> {
+  const cfg = join(homedir(), ".claude.json");
+  const hasCli = !!discoverClaudeBinary();
+  const hasApp = existsSync(cfg);
+  if (!hasCli && !hasApp) return "· skipped (Claude Code not installed)";
+
+  if (hasCli) {
+    const r = await runToolMcpAdd([
+      "claude",
+      "mcp",
+      "add",
+      "-s",
+      "user",
+      "relay",
+      "--",
+      "relay",
+      "mcp",
+      "serve",
+    ]);
+    if (r.ok) return `✓ ${r.detail} (user scope)`;
+  }
+  return registerInJsonConfig(cfg, true);
+}
+
+async function registerCodexMcp(): Promise<string> {
+  const cfg = join(homedir(), ".codex", "config.toml");
+  const hasCli = !!discoverCliBinary(CLI_SPECS.codex!);
+  const hasApp = existsSync(join(homedir(), ".codex"));
+  if (!hasCli && !hasApp) return "· skipped (Codex not installed)";
+
+  if (hasCli || which("codex")) {
+    const r = await runToolMcpAdd(["codex", "mcp", "add", "relay", "--", "relay", "mcp", "serve"]);
+    if (r.ok) return `✓ ${r.detail}`;
+  }
+  return registerInCodexToml(cfg);
 }
 
 function statusMark(t: ToolProbe): string {
@@ -118,24 +212,15 @@ export async function runSetup(
   }
   say("");
 
-  // MCP registration
+  // MCP registration — one command wires every agent surface we detect
+  say("registering relay MCP…");
   if (tools.find((t) => t.id === "cursor")?.appDetected || discoverCursorBinary()) {
-    say(`cursor: ${registerInJsonConfig(join(homedir(), ".cursor", "mcp.json"), true)}`);
+    say(`  cursor: ${registerInJsonConfig(join(homedir(), ".cursor", "mcp.json"), true)}`);
+  } else {
+    say("  cursor: · skipped (not installed)");
   }
-  if (discoverClaudeBinary()) {
-    const claudeCfg = join(homedir(), ".claude.json");
-    if (existsSync(claudeCfg)) {
-      say(`claude: ${registerInJsonConfig(claudeCfg, false)}`);
-    } else {
-      say("claude: register with:  claude mcp add relay -- relay mcp serve");
-    }
-  }
-  if (existsSync(join(homedir(), ".codex"))) {
-    say("codex: add to ~/.codex/config.toml:");
-    say("         [mcp_servers.relay]");
-    say('         command = "relay"');
-    say('         args = ["mcp", "serve"]');
-  }
+  say(`  claude: ${await registerClaudeMcp()}`);
+  say(`  codex:  ${await registerCodexMcp()}`);
 
   if (!which("relay")) {
     say("");
