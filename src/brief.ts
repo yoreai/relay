@@ -1,11 +1,17 @@
 import { z } from "zod";
 
+/** Agents across ecosystems pass single strings where we want lists — coerce
+ * instead of erroring at the MCP boundary. */
+const stringList = z
+  .union([z.array(z.string()), z.string()])
+  .transform((v) => (typeof v === "string" ? [v] : v));
+
 export const BriefSchema = z.object({
   goal: z.string().min(1),
   why: z.string().optional(),
-  files: z.array(z.string()).optional(),
-  constraints: z.array(z.string()).optional(),
-  done_means: z.array(z.string()).default([]),
+  files: stringList.optional(),
+  constraints: stringList.optional(),
+  done_means: stringList.default([]),
   context: z.string().optional(),
 });
 

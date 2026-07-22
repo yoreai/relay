@@ -1,3 +1,5 @@
+import { statSync } from "node:fs";
+import { isAbsolute } from "node:path";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -10,6 +12,18 @@ import { briefFromTask, parseBrief } from "./brief.ts";
 import { freshnessHint } from "./freshness.ts";
 import { probeTools, runLogin } from "./probe.ts";
 import { RELAY_VERSION } from "./version.ts";
+
+function resolveRunCwd(raw: string): string {
+  if (!isAbsolute(raw)) {
+    throw new Error(`cwd must be an absolute path, got: ${raw}`);
+  }
+  try {
+    if (!statSync(raw).isDirectory()) throw new Error("not a directory");
+  } catch {
+    throw new Error(`cwd does not exist or is not a directory: ${raw}`);
+  }
+  return raw;
+}
 
 export async function serveMcp(): Promise<void> {
   const server = new Server(
@@ -27,14 +41,30 @@ export async function serveMcp(): Promise<void> {
           "so the expensive session doesn't burn frontier tokens on it. Relay routes via the user's directive, " +
           "runs a headless backend in the repo, verifies the result (escalating only on failure), leaves edits " +
           "staged in git, and returns a savings receipt. Pass a curated brief (goal, files, constraints, done_means, " +
-          "context) — you already understand the problem, so a good brief makes the cheap run succeed first try.",
+          "context) — you already understand the problem, so a good brief makes the cheap run succeed first try. " +
+          "ALWAYS pass cwd (absolute path to the repo/workspace root the task concerns) — the server may have been " +
+          "launched from a different directory.",
         inputSchema: {
           type: "object",
           properties: {
             task: { type: "string", description: "Plain-English task" },
+            cwd: {
+              type: "string",
+              description:
+                "Absolute path to the repo/workspace root to run in. Required in practice: without it the task runs in the MCP server's own working directory, which is often not your project.",
+            },
             brief: {
               type: "object",
-              description: "Optional curated brief {goal, why, files, constraints, done_means, context}",
+              description:
+                "Optional curated brief. A good brief makes the cheap model succeed first try.",
+              properties: {
+                goal: { type: "string" },
+                why: { type: "string" },
+                files: { type: "array", items: { type: "string" } },
+                constraints: { type: "array", items: { type: "string" } },
+                done_means: { type: "array", items: { type: "string" } },
+                context: { type: "string" },
+              },
             },
             lane: { type: "string" },
             wait: {
@@ -106,6 +136,7 @@ export async function serveMcp(): Promise<void> {
         }
         const task = String(args.task ?? "");
         if (!task) throw new Error("task is required");
+        const cwd = args.cwd ? resolveRunCwd(String(args.cwd)) : undefined;
         const wait = args.wait !== false;
         const brief = args.brief
           ? parseBrief(args.brief)
@@ -116,6 +147,7 @@ export async function serveMcp(): Promise<void> {
           // For v1 we still await — true background needs a worker. Return after schedule via promise.
           const pending = runTask({
             task,
+            cwd,
             brief,
             lane: args.lane ? String(args.lane) : undefined,
           });
@@ -143,6 +175,7 @@ export async function serveMcp(): Promise<void> {
 
         const outcome = await runTask({
           task,
+          cwd,
           brief,
           lane: args.lane ? String(args.lane) : undefined,
         });
@@ -154,6 +187,7 @@ export async function serveMcp(): Promise<void> {
                 {
                   id: outcome.id,
                   summary: formatOutcome(outcome),
+                  cwd: cwd ?? process.cwd(),
                   filesChanged: outcome.filesChanged,
                   receipt: outcome.receipt,
                   verifyOk: outcome.verifyOk,

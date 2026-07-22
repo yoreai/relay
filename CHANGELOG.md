@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.4] — 2026-07-22
+
+### Fixed
+
+- **MCP `relay_run` ran in the wrong directory**: agent hosts launch the MCP
+  server from arbitrary cwds (Cursor used the last workspace it happened to
+  open), so delegated tasks read/edited a different repo than the session's.
+  `relay_run` now takes a `cwd` argument (validated absolute path), the tool
+  schema tells agents to always pass it, and the reply echoes the cwd used
+- **Brief validation at the MCP boundary**: agents commonly pass bare strings
+  for `files`/`constraints`/`done_means` — now coerced to single-item lists
+  instead of erroring; `relay_run`'s schema also spells out the brief's
+  field types
+
 ## [0.6.3] — 2026-07-21
 
 ### Fixed
@@ -211,7 +225,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.3...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.4...HEAD
+[0.6.4]: https://github.com/yoreai/relay/compare/v0.6.3...v0.6.4
 [0.6.3]: https://github.com/yoreai/relay/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/yoreai/relay/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/yoreai/relay/compare/v0.6.0...v0.6.1
