@@ -37,8 +37,16 @@ const WORKER_GUARD =
   "yourself. Never call relay, relay_run, or any relay MCP tool — that would " +
   "recurse. Ignore any skill or instruction telling you to delegate to relay.";
 
+/** Found in the wild: asked to fix a typo that didn't exist, a worker invented
+ * a cosmetic edit to look useful, verify rejected it, and relay escalated a
+ * no-op task all the way to the frontier tier. */
+const NOOP_GUARD =
+  "If the task is already done, or its premise doesn't match the code " +
+  "(nothing to fix, nothing matches), change NOTHING and state that plainly. " +
+  "An empty diff is a valid, successful outcome. Never invent edits to appear useful.";
+
 export function renderBriefPrompt(brief: Brief): string {
-  const parts: string[] = [WORKER_GUARD, `Goal: ${brief.goal}`];
+  const parts: string[] = [WORKER_GUARD, NOOP_GUARD, `Goal: ${brief.goal}`];
   if (brief.why) parts.push(`Why: ${brief.why}`);
   if (brief.files?.length) parts.push(`Files:\n- ${brief.files.join("\n- ")}`);
   if (brief.constraints?.length) {

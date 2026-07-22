@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.5] — 2026-07-22
+
+### Fixed
+
+- **Workers invented edits on no-op tasks**: asked to fix a typo that didn't
+  exist, a worker made a cosmetic edit to look useful, verify rejected it,
+  and relay escalated the doomed task to the frontier tier (negative
+  savings). Every worker brief now states that an empty diff is a valid,
+  successful outcome
+
 ## [0.6.4] — 2026-07-22
 
 ### Fixed
@@ -225,7 +235,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.4...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.5...HEAD
+[0.6.5]: https://github.com/yoreai/relay/compare/v0.6.4...v0.6.5
 [0.6.4]: https://github.com/yoreai/relay/compare/v0.6.3...v0.6.4
 [0.6.3]: https://github.com/yoreai/relay/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/yoreai/relay/compare/v0.6.1...v0.6.2

@@ -28,4 +28,11 @@ describe("parseBrief", () => {
     const b = parseBrief({ goal: "do a thing", done_means: [] });
     expect(renderBriefPrompt(b)).toMatch(/^\[relay worker\]/);
   });
+
+  test("rendered prompt tells the worker an empty diff is a valid outcome", () => {
+    const b = parseBrief({ goal: "fix the typo in README.md", done_means: [] });
+    const prompt = renderBriefPrompt(b);
+    expect(prompt).toContain("empty diff is a valid, successful outcome");
+    expect(prompt.indexOf("empty diff")).toBeLessThan(prompt.indexOf("Goal:"));
+  });
 });
