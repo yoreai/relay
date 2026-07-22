@@ -53,6 +53,22 @@ describe("listChangedFiles", () => {
   });
 });
 
+describe("createWorktree", () => {
+  test("excludes .relay/ from git status via local exclude", async () => {
+    const dir = await makeRepo();
+    writeFileSync(join(dir, "a.txt"), "a\n");
+    await sh(dir, ["add", "-A"]);
+    await sh(dir, ["commit", "-qm", "init"]);
+
+    const { createWorktree } = await import("../src/git.ts");
+    const dest = await createWorktree(dir, "relay/test-branch");
+    expect(dest).toContain(".relay");
+
+    // main tree status must not report the .relay scratch dir
+    expect(await listChangedFiles(dir)).toEqual([]);
+  });
+});
+
 describe("stagePaths", () => {
   test("stages exactly the files a run touched", async () => {
     const dir = await makeRepo();

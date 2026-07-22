@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Walkaway runs no longer leave `?? .relay/` noise in the main tree's
+  `git status` — the scratch dir is added to `.git/info/exclude` (local,
+  never touches the user's .gitignore)
+
 ### Changed
 
 - **Worktree lanes are strictly opt-in**: lanes with `walkaway: true` are now

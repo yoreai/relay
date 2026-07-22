@@ -1,5 +1,30 @@
-import { existsSync } from "node:fs";
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+} from "node:fs";
 import { join } from "node:path";
+
+/** Keep relay's worktree scratch space out of `git status` noise — local
+ * exclude, so nothing lands in the user's tracked .gitignore. */
+function excludeRelayDir(root: string): void {
+  try {
+    const infoDir = join(root, ".git", "info");
+    const excludePath = join(infoDir, "exclude");
+    const current = existsSync(excludePath)
+      ? readFileSync(excludePath, "utf8")
+      : "";
+    if (/^\.relay\/$/m.test(current)) return;
+    mkdirSync(infoDir, { recursive: true });
+    appendFileSync(
+      excludePath,
+      `${current.endsWith("\n") || !current ? "" : "\n"}.relay/\n`,
+    );
+  } catch {
+    // cosmetic — never fail a run over exclude bookkeeping
+  }
+}
 
 export async function gitRoot(cwd: string): Promise<string | null> {
   const out = await runGit(cwd, ["rev-parse", "--show-toplevel"]);
@@ -39,6 +64,7 @@ export async function createWorktree(
   const root = (await gitRoot(cwd)) ?? cwd;
   const dest = join(root, ".relay", "worktrees", branch);
   await Bun.$`mkdir -p ${join(root, ".relay", "worktrees")}`.quiet();
+  excludeRelayDir(root);
   // create branch from HEAD if needed, then worktree
   const existing = await runGit(root, ["rev-parse", "--verify", branch]);
   if (!existing) {
