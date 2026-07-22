@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.6] — 2026-07-22
+
+### Added
+
+- **Pollable progress feed**: every run now logs phase events (routed →
+  working → verifying → escalating/fallback → done) to
+  `~/.local/share/relay/events/<id>.jsonl`. `relay_status {id}` returns the
+  feed plus current phase; `relay status <id>` prints it; MCP hosts that
+  pass a progressToken get live `notifications/progress` updates
+- **True fire-and-poll**: `relay_run {wait:false}` now returns the run id
+  immediately while the run continues server-side — the tool description
+  tells agents to poll `relay_status` and recap progress to the user, which
+  works identically in every MCP host
+
 ### Fixed
 
 - Walkaway runs no longer leave `?? .relay/` noise in the main tree's
@@ -248,7 +262,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.5...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.6...HEAD
+[0.6.6]: https://github.com/yoreai/relay/compare/v0.6.5...v0.6.6
 [0.6.5]: https://github.com/yoreai/relay/compare/v0.6.4...v0.6.5
 [0.6.4]: https://github.com/yoreai/relay/compare/v0.6.3...v0.6.4
 [0.6.3]: https://github.com/yoreai/relay/compare/v0.6.2...v0.6.3

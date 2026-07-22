@@ -5,7 +5,7 @@ import { freshnessHint } from "./freshness.ts";
 import { runInit } from "./init.ts";
 import { serveMcp } from "./mcp.ts";
 import { formatOutcome, runTask } from "./run.ts";
-import { getRun, modelStats, readRuns, summarizeSavings } from "./runlog.ts";
+import { getRun, modelStats, readEvents, readRuns, summarizeSavings } from "./runlog.ts";
 import { runLogin } from "./probe.ts";
 import { runSetup } from "./setup.ts";
 import { runUpdate } from "./update.ts";
@@ -210,6 +210,13 @@ async function main(): Promise<void> {
     if (id && id !== "--all") {
       const run = getRun(id);
       console.log(run ? JSON.stringify(run, null, 2) : `no run ${id}`);
+      const events = readEvents(id);
+      if (events.length) {
+        console.log("\nprogress:");
+        for (const e of events) {
+          console.log(`  ${e.ts}  ${e.phase}${e.detail ? `  ${e.detail}` : ""}`);
+        }
+      }
       return;
     }
     const runs = readRuns(parsed.rest.includes("--all") ? 200 : 20);

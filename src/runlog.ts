@@ -1,7 +1,48 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 import { createHash } from "node:crypto";
 import { runsLogPath, relayDataDir } from "./paths.ts";
+
+/** One phase transition of a run — the feed agents poll to narrate progress. */
+export type RunEvent = {
+  ts: string;
+  phase: string;
+  detail?: string;
+};
+
+function eventsPath(id: string): string {
+  // ids are relay-generated (run_<ts>_<rand>), safe as filenames
+  return join(relayDataDir(), "events", `${id}.jsonl`);
+}
+
+export function appendEvent(id: string, phase: string, detail?: string): void {
+  try {
+    const path = eventsPath(id);
+    mkdirSync(dirname(path), { recursive: true });
+    const event: RunEvent = {
+      ts: new Date().toISOString(),
+      phase,
+      ...(detail ? { detail } : {}),
+    };
+    appendFileSync(path, JSON.stringify(event) + "\n", "utf8");
+  } catch {
+    // progress is best-effort — never fail a run over it
+  }
+}
+
+export function readEvents(id: string): RunEvent[] {
+  const path = eventsPath(id);
+  if (!existsSync(path)) return [];
+  const events: RunEvent[] = [];
+  for (const line of readFileSync(path, "utf8").split("\n").filter(Boolean)) {
+    try {
+      events.push(JSON.parse(line) as RunEvent);
+    } catch {
+      // skip corrupt
+    }
+  }
+  return events;
+}
 
 export type RunRecord = {
   id: string;

@@ -7,7 +7,13 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { formatOutcome, runTask } from "./run.ts";
-import { getRun, readRuns, summarizeSavings } from "./runlog.ts";
+import {
+  appendEvent,
+  getRun,
+  readEvents,
+  readRuns,
+  summarizeSavings,
+} from "./runlog.ts";
 import { briefFromTask, parseBrief } from "./brief.ts";
 import { freshnessHint } from "./freshness.ts";
 import { probeTools, runLogin } from "./probe.ts";
@@ -69,7 +75,10 @@ export async function serveMcp(): Promise<void> {
             lane: { type: "string" },
             wait: {
               type: "boolean",
-              description: "If false, return run id immediately (fire-and-poll). Default true.",
+              description:
+                "Default true (block until done). For long tasks (builds, multi-file work), pass false: " +
+                "returns {id} immediately while the run continues in the background — then poll relay_status " +
+                "with that id every ~30s and recap the phase to the user so they can follow along.",
             },
           },
           required: ["task"],
@@ -77,7 +86,10 @@ export async function serveMcp(): Promise<void> {
       },
       {
         name: "relay_status",
-        description: "Status for a run id, or recent runs if omitted.",
+        description:
+          "Status for a run id (includes a phase-by-phase progress feed — routed, working, verifying, " +
+          "escalating, done), or recent runs if id is omitted. Poll this during long relay_run calls and " +
+          "narrate progress to the user.",
         inputSchema: {
           type: "object",
           properties: {
@@ -123,9 +135,30 @@ export async function serveMcp(): Promise<void> {
     ],
   }));
 
-  server.setRequestHandler(CallToolRequestSchema, async (req) => {
+  server.setRequestHandler(CallToolRequestSchema, async (req, extra) => {
     const name = req.params.name;
     const args = (req.params.arguments ?? {}) as Record<string, unknown>;
+
+    // Live progress for hosts that pass a progressToken (best-effort; the
+    // polling path via relay_status works everywhere regardless).
+    const progressToken = req.params._meta?.progressToken;
+    let progressCount = 0;
+    const notifyProgress =
+      progressToken !== undefined
+        ? (phase: string, detail?: string) => {
+            progressCount += 1;
+            void extra
+              .sendNotification({
+                method: "notifications/progress",
+                params: {
+                  progressToken,
+                  progress: progressCount,
+                  message: detail ? `relay: ${phase} — ${detail}` : `relay: ${phase}`,
+                },
+              })
+              .catch(() => {});
+          }
+        : undefined;
 
     try {
       if (name === "relay_run") {
@@ -143,27 +176,37 @@ export async function serveMcp(): Promise<void> {
           : briefFromTask(task);
 
         if (!wait) {
-          // fire-and-poll: start without awaiting full completion in the tool reply path
-          // For v1 we still await — true background needs a worker. Return after schedule via promise.
-          const pending = runTask({
-            task,
-            cwd,
-            brief,
-            lane: args.lane ? String(args.lane) : undefined,
+          // True fire-and-poll: resolve as soon as the run id exists; the run
+          // continues in this server process and persists progress to the
+          // event log, where relay_status picks it up.
+          const id = await new Promise<string>((resolve, reject) => {
+            let runId: string | undefined;
+            runTask({
+              task,
+              cwd,
+              brief,
+              lane: args.lane ? String(args.lane) : undefined,
+              onStart: (allocated) => {
+                runId = allocated;
+                resolve(allocated);
+              },
+              onEvent: notifyProgress,
+            }).catch((e) => {
+              // Before the id exists (routing/guard errors): surface to the
+              // caller. After: log it so pollers see the run die, not hang.
+              if (runId) appendEvent(runId, "failed", (e as Error).message);
+              else reject(e as Error);
+            });
           });
-          // race a quick id by running synchronously until running log — simplest: await
-          const outcome = await pending;
           return {
             content: [
               {
                 type: "text",
                 text: JSON.stringify(
                   {
-                    id: outcome.id,
-                    summary: formatOutcome(outcome),
-                    filesChanged: outcome.filesChanged,
-                    receipt: outcome.receipt,
-                    verifyOk: outcome.verifyOk,
+                    id,
+                    status: "running",
+                    next: `poll relay_status with id "${id}" (~30s cadence) and recap progress to the user`,
                   },
                   null,
                   2,
@@ -178,6 +221,7 @@ export async function serveMcp(): Promise<void> {
           cwd,
           brief,
           lane: args.lane ? String(args.lane) : undefined,
+          onEvent: notifyProgress,
         });
         return {
           content: [
@@ -205,11 +249,24 @@ export async function serveMcp(): Promise<void> {
         const id = args.id ? String(args.id) : undefined;
         if (id) {
           const run = getRun(id);
+          if (!run) {
+            return { content: [{ type: "text", text: `no run ${id}` }] };
+          }
+          const events = readEvents(id);
+          const current = events.at(-1);
           return {
             content: [
               {
                 type: "text",
-                text: run ? JSON.stringify(run, null, 2) : `no run ${id}`,
+                text: JSON.stringify(
+                  {
+                    ...run,
+                    ...(current ? { phase: current.phase, phase_detail: current.detail } : {}),
+                    progress: events,
+                  },
+                  null,
+                  2,
+                ),
               },
             ],
           };

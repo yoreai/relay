@@ -7,6 +7,7 @@ import { runVerify } from "./verify.ts";
 import { nextEscalation, type EscalationState } from "./escalate.ts";
 import { loadPrices, makeReceipt, type Receipt } from "./savings.ts";
 import {
+  appendEvent,
   appendRun,
   hashTask,
   newRunId,
@@ -30,6 +31,10 @@ export type RunOpts = {
   logTasks?: boolean;
   /** Force backend override (tests). */
   backendOverride?: string;
+  /** Called with the run id as soon as it's allocated (before the backend runs). */
+  onStart?: (id: string) => void;
+  /** Mirrors every progress event (already persisted to the event log). */
+  onEvent?: (phase: string, detail?: string) => void;
 };
 
 export type RunOutcome = {
@@ -120,12 +125,19 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
   });
 
   appendRun({ ...baseRecord(), status: "running" });
+  opts.onStart?.(id);
+  const emit = (phase: string, detail?: string) => {
+    appendEvent(id, phase, detail);
+    opts.onEvent?.(phase, detail);
+  };
+  emit("routed", `lane ${decision.lane.name} → ${tier.backend}/${tier.model} (${decision.reason})`);
 
   let workCwd = cwd;
   let prUrl: string | null = null;
   if (decision.lane.write === "worktree") {
     const branch = `relay/${decision.lane.name}-${id.slice(-6)}`;
     workCwd = await createWorktree(cwd, branch);
+    emit("worktree", `isolated worktree on branch ${branch}`);
   }
 
   let state: EscalationState = {
@@ -167,6 +179,11 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
     const preexisting = new Set(await listChangedFiles(workCwd));
 
     const backend = getBackend(tier.backend);
+    emit(
+      "working",
+      `${tier.backend}/${tier.model} running headless` +
+        (state.attempts > 0 ? ` (attempt ${state.attempts + 1})` : ""),
+    );
     const result = await backend.run(runBrief, {
       cwd: workCwd,
       model: tier.model,
@@ -178,6 +195,10 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
     filesChanged = result.filesChanged.length
       ? result.filesChanged
       : (await listChangedFiles(workCwd)).filter((f) => !preexisting.has(f));
+    emit(
+      "backend_done",
+      `exit ${result.exitCode} · ${filesChanged.length} file(s) changed`,
+    );
 
     if (
       (decision.lane.write === "stage" || decision.lane.write === "worktree") &&
@@ -186,8 +207,10 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
       await stagePaths(workCwd, filesChanged);
     }
 
+    emit("verifying");
     const verify = await runVerify(workCwd, directive, decision.lane.verify);
     verifyOk = verify.ok && result.exitCode === 0;
+    emit("verify_done", verifyOk ? "passed" : "failed");
 
     if (verifyOk) break;
 
@@ -204,6 +227,7 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
       try {
         resolveTier(directive, tierName, available);
         lastOutput += `\n\n[relay] backend ${tier.backend} failed (exit ${result.exitCode}) → trying next fallback backend`;
+        emit("fallback", `backend ${tier.backend} failed → next candidate`);
         continue;
       } catch {
         // no other backend can serve this tier — fall through to escalation
@@ -224,6 +248,7 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
       bumps: action.tier !== state.tier ? state.bumps + 1 : state.bumps,
     };
     lastOutput += `\n\n[relay] ${action.reason}`;
+    emit("escalating", action.reason);
   }
 
   if (verifyOk && decision.lane.write === "worktree") {
@@ -241,6 +266,13 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
     baselineModel: directive.baseline,
     usage,
   });
+
+  emit(
+    verifyOk ? "done" : "failed",
+    `${filesChanged.length} file(s) changed` +
+      (escalations ? ` · ${escalations} escalation(s)` : "") +
+      (prUrl ? ` · ${prUrl}` : ""),
+  );
 
   appendRun({
     ...baseRecord(),
