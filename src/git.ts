@@ -17,12 +17,19 @@ export async function stagePaths(cwd: string, paths: string[]): Promise<void> {
 }
 
 export async function listChangedFiles(cwd: string): Promise<string[]> {
-  const out = await runGit(cwd, ["status", "--porcelain"]);
+  // NUL-separated output: no quoting, and no leading-space ambiguity that
+  // a trim() would corrupt (` M file` → `M file` → wrong slice).
+  const out = await runGitRaw(cwd, ["status", "--porcelain", "-z"]);
   if (!out) return [];
-  return out
-    .split("\n")
-    .map((line) => line.slice(3).trim())
-    .filter(Boolean);
+  const fields = out.split("\0").filter(Boolean);
+  const paths: string[] = [];
+  for (let i = 0; i < fields.length; i++) {
+    const entry = fields[i]!;
+    paths.push(entry.slice(3));
+    // rename/copy entries are "XY new\0old" — skip the origin-path field
+    if (entry[0] === "R" || entry[0] === "C") i++;
+  }
+  return paths.filter(Boolean);
 }
 
 export async function createWorktree(
@@ -65,6 +72,11 @@ export async function maybeOpenDraftPr(
 }
 
 async function runGit(cwd: string, args: string[]): Promise<string> {
+  return (await runGitRaw(cwd, args)).trim();
+}
+
+/** Like runGit but preserves the exact stdout — porcelain formats are position-sensitive. */
+async function runGitRaw(cwd: string, args: string[]): Promise<string> {
   const proc = Bun.spawn(["git", ...args], {
     cwd,
     stdout: "pipe",
@@ -75,7 +87,7 @@ async function runGit(cwd: string, args: string[]): Promise<string> {
     proc.exited,
   ]);
   if (code !== 0) return "";
-  return stdout.trim();
+  return stdout;
 }
 
 async function runGitCode(cwd: string, args: string[]): Promise<number> {

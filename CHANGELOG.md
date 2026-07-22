@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.3] — 2026-07-21
+
+### Fixed
+
+- **Staging silently failed for the first changed file**: `git status
+  --porcelain` output was trimmed before parsing, eating the leading space
+  of ` M file` entries and corrupting the path (`math.js` → `ath.js`), so
+  `git add` no-opped and edits landed unstaged (receipts also logged the
+  mangled names). Now parsed via NUL-separated `--porcelain -z`, with
+  rename entries handled
+
 ## [0.6.2] — 2026-07-21
 
 ### Changed
@@ -200,7 +211,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.3...HEAD
+[0.6.3]: https://github.com/yoreai/relay/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/yoreai/relay/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/yoreai/relay/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/yoreai/relay/compare/v0.5.1...v0.6.0
