@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Worktree lanes are strictly opt-in**: lanes with `walkaway: true` are now
+  skipped entirely unless the caller explicitly requests walkaway — a bare
+  "implement X" routes to a staged-edit lane instead of silently entering
+  the worktree + draft-PR machinery
+
 ## [0.6.5] — 2026-07-22
 
 ### Fixed

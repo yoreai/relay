@@ -60,14 +60,16 @@ export function routeTask(
   let best: { lane: Lane; verb: string; score: number } | null = null;
 
   for (const lane of directive.lanes) {
+    // Walkaway lanes (worktree + draft PR) are strictly opt-in: without an
+    // explicit walkaway request, "implement X" must land in a staged-edit
+    // lane, never silently in the worktree machinery.
+    if (lane.match.walkaway && !walkaway) continue;
+
     const hit = verbHit(tokens, lane.match.verbs);
     if (!hit) continue;
 
     let score = 10;
-    if (lane.match.walkaway) {
-      if (walkaway) score += 5;
-      else score -= 2;
-    }
+    if (lane.match.walkaway && walkaway) score += 5;
     if (lane.match.max_files != null && fileCount > 0) {
       if (fileCount <= lane.match.max_files) score += 2;
       else score -= 3;
