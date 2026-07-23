@@ -34,9 +34,10 @@ export default function Why() {
           <p>
             Cheap-first only works with a floor under it. Every edit lane runs your repo's own
             lint and tests; failure widens context, then bumps the tier:{" "}
-            <code>work → review → deep</code>. Edits land <b>staged in git</b> — your diff is the
-            review surface. relay never commits unless a lane says so, and never touches your
-            credentials: it drives the CLIs you already logged into.
+            <code>work → review → deep</code>. Edits land <b>in your working tree</b>, exactly
+            like your agent's own edits — nothing staged or committed for you. relay never commits
+            unless a walkaway lane says so, and never touches your credentials: it drives the CLIs
+            you already logged into.
           </p>
         </div>
       </div>

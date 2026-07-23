@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.18] — 2026-07-23
+
+### Changed
+
+- Write lanes no longer auto-stage: edits land in the working tree as ordinary uncommitted changes, exactly like the host agent's own edits. Auto-staging silently changed what the user's next `git commit` contained. `write: stage` in existing directives is accepted as an alias for the new `write: tree`; walkaway/worktree lanes still commit on their `relay/*` branch
+
 ## [0.6.17] — 2026-07-23
 
 ### Changed
@@ -266,7 +272,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.17...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.18...HEAD
+[0.6.18]: https://github.com/yoreai/relay/compare/v0.6.17...v0.6.18
 [0.6.17]: https://github.com/yoreai/relay/compare/v0.6.16...v0.6.17
 [0.6.16]: https://github.com/yoreai/relay/compare/v0.6.15...v0.6.16
 [0.6.15]: https://github.com/yoreai/relay/compare/v0.6.14...v0.6.15

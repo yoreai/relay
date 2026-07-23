@@ -52,10 +52,11 @@ in `defaults/catalog.yaml`, not in this file.
 5. **Two invocation mouths:** human CLI and MCP server (`relay mcp serve`). MCP is what makes it
    interface-independent — Cursor/Claude Code/Codex agents call `relay_run` as a tool and delegate
    sub-tasks to cheap headless runs.
-6. **Git-native visibility:** sub-agent edits happen in the caller's working tree and are
-   **staged** by default (per-lane override: `worktree` → branch/patch for walkaway lanes). Host
-   IDEs show the changes as normal file/source-control changes — NOT in their proprietary
-   AI-review UIs; git diff IS the review surface. Never commit without the lane saying so.
+6. **Git-native visibility:** sub-agent edits happen in the caller's working tree as ordinary
+   **unstaged** changes — indistinguishable from the host agent's own edits (per-lane override:
+   `worktree` → branch/patch for walkaway lanes). Host IDEs show them as normal file/source-control
+   changes; git diff IS the review surface. Relay never stages or commits on the user's branch —
+   auto-staging polluted the user's next commit (changed 2026-07-23, owner decision).
 7. **The directive is the shareable artifact.** People exchange `router.yaml` files, not tribal
    knowledge. Repo-level `./router.yaml` (or `.relay/router.yaml`) overrides
    `~/.config/relay/router.yaml`.
@@ -80,7 +81,7 @@ in `defaults/catalog.yaml`, not in this file.
 │ Codex / bots  │         │ 4 run backend        │   MCP     │ gemini/grok/kimi │
 └───────────────┘         │ 5 verify             │──────────▶│ (spec-driven)    │
                           │ 6 widen → escalate   │           │ frankie adapter  │
-        git (staged) ◀────│ 7 receipt + log       │           │ (plugin, optional)│
+        git (dirty tree) ◀│ 7 receipt + log       │           │ (plugin, optional)│
         = visibility      └──────────────────────┘           └──────────────────┘
 ```
 

@@ -75,7 +75,8 @@ export async function serveMcp(): Promise<void> {
           "Ideal for mechanical work mid-session (bulk edits, test fixes, renames, summaries, status checks) " +
           "so the expensive session doesn't burn frontier tokens on it. Relay routes via the user's directive, " +
           "runs a headless backend in the repo, verifies the result (escalating only on failure), leaves edits " +
-          "staged in git, and returns a savings receipt. Pass a curated brief (goal, files, constraints, done_means, " +
+          "in the working tree as ordinary uncommitted changes (exactly like your own edits), and returns a savings " +
+          "receipt. Pass a curated brief (goal, files, constraints, done_means, " +
           "context) — you already understand the problem, so a good brief makes the cheap run succeed first try. " +
           "ALWAYS pass cwd (absolute path to the repo/workspace root the task concerns) — the server may have been " +
           "launched from a different directory.",

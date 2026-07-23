@@ -11,7 +11,7 @@ lanes:
     match: { verbs: [fix, rename, bump] }
     tier: work
     verify: [lint, test]               <span class="c"># the quality floor</span>
-    write: stage                       <span class="c"># git diff = review</span>`;
+    write: tree                        <span class="c"># edits your tree, like any agent</span>`;
 
 export default function How() {
   return (

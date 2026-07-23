@@ -27,7 +27,13 @@ const LaneSchema = z.object({
   match: MatchSchema.default({ verbs: [] }),
   tier: z.string().min(1),
   verify: z.array(z.string()).optional(),
-  write: z.enum(["none", "stage", "worktree"]).default("stage"),
+  // "tree" = edit the working tree like any agent (no auto-staging — it was
+  // polluting the user's next commit). "stage" is a legacy alias from ≤0.6.17
+  // directives, accepted so upgrades don't break existing router.yaml files.
+  write: z
+    .enum(["none", "tree", "stage", "worktree"])
+    .default("tree")
+    .transform((w) => (w === "stage" ? ("tree" as const) : w)),
 });
 
 export const DirectiveSchema = z.object({

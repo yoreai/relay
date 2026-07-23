@@ -5,7 +5,7 @@
 // This is NOT the unit test suite (`bun test`): these scenarios spawn real
 // backend workers and spend real (cent-level) money. Not run in CI.
 
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
@@ -43,9 +43,9 @@ type RunJson = {
 const results: ScenarioResult[] = [];
 
 async function mcpScenarios(): Promise<void> {
-  // ---- S1: write lane stages a measured, sane-receipt edit ----------------
+  // ---- S1: write lane edits the tree like any agent; receipt sane ---------
   results.push(
-    await runScenario("write-lane: typo fix lands staged, receipt measured & sane", "mcp", async () => {
+    await runScenario("write-lane: typo fixed in tree (unstaged), receipt measured & sane", "mcp", async () => {
       const repo = makeRepo("write");
       const mcp = await RelayMcp.spawn();
       try {
@@ -58,8 +58,8 @@ async function mcpScenarios(): Promise<void> {
         expect(j.verifyOk === true, "verify failed");
         expect((j.filesChanged ?? []).includes("hello.txt"), `filesChanged=${JSON.stringify(j.filesChanged)}`);
         expect(readFileSync(join(repo, "hello.txt"), "utf8").includes("the world"), "typo not fixed on disk");
-        expect(git(repo, ["diff", "--cached", "--name-only"]).includes("hello.txt"), "edit not staged");
-        expect(git(repo, ["diff", "--name-only"]) === "", "unstaged leftovers in tree");
+        expect(git(repo, ["diff", "--name-only"]).includes("hello.txt"), "edit not in working tree");
+        expect(git(repo, ["diff", "--cached", "--name-only"]) === "", "relay staged the edit — tree lanes must not touch the index");
         const rec = j.receipt;
         expect(!!rec, "no receipt");
         expect(rec!.estimated === false, "receipt not [measured]");
@@ -321,18 +321,30 @@ async function hostScenario(
 
   // Delegation proof, strongest first:
   // 1. A relay run record in the isolated data dir (claude propagates env).
-  // 2. The edit is STAGED — relay's write lane stages, hosts doing the task
-  //    themselves leave it unstaged. (codex/cursor spawn MCP servers with a
-  //    scrubbed env, so the XDG_DATA_HOME override can't reach relay.)
+  // 2. A run record in the REAL data dir whose cwd is this scratch repo —
+  //    codex/cursor spawn MCP servers with a scrubbed env, so the
+  //    XDG_DATA_HOME override can't reach relay, but the record's cwd is
+  //    unique to this scenario and can't come from anything else.
   // 3. The host transcript shows a completed relay_run call.
-  const log = join(dataDir, "relay", "runs.jsonl");
-  if (existsSync(log)) {
-    const records = readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l) as RunJson);
+  const isoLog = join(dataDir, "relay", "runs.jsonl");
+  if (existsSync(isoLog)) {
+    const records = readFileSync(isoLog, "utf8").trim().split("\n").map((l) => JSON.parse(l) as RunJson);
     expect(records.some((r) => r.status === "ok"), "relay run did not finish ok");
     return `delegated · ${records.length} run record(s) · typo fixed`;
   }
-  if (git(repo, ["diff", "--cached", "--name-only"]).includes("hello.txt")) {
-    return "delegated (proof: edit staged by relay's write lane) · typo fixed";
+  const realLog = join(
+    process.env.XDG_DATA_HOME ?? join(homedir(), ".local", "share"),
+    "relay",
+    "runs.jsonl",
+  );
+  if (existsSync(realLog)) {
+    // macOS reports temp dirs as /var/folders/… or resolved /private/var/… —
+    // accept either form of this scenario's unique scratch path.
+    const forms = new Set([repo, realpathSync(repo)]);
+    const records = readFileSync(realLog, "utf8").trim().split("\n").map((l) => JSON.parse(l) as RunJson & { cwd?: string });
+    if (records.some((r) => r.cwd && forms.has(r.cwd) && r.status === "ok")) {
+      return "delegated (proof: run record with this scratch repo's cwd) · typo fixed";
+    }
   }
   expect(
     /relay_run \(completed\)|relay_run.*(succeeded|completed)/i.test(hostOutput),

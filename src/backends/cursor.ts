@@ -67,7 +67,7 @@ export class CursorBackend implements Backend {
     // --force auto-approves edits and commands — only lanes that may write
     // get it. Read-only lanes get --trust (skip the workspace-trust prompt)
     // so headless runs don't hang, while approvals stay denied-by-default.
-    if (opts.write === "stage" || opts.write === "worktree") args.push("--force");
+    if (opts.write === "tree" || opts.write === "worktree") args.push("--force");
     else args.push("--trust");
 
     const { stdout, stderr, exitCode } = await runCli([bin, ...args], {

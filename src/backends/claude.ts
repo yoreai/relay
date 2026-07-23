@@ -56,7 +56,7 @@ export class ClaudeBackend implements Backend {
       "--model",
       claudeModelId(opts.model),
     ];
-    if (opts.write === "stage" || opts.write === "worktree") {
+    if (opts.write === "tree" || opts.write === "worktree") {
       // narrowest flag that lets the lane do its job: file edits only,
       // still NOT --dangerously-skip-permissions
       args.push("--permission-mode", "acceptEdits");

@@ -104,7 +104,8 @@ org hasn't approved (change anytime: `relay backends enable|disable <tool>`).
    in `router.yaml` to whatever you'd otherwise run). Measured from backend-reported tokens
    for cursor/claude, byte-estimated `[estimated]` otherwise
 
-Git is the review surface: edits land **staged** by default. Walkaway lanes work in an
+Edits land in your working tree as ordinary uncommitted changes — exactly like your
+agent's own edits, nothing staged or committed for you. Walkaway lanes work in an
 isolated worktree instead — committed on a `relay/*` branch (draft PR when a remote
 exists), never auto-merged. Your branch and uncommitted work are never touched.
 
@@ -147,7 +148,7 @@ your agents don't keep a dead MCP entry.
 
 ## Status
 
-Stable core: setup/uninstall, backend opt-in, staged-edit lanes, pollable run
+Stable core: setup/uninstall, backend opt-in, tree-edit lanes, pollable run
 progress, recursion guard, open bench (6/6 quality parity, ~5.2× median
 savings). An end-to-end eval suite (`bun run evals --hosts`,
 [latest report](./evals/report.md)) exercises the MCP surface and live

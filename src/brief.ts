@@ -53,7 +53,7 @@ const READ_ONLY_GUARD =
 
 export function renderBriefPrompt(
   brief: Brief,
-  write?: "none" | "stage" | "worktree",
+  write?: "none" | "tree" | "worktree",
 ): string {
   const parts: string[] = [WORKER_GUARD, NOOP_GUARD, `Goal: ${brief.goal}`];
   if (write === "none") parts.splice(2, 0, READ_ONLY_GUARD);

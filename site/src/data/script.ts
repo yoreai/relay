@@ -29,12 +29,12 @@ export const SCRIPT: ScriptStep[] = [
           lane: "quickfix",
           rows: [
             { c: "sub", t: "▸ Cursor sub-agent · glm-5.2" },
-            { c: "ok", t: "✓ lint  ✓ your tests  · edits staged" },
+            { c: "ok", t: "✓ lint  ✓ your tests  · edits in your tree" },
             { c: "money", t: "~$0.48 saved vs fable-5-high baseline  [measured]" },
           ],
         },
       },
-      { a: "done — diff staged for your review" },
+      { a: "done — changes in your working tree, like any agent edit" },
     ],
   },
   {
@@ -59,7 +59,7 @@ export const SCRIPT: ScriptStep[] = [
           lane: "quickfix",
           rows: [
             { c: "sub", t: "▸ Codex sub-agent · gpt-5.6-luna" },
-            { c: "ok", t: "✓ lint  ✓ build  · edits staged" },
+            { c: "ok", t: "✓ lint  ✓ build  · edits in your tree" },
             { c: "money", t: "~$0.11 saved  [estimated]" },
           ],
         },

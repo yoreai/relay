@@ -32,7 +32,7 @@ describe("parseBrief", () => {
   test("write:none lanes get an explicit read-only guard", () => {
     const b = parseBrief({ goal: "review auth.ts", done_means: [] });
     expect(renderBriefPrompt(b, "none")).toContain("READ-ONLY TASK");
-    expect(renderBriefPrompt(b, "stage")).not.toContain("READ-ONLY TASK");
+    expect(renderBriefPrompt(b, "tree")).not.toContain("READ-ONLY TASK");
     expect(renderBriefPrompt(b)).not.toContain("READ-ONLY TASK");
   });
 

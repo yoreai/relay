@@ -43,7 +43,7 @@ lanes:
     match: { verbs: [fix, rename, update, bump, add-test], max_files: 5 }
     tier: work
     verify: [lint, test]
-    write: stage
+    write: tree
   - name: build
     match: { verbs: [build, implement, feature], walkaway: true }
     tier: work

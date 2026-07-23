@@ -38,7 +38,7 @@ describe("route", () => {
   test("implement WITHOUT walkaway never lands in the worktree lane", () => {
     const d = routeTask(directive, "implement the export feature");
     expect(d.lane.name).toBe("quickfix");
-    expect(d.lane.write).toBe("stage");
+    expect(d.lane.write).toBe("tree");
   });
 
   test("'walkaway' in the task text itself opts into the build lane", () => {

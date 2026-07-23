@@ -214,10 +214,10 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
         (result.exitCode !== 0 ? ` · ${errorExcerpt(result.output, 160)}` : ""),
     );
 
-    if (
-      (decision.lane.write === "stage" || decision.lane.write === "worktree") &&
-      filesChanged.length > 0
-    ) {
+    // Tree lanes leave edits as ordinary unstaged changes, exactly like the
+    // host agent's own edits — auto-staging was polluting the user's next
+    // commit. Worktrees still stage: their contract is a commit on relay/*.
+    if (decision.lane.write === "worktree" && filesChanged.length > 0) {
       await stagePaths(workCwd, filesChanged);
     }
 
