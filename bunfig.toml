@@ -2,3 +2,5 @@
 # bench/tasks/**/*.test.js are fixtures with DELIBERATE bugs — they must not
 # run as relay's own suite. Scope the runner to tests/.
 root = "tests"
+# Isolate XDG dirs so test runs never write the developer's real run log.
+preload = ["./tests/preload.ts"]

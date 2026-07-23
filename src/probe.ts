@@ -112,10 +112,22 @@ function summarize(t: Omit<ToolProbe, "summary">): string {
   return "installed (sign-in status unknown — relay will find out on first use)";
 }
 
+/**
+ * Whether a fresh (non-cached) auth check is warranted for `id`. When the
+ * caller only cares about one tool (e.g. runLogin re-probing after a
+ * sign-in), the other tools should keep using their cached verdict instead
+ * of paying for a live — potentially model-calling — auth check they didn't
+ * ask for.
+ */
+function wantsFreshProbe(fresh: boolean, only: string | undefined, id: string): boolean {
+  return fresh && (!only || only === id);
+}
+
 export async function probeTools(
-  opts: { fresh?: boolean } = {},
+  opts: { fresh?: boolean; only?: string } = {},
 ): Promise<ToolProbe[]> {
   const fresh = opts.fresh ?? false;
+  const only = opts.only;
   const home = homedir();
   const results: ToolProbe[] = [];
 
@@ -125,7 +137,9 @@ export async function probeTools(
     const appDetected =
       existsSync("/Applications/Cursor.app") || existsSync(join(home, ".cursor"));
     const authed = bin
-      ? await cachedAuth("cursor", bin, fresh, () => probeCursorAuth(bin))
+      ? await cachedAuth("cursor", bin, wantsFreshProbe(fresh, only, "cursor"), () =>
+          probeCursorAuth(bin),
+        )
       : "unknown";
     const base = {
       id: "cursor",
@@ -146,7 +160,9 @@ export async function probeTools(
   {
     const bin = discoverClaudeBinary();
     const authed = bin
-      ? await cachedAuth("claude", bin, fresh, () => probeClaudeAuth(bin))
+      ? await cachedAuth("claude", bin, wantsFreshProbe(fresh, only, "claude"), () =>
+          probeClaudeAuth(bin),
+        )
       : "unknown";
     const base = {
       id: "claude",
@@ -172,7 +188,9 @@ export async function probeTools(
     const spec = CLI_SPECS.codex!;
     const bin = discoverCliBinary(spec);
     const authed = bin
-      ? await cachedAuth("codex", bin, fresh, () => probeCodexAuth(bin))
+      ? await cachedAuth("codex", bin, wantsFreshProbe(fresh, only, "codex"), () =>
+          probeCodexAuth(bin),
+        )
       : "unknown";
     const base = {
       id: "codex",
@@ -233,7 +251,12 @@ export async function runLogin(
 
   const r = await runCli(tool.login.cmd, { timeoutMs: 180_000 });
   invalidateAuthCache(id);
-  const after = (await probeTools({ fresh: true })).find((t) => t.id === id);
+  // `only: id` — re-check just this tool. Without it, a fresh probe pulls
+  // every other installed tool into a live (sometimes model-calling) auth
+  // check too, turning `relay login codex` into a multi-tool sign-in audit.
+  const after = (await probeTools({ fresh: true, only: id })).find(
+    (t) => t.id === id,
+  );
 
   if (after?.authed === true) {
     return { ok: true, message: `${tool.label}: signed in ✓` };

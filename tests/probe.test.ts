@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { invalidateAuthCache, probeTools } from "../src/probe.ts";
@@ -74,6 +74,48 @@ describe("probe", () => {
       ),
     );
     expect(Object.keys(cache).length).toBe(0);
+  });
+
+  test("fresh probe scoped with `only` re-checks just that tool", async () => {
+    // Fake binaries (invoked via the RELAY_*_BIN overrides) let us prove the
+    // scoping without depending on which real CLIs happen to be installed.
+    const dir = mkdtempSync(join(tmpdir(), "relay-probe-only-"));
+    const callsFile = join(dir, "calls.log");
+    const makeFakeBin = (name: string, stdout: string): string => {
+      const p = join(dir, name);
+      writeFileSync(p, `#!/bin/sh\necho ${name} >> "${callsFile}"\necho "${stdout}"\n`, {
+        mode: 0o755,
+      });
+      return p;
+    };
+    const cursorBin = makeFakeBin("fake-cursor", "ok");
+    const claudeBin = makeFakeBin("fake-claude", "ok");
+    const codexBin = makeFakeBin("fake-codex", "logged in");
+
+    const prev = {
+      cursor: process.env.RELAY_CURSOR_BIN,
+      claude: process.env.RELAY_CLAUDE_BIN,
+      codex: process.env.RELAY_CODEX_BIN,
+    };
+    process.env.RELAY_CURSOR_BIN = cursorBin;
+    process.env.RELAY_CLAUDE_BIN = claudeBin;
+    process.env.RELAY_CODEX_BIN = codexBin;
+
+    try {
+      await probeTools({ fresh: true }); // warm the cache for all three
+      writeFileSync(callsFile, "");
+
+      await probeTools({ fresh: true, only: "codex" });
+
+      const calls = readFileSync(callsFile, "utf8").trim().split("\n").filter(Boolean);
+      expect(calls).toEqual(["fake-codex"]);
+    } finally {
+      for (const [k, v] of Object.entries(prev)) {
+        const key = `RELAY_${k.toUpperCase()}_BIN`;
+        if (v === undefined) delete process.env[key];
+        else process.env[key] = v;
+      }
+    }
   });
 
   test("probing on a machine with zero CLIs still succeeds", async () => {
