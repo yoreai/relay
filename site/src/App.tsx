@@ -5,6 +5,7 @@ import Terminal from "./components/Terminal";
 import Why from "./components/Why";
 import Trust from "./components/Trust";
 import How from "./components/How";
+import Matrix from "./components/Matrix";
 import Clis from "./components/Clis";
 import Proof from "./components/Proof";
 import Install from "./components/Install";
@@ -27,6 +28,7 @@ export default function App() {
       <Why />
       <Trust />
       <How />
+      <Matrix />
       <Clis />
       <Proof />
       <Install />

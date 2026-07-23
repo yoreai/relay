@@ -9,6 +9,7 @@ export default function Nav() {
         <a href="#why">why</a>
         <a href="#trust">trust</a>
         <a href="#how">how</a>
+        <a href="#matrix">matrix</a>
         <a href="#clis">clis</a>
         <a href="#proof">proof</a>
         <a href="#install">install</a>
