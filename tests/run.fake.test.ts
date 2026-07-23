@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { runTask } from "../src/run.ts";
+import { errorExcerpt, formatOutcome, runTask } from "../src/run.ts";
 import { readEvents } from "../src/runlog.ts";
 
 describe("run with fake backend", () => {
@@ -75,7 +75,6 @@ describe("run with fake backend", () => {
       expect(mainLog).not.toContain("relay: implement");
 
       // humans and agents are told where the work lives + that it won't auto-merge
-      const { formatOutcome } = await import("../src/run.ts");
       const summary = formatOutcome(outcome);
       expect(summary).toContain(outcome.workBranch!);
       expect(summary).toContain("does NOT auto-merge");
@@ -121,5 +120,28 @@ describe("run with fake backend", () => {
 
     // live mirror matches the persisted feed
     expect(seen).toEqual(phases);
+  });
+
+  test("failed runs surface the backend's actual error", () => {
+    const noisy =
+      "OpenAI Codex v0.139.0\n--------\nsession id: abc\n\n" +
+      'ERROR: {"type":"error","status":400,"error":{"message":"The model requires a newer version of Codex."}}\n';
+    const excerpt = errorExcerpt(noisy, 160);
+    expect(excerpt).toContain("newer version of Codex");
+
+    const summary = formatOutcome({
+      id: "run_x",
+      lane: "quickfix",
+      tier: "work",
+      backend: "codex",
+      model: "gpt-5.6-sol",
+      verifyOk: false,
+      escalations: 1,
+      filesChanged: [],
+      output: noisy,
+      dryRun: false,
+    } as any);
+    expect(summary).toContain("why:");
+    expect(summary).toContain("newer version of Codex");
   });
 });

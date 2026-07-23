@@ -203,7 +203,8 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
       : (await listChangedFiles(workCwd)).filter((f) => !preexisting.has(f));
     emit(
       "backend_done",
-      `exit ${result.exitCode} · ${filesChanged.length} file(s) changed`,
+      `exit ${result.exitCode} · ${filesChanged.length} file(s) changed` +
+        (result.exitCode !== 0 ? ` · ${errorExcerpt(result.output, 160)}` : ""),
     );
 
     if (
@@ -336,6 +337,16 @@ function normalizeBrief(opts: RunOpts): Brief {
   return briefFromTask(opts.task);
 }
 
+/** Last meaningful lines of backend output, for failure reporting. */
+export function errorExcerpt(output: string, max = 300): string {
+  const lines = output
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const tail = lines.slice(-3).join(" · ");
+  return tail.length > max ? `…${tail.slice(-max)}` : tail;
+}
+
 export function formatOutcome(outcome: RunOutcome): string {
   if (outcome.dryRun) return outcome.output;
   const lines = [
@@ -345,6 +356,9 @@ export function formatOutcome(outcome: RunOutcome): string {
         : ""),
   ];
   if (outcome.escalations) lines.push(`  escalations: ${outcome.escalations}`);
+  if (!outcome.verifyOk && outcome.output.trim()) {
+    lines.push(`  why: ${errorExcerpt(outcome.output)}`);
+  }
   if (outcome.prUrl) lines.push(`  pr: ${outcome.prUrl}`);
   if (outcome.workBranch && !outcome.prUrl) {
     lines.push(`  branch: ${outcome.workBranch}  (worktree: ${outcome.workDir})`);

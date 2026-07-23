@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.11] — 2026-07-22
+
+### Fixed
+
+- **Invalid `router.yaml` now fails with a readable error** — field-by-field
+  messages plus a `relay init --force` hint, instead of a raw JSON
+  validation dump
+- **Failed runs show the backend's actual error**: the run summary gains a
+  `why:` line and the `backend_done` event carries an excerpt of the
+  backend's output (e.g. codex's "model requires a newer version of Codex"
+  was previously invisible — the user only saw `verify: ✗`)
+
 ### Changed
 
 - Docs/site accuracy pass: flow diagram now shows Cursor / Claude Code /
@@ -313,7 +325,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.10...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.11...HEAD
+[0.6.11]: https://github.com/yoreai/relay/compare/v0.6.10...v0.6.11
 [0.6.10]: https://github.com/yoreai/relay/compare/v0.6.9...v0.6.10
 [0.6.9]: https://github.com/yoreai/relay/compare/v0.6.8...v0.6.9
 [0.6.8]: https://github.com/yoreai/relay/compare/v0.6.7...v0.6.8

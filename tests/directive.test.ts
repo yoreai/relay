@@ -38,6 +38,19 @@ default_lane: quickfix
     expect(resolveTier(d, "work").model).toBe("grok-4.5");
   });
 
+  test("invalid directive throws a readable error, not raw JSON", () => {
+    let message = "";
+    try {
+      parseDirective({ version: 1, baseline: { backend: "cursor" } });
+    } catch (e) {
+      message = (e as Error).message;
+    }
+    expect(message).toContain("invalid directive (router.yaml)");
+    expect(message).toContain("baseline:");
+    expect(message).toContain("relay init");
+    expect(message).not.toContain('"code"');
+  });
+
   test("fallback picks first available backend", () => {
     const d = loadDirectiveFromText(starter);
     // cursor missing, claude present → work tier falls back to claude

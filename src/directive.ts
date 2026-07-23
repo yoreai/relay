@@ -60,7 +60,17 @@ export type TierSpec = z.infer<typeof TierSpecSchema>;
 export type Lane = z.infer<typeof LaneSchema>;
 
 export function parseDirective(raw: unknown): Directive {
-  return DirectiveSchema.parse(raw);
+  const parsed = DirectiveSchema.safeParse(raw);
+  if (!parsed.success) {
+    const issues = parsed.error.issues
+      .map((i) => `  ${i.path.join(".") || "(root)"}: ${i.message}`)
+      .join("\n");
+    throw new Error(
+      `invalid directive (router.yaml):\n${issues}\n` +
+        `fix the fields above, or run \`relay init --force\` for a fresh starter directive`,
+    );
+  }
+  return parsed.data;
 }
 
 export function loadDirectiveFromText(text: string): Directive {
