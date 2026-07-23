@@ -15,6 +15,7 @@ const STAGES = [
 
 const RELAY = { x: 440, y: 170 };
 const RESULT = { x: 960, y: 170 };
+const MEMORY = { x: 440, y: 289 };
 const AGENT_X = 70;
 const CYCLE = 6.4;
 
@@ -30,7 +31,7 @@ export default function BranchFlow() {
         viewBox="0 0 1000 340"
         className="branchflow-svg"
         role="img"
-        aria-label="Diagram: Cursor, Claude Code, Codex, and any MCP agent all route through relay, which identifies metrics, routes to the best backend, verifies the result, and returns a clean git diff."
+        aria-label="Diagram: Cursor, Claude Code, Codex, and any MCP agent all route through relay, which identifies metrics, routes to the best backend, verifies the result, and returns a clean git diff. Below relay sits its local memory: outcomes and notes flow in after each run, and new sessions recall them in one call."
       >
         {AGENTS.map((agent, i) => {
           const path = `M ${AGENT_X + 58} ${agent.y} C ${RELAY.x - 130} ${agent.y}, ${RELAY.x - 110} ${RELAY.y}, ${RELAY.x - 38} ${RELAY.y}`;
@@ -131,11 +132,55 @@ export default function BranchFlow() {
             git diff ✓
           </text>
         </g>
+
+        {/* memory: outcomes flow down after verify; recall flows up as a new cycle starts */}
+        <path
+          d={`M ${MEMORY.x} ${RELAY.y + 38} L ${MEMORY.x} ${MEMORY.y - 19}`}
+          className="bf-trunk"
+          fill="none"
+          strokeWidth={2}
+        />
+        {!reduceMotion && (
+          <>
+            <motion.circle
+              r={4}
+              className="bf-packet"
+              initial={false}
+              animate={{
+                cx: MEMORY.x,
+                cy: [RELAY.y + 38, RELAY.y + 38, MEMORY.y - 19, MEMORY.y - 19],
+                opacity: [0, 1, 1, 0],
+              }}
+              transition={{ duration: CYCLE, repeat: Infinity, ease: "easeInOut", times: [0.84, 0.86, 0.96, 0.98] }}
+            />
+            <motion.circle
+              r={4}
+              className="bf-packet"
+              initial={false}
+              animate={{
+                cx: MEMORY.x,
+                cy: [MEMORY.y - 19, MEMORY.y - 19, RELAY.y + 38, RELAY.y + 38],
+                opacity: [0, 1, 1, 0],
+              }}
+              transition={{ duration: CYCLE, repeat: Infinity, ease: "easeInOut", times: [0.02, 0.04, 0.1, 0.12] }}
+            />
+          </>
+        )}
+        <g transform={`translate(${MEMORY.x}, ${MEMORY.y})`}>
+          <rect x={-58} y={-19} width={116} height={38} rx={6} className="bf-node bf-agent-node" />
+          <text y={-2} textAnchor="middle" className="bf-node-label">
+            memory
+          </text>
+          <text y={13} textAnchor="middle" className="bf-relay-sub">
+            recall · remember
+          </text>
+        </g>
       </svg>
       <p className="bf-caption">
         relay reads the task, matches it to a quality tier, and routes to the <em>cheapest backend that clears the
         bar</em> — then verifies with your own lint and tests before handing back a clean diff. Only one CLI
         installed? Same routing, within your harness: every tier falls back to it with the right model for the job.
+        Every run also lands in <em>local memory</em> — a new session says “where were we?” and picks up right there.
       </p>
     </div>
   );
