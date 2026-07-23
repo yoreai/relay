@@ -7,14 +7,18 @@ export type VerifyResult = {
   results: { name: string; command: string; exitCode: number; output: string }[];
 };
 
+const VERIFY_TIMEOUT_MS = 10 * 60 * 1000;
+
 export async function runVerify(
   cwd: string,
   directive: Directive,
   verifyNames: string[] | undefined,
+  opts: { timeoutMs?: number } = {},
 ): Promise<VerifyResult> {
   if (!verifyNames || verifyNames.length === 0) {
     return { ok: true, results: [] };
   }
+  const timeoutMs = opts.timeoutMs ?? VERIFY_TIMEOUT_MS;
 
   const results: VerifyResult["results"] = [];
   for (const name of verifyNames) {
@@ -32,17 +36,28 @@ export async function runVerify(
       cwd,
       stdout: "pipe",
       stderr: "pipe",
+      // CI=1 flips vitest/jest/react-scripts out of watch mode — without it a
+      // repo whose `test` script watches would hang the run forever
+      env: { ...process.env, CI: "1", FORCE_COLOR: "0" },
     });
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      proc.kill();
+    }, timeoutMs);
     const [stdout, stderr, exitCode] = await Promise.all([
       new Response(proc.stdout).text(),
       new Response(proc.stderr).text(),
       proc.exited,
     ]);
+    clearTimeout(timer);
     results.push({
       name,
       command,
-      exitCode,
-      output: (stdout + stderr).slice(0, 4_000),
+      exitCode: timedOut ? 124 : exitCode,
+      output:
+        (timedOut ? `[relay] verify "${name}" timed out after ${Math.round(timeoutMs / 1000)}s and was killed\n` : "") +
+        (stdout + stderr).slice(0, 4_000),
     });
   }
 
