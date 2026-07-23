@@ -134,7 +134,8 @@ export default function BranchFlow() {
       </svg>
       <p className="bf-caption">
         relay reads the task, matches it to a quality tier, and routes to the <em>cheapest backend that clears the
-        bar</em> — then verifies with your own lint and tests before handing back a clean diff.
+        bar</em> — then verifies with your own lint and tests before handing back a clean diff. Only one CLI
+        installed? Same routing, within your harness: every tier falls back to it with the right model for the job.
       </p>
     </div>
   );
