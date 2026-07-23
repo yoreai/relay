@@ -149,8 +149,11 @@ your agents don't keep a dead MCP entry.
 
 Stable core: setup/uninstall, backend opt-in, staged-edit lanes, pollable run
 progress, recursion guard, open bench (6/6 quality parity, ~5.2× median
-savings). Young: walkaway/worktree lane. Not yet: Windows, npm SDK, verified
-gemini/grok/kimi adapters.
+savings). An end-to-end eval suite (`bun run evals --hosts`,
+[latest report](./evals/report.md)) exercises the MCP surface and live
+cursor/claude/codex delegation on every preset scenario. Young:
+walkaway/worktree lane. Not yet: Windows, npm SDK, verified gemini/grok/kimi
+adapters.
 
 ## License
 

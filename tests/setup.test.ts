@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { applySuggestions } from "../src/advise.ts";
 import { loadDirective } from "../src/directive.ts";
-import { mergeCodexToml, mergeMcpJson } from "../src/setup.ts";
+import { ensureCodexRelayKeys, mergeCodexToml, mergeMcpJson } from "../src/setup.ts";
 import { removeCodexToml, removeMcpJson } from "../src/uninstall.ts";
 
 describe("mergeMcpJson", () => {
@@ -182,6 +182,36 @@ default_lane: quickfix
     const d = loadDirective(dir);
     expect(d.tiers.work?.[0]?.model).toBe("composer-2.5");
     expect(d.tiers.work?.[1]?.model).toBe("grok-4.5");
+  });
+});
+
+describe("ensureCodexRelayKeys", () => {
+  test("inserts timeout + approval mode into an existing relay block", () => {
+    const toml = `model = "gpt-5.5"\n\n[mcp_servers.relay]\ncommand = "relay"\nargs = ["mcp", "serve"]\n\n[projects."/x"]\ntrust_level = "trusted"\n`;
+    const r = ensureCodexRelayKeys(toml);
+    expect(r.changed).toBe(true);
+    expect(r.out).toContain(
+      'args = ["mcp", "serve"]\ntool_timeout_sec = 900\ndefault_tools_approval_mode = "approve"',
+    );
+    // other tables untouched
+    expect(r.out).toContain(`[projects."/x"]\ntrust_level = "trusted"`);
+  });
+
+  test("adds only the missing key", () => {
+    const toml = `[mcp_servers.relay]\ncommand = "relay"\ntool_timeout_sec = 900\n`;
+    const r = ensureCodexRelayKeys(toml);
+    expect(r.changed).toBe(true);
+    expect(r.out).toContain('default_tools_approval_mode = "approve"');
+    expect(r.out.match(/tool_timeout_sec/g)?.length).toBe(1);
+  });
+
+  test("idempotent when both keys present", () => {
+    const toml = `[mcp_servers.relay]\ncommand = "relay"\ntool_timeout_sec = 900\ndefault_tools_approval_mode = "approve"\n`;
+    expect(ensureCodexRelayKeys(toml).changed).toBe(false);
+  });
+
+  test("no-op when relay block absent", () => {
+    expect(ensureCodexRelayKeys(`model = "gpt-5.5"\n`).changed).toBe(false);
   });
 });
 

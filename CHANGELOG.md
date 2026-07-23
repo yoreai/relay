@@ -7,8 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.15] — 2026-07-23
+
+### Added
+
+- End-to-end eval suite (`bun run evals`, `--hosts` for the host-delegation layer): drives `relay mcp serve` over stdio the way real hosts do across 10 preset scenarios (write lane, read-only, no-op, cwd/recursion guards, brief coercion, fire-and-poll, walkaway, bad directive, tool surface) plus live cursor-agent/claude/codex "relay this:" delegation checks; writes `evals/report.md`
+
 ### Fixed
 
+- Codex could never actually call relay: codex gates MCP tool calls behind an approval elicitation that headless `codex exec` auto-cancels ("user cancelled MCP tool call") and interactive mode re-prompts for, and its 60s default tool timeout is shorter than a typical run — codex then quietly did the task itself, so delegation looked fine while relay never ran. `relay setup` now sets `tool_timeout_sec = 900` and `default_tools_approval_mode = "approve"` on the relay server block
+- `relay setup --yes` no longer auto-launches interactive browser sign-in flows, which hung forever in scripts and agent-driven setups; it prints the sign-in command instead
 - `relay login <tool>` (also `relay_login` and `relay setup`'s sign-in offers) no longer re-probes every installed tool's auth after a sign-in — it was invalidating and live-rechecking cursor, claude, *and* codex on every single-tool login, turning e.g. `relay login codex` into a multi-tool audit with extra model-calling latency. Now only the tool just signed into gets a fresh check; the others keep their cached verdict
 
 ### Changed
@@ -237,7 +245,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.14...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.15...HEAD
+[0.6.15]: https://github.com/yoreai/relay/compare/v0.6.14...v0.6.15
 [0.6.14]: https://github.com/yoreai/relay/compare/v0.6.13...v0.6.14
 [0.6.13]: https://github.com/yoreai/relay/compare/v0.6.12...v0.6.13
 [0.6.12]: https://github.com/yoreai/relay/compare/v0.6.11...v0.6.12

@@ -1,6 +1,6 @@
 {
   "name": "relay",
-  "version": "0.6.14",
+  "version": "0.6.15",
   "description": "Interface-independent task router for AI agents",
   "license": "Apache-2.0",
   "type": "module",
@@ -9,6 +9,7 @@
     "relay": "./src/cli.ts"
   },
   "scripts": {
+    "evals": "bun run evals/run.ts",
     "relay": "bun run src/cli.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test",

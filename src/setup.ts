@@ -17,11 +17,51 @@ import { which } from "./which.ts";
 
 const RELAY_SERVER = { command: "relay", args: ["mcp", "serve"] };
 
+// Codex needs two extra keys on the relay server block (both found live via
+// the eval suite — without them, EVERY codex→relay call dies as "user
+// cancelled MCP tool call" and codex quietly does the task itself):
+// - tool_timeout_sec: codex's 60s default is shorter than a typical relay run
+// - default_tools_approval_mode: codex gates MCP calls behind an approval
+//   elicitation; headless `codex exec` auto-cancels it, and interactive mode
+//   prompts every time. "approve" pre-trusts relay — the user installed it
+//   deliberately, and edits still land as reviewable staged git changes.
+const CODEX_RELAY_KEYS: Record<string, string> = {
+  tool_timeout_sec: "900",
+  default_tools_approval_mode: '"approve"',
+};
+
 const RELAY_CODEX_BLOCK = `[mcp_servers.relay]
 command = "relay"
 args = ["mcp", "serve"]
 enabled = true
+tool_timeout_sec = 900
+default_tools_approval_mode = "approve"
 `;
+
+/** Insert any missing CODEX_RELAY_KEYS into an existing relay server block. */
+export function ensureCodexRelayKeys(text: string): { out: string; changed: boolean } {
+  const lines = text.split("\n");
+  const head = lines.findIndex((l) => l.trim() === "[mcp_servers.relay]");
+  if (head === -1) return { out: text, changed: false };
+  let end = lines.length;
+  for (let j = head + 1; j < lines.length; j++) {
+    if (/^\s*\[/.test(lines[j]!)) {
+      end = j;
+      break;
+    }
+  }
+  const block = lines.slice(head, end);
+  const missing = Object.entries(CODEX_RELAY_KEYS).filter(
+    ([key]) => !block.some((l) => new RegExp(`^\\s*${key}\\s*=`).test(l)),
+  );
+  if (missing.length === 0) return { out: text, changed: false };
+  let insertAt = head + 1;
+  for (let j = head + 1; j < end; j++) {
+    if (lines[j]!.trim() !== "") insertAt = j + 1;
+  }
+  lines.splice(insertAt, 0, ...missing.map(([k, v]) => `${k} = ${v}`));
+  return { out: lines.join("\n"), changed: true };
+}
 
 /** Merge relay into an mcpServers-style JSON config. Pure for testability. */
 export function mergeMcpJson(text: string): { out: string; changed: boolean } {
@@ -130,6 +170,13 @@ async function registerClaudeMcp(): Promise<string> {
   return registerInJsonConfig(cfg, true);
 }
 
+function applyCodexRelayKeys(cfg: string): boolean {
+  if (!existsSync(cfg)) return false;
+  const fixed = ensureCodexRelayKeys(readFileSync(cfg, "utf8"));
+  if (fixed.changed) writeFileSync(cfg, fixed.out, "utf8");
+  return fixed.changed;
+}
+
 async function registerCodexMcp(): Promise<string> {
   const cfg = join(homedir(), ".codex", "config.toml");
   const hasCli = !!discoverCliBinary(CLI_SPECS.codex!);
@@ -138,9 +185,14 @@ async function registerCodexMcp(): Promise<string> {
 
   if (hasCli || which("codex")) {
     const r = await runToolMcpAdd(["codex", "mcp", "add", "relay", "--", "relay", "mcp", "serve"]);
-    if (r.ok) return `✓ ${r.detail}`;
+    if (r.ok) {
+      const tuned = applyCodexRelayKeys(cfg);
+      return `✓ ${r.detail}${tuned ? " (pre-approved relay tools + 15min timeout — codex cancels them otherwise)" : ""}`;
+    }
   }
-  return registerInCodexToml(cfg);
+  const result = registerInCodexToml(cfg);
+  applyCodexRelayKeys(cfg);
+  return result;
 }
 
 function statusMark(t: ToolProbe): string {
@@ -200,8 +252,11 @@ export async function runSetup(
       say(`→ ${t.label}: ${t.login.note}`);
       continue;
     }
-    let doIt = opts.yes === true;
-    if (!doIt && interactive) {
+    // --yes means non-interactive: never auto-launch a browser sign-in flow
+    // that blocks forever in scripts/agents (seen live: setup --yes hung on
+    // `cursor-agent login`). Sign-ins only happen on an explicit interactive yes.
+    let doIt = false;
+    if (opts.yes !== true && interactive) {
       doIt = await askYesNo(`→ sign in to ${t.label} now? (${t.login.note})`);
     }
     if (doIt) {
