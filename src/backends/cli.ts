@@ -100,7 +100,7 @@ export class GenericCliBackend implements Backend {
       );
     }
 
-    const prompt = renderBriefPrompt(brief);
+    const prompt = renderBriefPrompt(brief, opts.write);
     const args = this.spec.buildArgs(prompt, opts.model, opts.effort);
     const { stdout, stderr, exitCode } = await runCli([bin, ...args], {
       cwd: opts.cwd,

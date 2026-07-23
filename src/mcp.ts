@@ -1,5 +1,6 @@
-import { statSync } from "node:fs";
-import { isAbsolute } from "node:path";
+import { existsSync, statSync } from "node:fs";
+import { homedir } from "node:os";
+import { isAbsolute, join } from "node:path";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -30,6 +31,33 @@ function resolveRunCwd(raw: string): string {
     throw new Error(`cwd does not exist or is not a directory: ${raw}`);
   }
   return raw;
+}
+
+/**
+ * Found in the wild: a host omitted cwd and the run executed from the MCP
+ * server's own working directory (the user's home) — file-change tracking,
+ * staging, and verify all watched the wrong place while the worker edited
+ * the real repo via absolute paths. Refuse to default to a non-repo dir.
+ */
+export function requireRunCwd(explicit: string | undefined): string {
+  if (explicit) return explicit;
+  const cwd = process.cwd();
+  const isRepo = (dir: string): boolean => {
+    for (let d = dir; ; ) {
+      if (existsSync(join(d, ".git"))) return true;
+      const parent = join(d, "..");
+      if (parent === d) return false;
+      d = parent;
+    }
+  };
+  if (cwd === homedir() || cwd === "/" || !isRepo(cwd)) {
+    throw new Error(
+      `relay_run: pass cwd (absolute path to the workspace root). ` +
+        `This MCP server is running from ${cwd}, which is not a project repository — ` +
+        `running there would track changes in the wrong place. Retry with the cwd argument.`,
+    );
+  }
+  return cwd;
 }
 
 export async function serveMcp(): Promise<void> {
@@ -191,7 +219,9 @@ export async function serveMcp(): Promise<void> {
         }
         const task = String(args.task ?? "");
         if (!task) throw new Error("task is required");
-        const cwd = args.cwd ? resolveRunCwd(String(args.cwd)) : undefined;
+        const cwd = requireRunCwd(
+          args.cwd ? resolveRunCwd(String(args.cwd)) : undefined,
+        );
         const wait = args.wait !== false;
         const brief = args.brief
           ? parseBrief(args.brief)

@@ -29,6 +29,13 @@ describe("parseBrief", () => {
     expect(renderBriefPrompt(b)).toMatch(/^\[relay worker\]/);
   });
 
+  test("write:none lanes get an explicit read-only guard", () => {
+    const b = parseBrief({ goal: "review auth.ts", done_means: [] });
+    expect(renderBriefPrompt(b, "none")).toContain("READ-ONLY TASK");
+    expect(renderBriefPrompt(b, "stage")).not.toContain("READ-ONLY TASK");
+    expect(renderBriefPrompt(b)).not.toContain("READ-ONLY TASK");
+  });
+
   test("rendered prompt tells the worker an empty diff is a valid outcome", () => {
     const b = parseBrief({ goal: "fix the typo in README.md", done_means: [] });
     const prompt = renderBriefPrompt(b);

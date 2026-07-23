@@ -27,8 +27,8 @@ GitHub — it never uploads your tasks, code, or usage.
 
 ```
 relay "fix the flaky retry test in src/api"
-# → lane: quickfix · grok-4.5 · verify: ✓ · 1 file(s) changed
-# relay: ~$0.22 saved — grok-4.5 cost $0.02, baseline fable-5-high would've cost ~$0.24 [measured]
+# → lane: quickfix · glm-5.2 · verify: ✓ · 1 file(s) changed
+# relay: ~$0.22 saved — glm-5.2 cost $0.02, baseline fable-5-high would've cost ~$0.24 [measured]
 ```
 
 ## 60-second install

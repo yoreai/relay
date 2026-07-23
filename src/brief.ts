@@ -45,8 +45,18 @@ const NOOP_GUARD =
   "(nothing to fix, nothing matches), change NOTHING and state that plainly. " +
   "An empty diff is a valid, successful outcome. Never invent edits to appear useful.";
 
-export function renderBriefPrompt(brief: Brief): string {
+/** Found in the wild: a `review` lane (write: none) run edited a file anyway
+ * because the flag-level posture wasn't enforced. Belt for the suspenders. */
+const READ_ONLY_GUARD =
+  "READ-ONLY TASK: report findings in your reply only. Do not create, " +
+  "modify, or delete any files, and do not run commands that change state.";
+
+export function renderBriefPrompt(
+  brief: Brief,
+  write?: "none" | "stage" | "worktree",
+): string {
   const parts: string[] = [WORKER_GUARD, NOOP_GUARD, `Goal: ${brief.goal}`];
+  if (write === "none") parts.splice(2, 0, READ_ONLY_GUARD);
   if (brief.why) parts.push(`Why: ${brief.why}`);
   if (brief.files?.length) parts.push(`Files:\n- ${brief.files.join("\n- ")}`);
   if (brief.constraints?.length) {

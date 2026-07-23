@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.14] — 2026-07-23
+
+### Fixed
+
+- **Read-only lanes are now actually read-only on cursor**: `--force`
+  (auto-approve edits and commands) was passed unconditionally, so a
+  `write: none` review lane could still edit files (seen live). Write
+  lanes keep `--force`; read-only lanes get `--trust` only, and every
+  backend's prompt gains an explicit READ-ONLY guard for `write: none`
+- **MCP refuses to run in a non-repo default directory**: when the host
+  omits `cwd`, relay no longer silently runs from the MCP server's own
+  working directory (often `$HOME`) where change-tracking, staging, and
+  verify all watch the wrong place — it errors and asks the host to retry
+  with `cwd` (seen live: a README edit relay itself couldn't see)
+
 ## [0.6.13] — 2026-07-23
 
 ### Fixed
@@ -381,7 +396,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.13...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.14...HEAD
+[0.6.14]: https://github.com/yoreai/relay/compare/v0.6.13...v0.6.14
 [0.6.13]: https://github.com/yoreai/relay/compare/v0.6.12...v0.6.13
 [0.6.12]: https://github.com/yoreai/relay/compare/v0.6.11...v0.6.12
 [0.6.11]: https://github.com/yoreai/relay/compare/v0.6.10...v0.6.11
