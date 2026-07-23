@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { SCRIPT, type CardRow } from "../data/script";
 
-const TYPE_MS = 24;
+const TYPE_MS = 30;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 type Line =
@@ -13,6 +13,7 @@ type Line =
 type Entry =
   | { kind: "turn"; id: number; lines: Line[] }
   | { kind: "ticker"; id: number; text: string }
+  | { kind: "shell"; id: number; cmd: string; typing: boolean; out: string[] }
   | { kind: "final"; id: number };
 
 function updateLastLine(entries: Entry[], turnId: number, updater: (line: Line) => Line): Entry[] {
@@ -50,28 +51,54 @@ export default function Terminal() {
         setEntries((prev) => updateLastLine(prev, turnId, (line) => (line.kind === "user" ? { ...line, text: snapshot } : line)));
         await sleep(TYPE_MS + Math.random() * 18);
       }
-      await sleep(500);
+      await sleep(900);
       if (!mounted) return;
       setEntries((prev) => updateLastLine(prev, turnId, (line) => (line.kind === "user" ? { ...line, typing: false } : line)));
     }
 
     async function showAgent(turnId: number, text: string) {
       appendLine(turnId, { kind: "agent", text });
-      await sleep(650);
+      await sleep(1000);
+    }
+
+    async function typeShell(shellId: number, cmd: string, out: string[]) {
+      let typed = "";
+      for (const ch of cmd) {
+        if (!mounted) return;
+        typed += ch;
+        const snapshot = typed;
+        setEntries((prev) =>
+          prev.map((e) => (e.kind === "shell" && e.id === shellId ? { ...e, cmd: snapshot } : e)),
+        );
+        await sleep(TYPE_MS + Math.random() * 14);
+      }
+      await sleep(700);
+      if (!mounted) return;
+      setEntries((prev) =>
+        prev.map((e) => (e.kind === "shell" && e.id === shellId ? { ...e, typing: false } : e)),
+      );
+      for (let i = 0; i < out.length; i++) {
+        if (!mounted) return;
+        const revealed = out.slice(0, i + 1);
+        setEntries((prev) =>
+          prev.map((e) => (e.kind === "shell" && e.id === shellId ? { ...e, out: revealed } : e)),
+        );
+        await sleep(900);
+      }
     }
 
     async function showCard(turnId: number, card: { lane: string; rows: CardRow[] }) {
       appendLine(turnId, { kind: "card", lane: card.lane, rows: [], done: false });
-      await sleep(600);
+      await sleep(800);
       for (let i = 0; i < card.rows.length; i++) {
         if (!mounted) return;
         const revealed = card.rows.slice(0, i + 1);
         setEntries((prev) => updateLastLine(prev, turnId, (line) => (line.kind === "card" ? { ...line, rows: revealed } : line)));
-        await sleep(700);
+        await sleep(1000);
       }
       if (!mounted) return;
       setEntries((prev) => updateLastLine(prev, turnId, (line) => (line.kind === "card" ? { ...line, done: true } : line)));
-      await sleep(400);
+      await sleep(700);
     }
 
     async function run() {
@@ -83,6 +110,13 @@ export default function Terminal() {
             addEntry({ kind: "ticker", id: nextId++, text: step.ticker });
             continue;
           }
+          if ("shell" in step) {
+            const shellId = nextId++;
+            addEntry({ kind: "shell", id: shellId, cmd: "", typing: true, out: [] });
+            await typeShell(shellId, step.shell.cmd, step.shell.out);
+            await sleep(900);
+            continue;
+          }
           const turnId = nextId++;
           addEntry({ kind: "turn", id: turnId, lines: [] });
           for (const item of step.turn) {
@@ -91,11 +125,11 @@ export default function Terminal() {
             else if (item.a) await showAgent(turnId, item.a);
             else if (item.card) await showCard(turnId, item.card);
           }
-          await sleep(700);
+          await sleep(1600);
         }
         if (!mounted) return;
         addEntry({ kind: "final", id: nextId++ });
-        await sleep(7000);
+        await sleep(9000);
       }
     }
 
@@ -124,6 +158,22 @@ export default function Terminal() {
               <motion.div key={entry.id} className="ticker" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 {entry.text}
               </motion.div>
+            );
+          }
+          if (entry.kind === "shell") {
+            return (
+              <div key={entry.id} className="shell-block">
+                <div className="msg user">
+                  <span className="ps sh">$ </span>
+                  <span>{entry.cmd}</span>
+                  {entry.typing && <span className="caret" />}
+                </div>
+                {entry.out.map((line, i) => (
+                  <motion.div key={i} className="sh-out" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                    {line}
+                  </motion.div>
+                ))}
+              </div>
             );
           }
           if (entry.kind === "final") {

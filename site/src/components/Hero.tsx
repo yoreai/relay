@@ -22,8 +22,10 @@ export default function Hero() {
         <code id="install-cmd">brew install yoreai/tap/relay</code>
         <CopyButton text="brew install yoreai/tap/relay" />
       </div>
-      <p className="sub">
-        macOS &amp; Linux · local harness · Apache-2.0 · no accounts · no telemetry · no stored credentials
+      <p className="sub trust-line">
+        <span>macOS &amp; Linux</span> <span>· local harness</span>{" "}
+        <span>· Apache-2.0</span> <span>· no accounts</span> <span>· no telemetry</span>{" "}
+        <span>· no stored credentials</span>
       </p>
     </div>
   );

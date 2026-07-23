@@ -244,6 +244,15 @@ section h2 {
 .steps b { color: var(--ink); }
 .mcp-note { margin-top: 30px; color: var(--ink-dim); font-size: 14px; max-width: 720px; }
 
+.trust-line { text-wrap: balance; }
+.trust-line span { white-space: nowrap; }
+
+/* terminal setup preamble */
+.shell-block { margin-bottom: 10px; }
+.ps.sh { color: var(--amber); }
+.sh-out { color: var(--ink-dim); padding-left: 1.35em; font-size: 13px; }
+.sh-out:first-line { line-height: 1.7; }
+
 /* routing matrix */
 .matrix-grid {
   border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
