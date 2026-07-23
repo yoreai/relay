@@ -1,4 +1,5 @@
 import { briefFromTask, parseBrief, type Brief } from "./brief.ts";
+import { acquireRunLock, noLock } from "./runlock.ts";
 import { loadDirective, resolveTier, type Directive } from "./directive.ts";
 import { routeTask } from "./route.ts";
 import { assembleContext } from "./context/assemble.ts";
@@ -115,6 +116,12 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
   }
 
   const id = newRunId();
+
+  // One writing run per repo: overlapping write runs share a working tree
+  // and fail each other's verify. Acquired before the "running" record so a
+  // refused run never shows up in the log; auto-released on every exit path.
+  using _lock = decision.lane.write === "none" ? noLock() : acquireRunLock(cwd, id);
+
   const taskHash = hashTask(opts.task);
   const baseRecord = (): Omit<RunRecord, "status"> => ({
     id,

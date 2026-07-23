@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.16] — 2026-07-23
+
+### Added
+
+- Per-repo write lock: a second writing run in the same repo is now refused with a pointer to the active run's id instead of silently racing it — overlapping runs in one working tree were failing each other's verify on edits that pass cleanly in isolation. Read-only lanes (status/review) never lock, and locks from crashed processes are reclaimed automatically
+
 ### Changed
 
 - Activation hints now tell host agents to start nontrivial relay tasks asynchronously and poll `relay_status`, giving users periodic phase/blocker updates instead of leaving one opaque tool call running for minutes
@@ -253,7 +259,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.15...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.16...HEAD
+[0.6.16]: https://github.com/yoreai/relay/compare/v0.6.15...v0.6.16
 [0.6.15]: https://github.com/yoreai/relay/compare/v0.6.14...v0.6.15
 [0.6.14]: https://github.com/yoreai/relay/compare/v0.6.13...v0.6.14
 [0.6.13]: https://github.com/yoreai/relay/compare/v0.6.12...v0.6.13
