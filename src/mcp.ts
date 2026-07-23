@@ -257,6 +257,17 @@ export async function serveMcp(): Promise<void> {
                   filesChanged: outcome.filesChanged,
                   receipt: outcome.receipt,
                   verifyOk: outcome.verifyOk,
+                  ...(outcome.workBranch
+                    ? {
+                        work_branch: outcome.workBranch,
+                        work_dir: outcome.workDir,
+                        pr_url: outcome.prUrl ?? undefined,
+                        reconcile:
+                          "Work is committed on that branch — it does NOT auto-merge. " +
+                          "Tell the user where it landed, offer to review the diff, and merge only when they approve " +
+                          `(\`git merge ${outcome.workBranch}\`, then \`git worktree remove ${outcome.workDir}\` and delete the branch).`,
+                      }
+                    : {}),
                   outputTail: outcome.output.slice(-2_000),
                 },
                 null,

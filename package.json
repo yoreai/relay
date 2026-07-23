@@ -1,6 +1,6 @@
 {
   "name": "relay",
-  "version": "0.6.8",
+  "version": "0.6.9",
   "description": "Interface-independent task router for AI agents",
   "license": "Apache-2.0",
   "type": "module",

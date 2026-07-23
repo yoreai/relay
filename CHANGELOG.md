@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.9] — 2026-07-22
+
+### Fixed
+
+- **Worktree work could silently vanish**: successful walkaway runs left
+  edits merely *staged* in the scratch worktree — the relay/* branch was
+  empty, draft PRs had nothing to ship, and nothing told anyone where the
+  work lived. Runs now commit on the branch (relay identity fallback),
+  and both the CLI summary and the MCP reply state the branch, worktree
+  path, and explicit reconcile instructions ("does NOT auto-merge — review,
+  then `git merge <branch>`"); agents are told to offer the merge and act
+  only on user approval
+
 ## [0.6.8] — 2026-07-22
 
 ### Added
@@ -284,7 +297,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.8...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.9...HEAD
+[0.6.9]: https://github.com/yoreai/relay/compare/v0.6.8...v0.6.9
 [0.6.8]: https://github.com/yoreai/relay/compare/v0.6.7...v0.6.8
 [0.6.7]: https://github.com/yoreai/relay/compare/v0.6.6...v0.6.7
 [0.6.6]: https://github.com/yoreai/relay/compare/v0.6.5...v0.6.6

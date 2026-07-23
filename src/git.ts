@@ -79,6 +79,30 @@ export async function createWorktree(
   return dest;
 }
 
+/**
+ * Commit staged changes (worktree lanes only — the lane's write mode is the
+ * user's consent to commit on a relay/* branch). Falls back to a relay
+ * identity when the repo has none configured. Returns the short hash.
+ */
+export async function commitStaged(
+  cwd: string,
+  message: string,
+): Promise<string | null> {
+  const tryCommit = (extra: string[]) =>
+    runGitCode(cwd, [...extra, "commit", "-m", message]);
+  let code = await tryCommit([]);
+  if (code !== 0) {
+    code = await tryCommit([
+      "-c",
+      "user.name=relay",
+      "-c",
+      "user.email=relay@localhost",
+    ]);
+  }
+  if (code !== 0) return null;
+  return (await runGit(cwd, ["rev-parse", "--short", "HEAD"])) || null;
+}
+
 export async function maybeOpenDraftPr(
   cwd: string,
   title: string,

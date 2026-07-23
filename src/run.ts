@@ -14,6 +14,7 @@ import {
   type RunRecord,
 } from "./runlog.ts";
 import {
+  commitStaged,
   createWorktree,
   listChangedFiles,
   maybeOpenDraftPr,
@@ -51,6 +52,10 @@ export type RunOutcome = {
   output: string;
   dryRun?: boolean;
   prUrl?: string | null;
+  /** Worktree lanes: the branch holding the finished work… */
+  workBranch?: string;
+  /** …and the worktree directory it's checked out in. */
+  workDir?: string;
 };
 
 export async function runTask(opts: RunOpts): Promise<RunOutcome> {
@@ -134,10 +139,11 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
 
   let workCwd = cwd;
   let prUrl: string | null = null;
+  let workBranch: string | undefined;
   if (decision.lane.write === "worktree") {
-    const branch = `relay/${decision.lane.name}-${id.slice(-6)}`;
-    workCwd = await createWorktree(cwd, branch);
-    emit("worktree", `isolated worktree on branch ${branch}`);
+    workBranch = `relay/${decision.lane.name}-${id.slice(-6)}`;
+    workCwd = await createWorktree(cwd, workBranch);
+    emit("worktree", `isolated worktree on branch ${workBranch}`);
   }
 
   let state: EscalationState = {
@@ -251,7 +257,20 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
     emit("escalating", action.reason);
   }
 
-  if (verifyOk && decision.lane.write === "worktree") {
+  if (verifyOk && decision.lane.write === "worktree" && filesChanged.length > 0) {
+    // The worktree lane's contract is "finished work on a relay/* branch":
+    // without a commit the branch is empty, drafts PRs are impossible, and
+    // the work is invisible outside the scratch dir. Main is never touched.
+    const hash = await commitStaged(
+      workCwd,
+      `relay: ${brief.goal.slice(0, 72)}\n\nAutomated by relay (lane=${decision.lane.name}, model=${tier.model}, run=${id}).`,
+    );
+    emit(
+      "committed",
+      hash
+        ? `${hash} on ${workBranch}`
+        : `commit failed — work is staged in ${workCwd}`,
+    );
     prUrl = await maybeOpenDraftPr(
       workCwd,
       `relay: ${brief.goal.slice(0, 72)}`,
@@ -303,6 +322,8 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
     receipt,
     output: lastOutput,
     prUrl,
+    workBranch,
+    workDir: workBranch ? workCwd : undefined,
   };
 }
 
@@ -325,6 +346,12 @@ export function formatOutcome(outcome: RunOutcome): string {
   ];
   if (outcome.escalations) lines.push(`  escalations: ${outcome.escalations}`);
   if (outcome.prUrl) lines.push(`  pr: ${outcome.prUrl}`);
+  if (outcome.workBranch && !outcome.prUrl) {
+    lines.push(`  branch: ${outcome.workBranch}  (worktree: ${outcome.workDir})`);
+    lines.push(
+      `  reconcile: review the branch, then \`git merge ${outcome.workBranch}\` — the work does NOT auto-merge`,
+    );
+  }
   if (outcome.receipt) lines.push(outcome.receipt.line);
   return lines.join("\n");
 }

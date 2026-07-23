@@ -34,7 +34,10 @@ export class FakeBackend implements Backend {
     const prompt = renderBriefPrompt(brief);
     const filesChanged: string[] = [];
     if (process.env.RELAY_FAKE_WRITE) {
-      const path = process.env.RELAY_FAKE_WRITE;
+      const raw = process.env.RELAY_FAKE_WRITE;
+      // relative paths land in the run's cwd, so worktree-lane tests write
+      // inside the worktree like a real backend would
+      const path = raw.startsWith("/") ? raw : `${opts.cwd}/${raw}`;
       await Bun.write(path, `fake edit for: ${brief.goal}\n`);
       filesChanged.push(path);
     }

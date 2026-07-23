@@ -41,6 +41,49 @@ describe("run with fake backend", () => {
     expect(outcome.id).toStartWith("run_");
   });
 
+  test("worktree lane commits to a relay/* branch and reports how to reconcile", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "relay-wt-"));
+    await Bun.$`git init`.cwd(dir).quiet();
+    await Bun.$`git config user.email test@example.com`.cwd(dir).quiet();
+    await Bun.$`git config user.name test`.cwd(dir).quiet();
+    writeFileSync(join(dir, "README.md"), "# t\n");
+    await Bun.$`git add README.md && git commit -m init`.cwd(dir).quiet();
+
+    process.env.RELAY_ALLOW_FAKE = "1";
+    process.env.RELAY_FAKE_WRITE = "built.txt"; // relative → lands in the worktree
+
+    try {
+      const outcome = await runTask({
+        task: "implement the thing",
+        cwd: dir,
+        backendOverride: "fake",
+        lane: "build",
+      });
+
+      expect(outcome.verifyOk).toBe(true);
+      expect(outcome.workBranch).toMatch(/^relay\/build-/);
+      expect(outcome.workDir).toContain(".relay/worktrees");
+
+      // work is committed on the branch, not floating in a scratch dir
+      const log = await Bun.$`git log --oneline ${outcome.workBranch}`.cwd(dir).text();
+      expect(log).toContain("relay: implement the thing");
+      const show = await Bun.$`git show --stat --oneline ${outcome.workBranch}`.cwd(dir).text();
+      expect(show).toContain("built.txt");
+
+      // main branch untouched
+      const mainLog = await Bun.$`git log --oneline`.cwd(dir).text();
+      expect(mainLog).not.toContain("relay: implement");
+
+      // humans and agents are told where the work lives + that it won't auto-merge
+      const { formatOutcome } = await import("../src/run.ts");
+      const summary = formatOutcome(outcome);
+      expect(summary).toContain(outcome.workBranch!);
+      expect(summary).toContain("does NOT auto-merge");
+    } finally {
+      delete process.env.RELAY_FAKE_WRITE;
+    }
+  });
+
   test("emits a pollable progress feed and fires onStart before completion", async () => {
     const dir = mkdtempSync(join(tmpdir(), "relay-"));
     await Bun.$`git init`.cwd(dir).quiet();
