@@ -63,8 +63,8 @@ export const SCRIPT: ScriptStep[] = [
         card: {
           lane: "review",
           rows: [
-            { c: "sub", t: "▸ Kimi sub-agent · kimi-k2.7 (frontier class)" },
-            { c: "note", t: "full power for hard problems — still ~10× cheaper" },
+            { c: "sub", t: "▸ Cursor sub-agent · opus-4.8 (review tier)" },
+            { c: "note", t: "hard problems get full power — routed there on purpose" },
           ],
         },
       },

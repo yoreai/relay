@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Docs/site accuracy pass: flow diagram now shows Cursor / Claude Code /
+  Codex / any MCP agent (Warp removed — not a registered surface), demo no
+  longer showcases an experimental backend for the frontier lane, README
+  status/roadmap updated and example output matches the real CLI
+
 ## [0.6.10] — 2026-07-22
 
 ### Fixed

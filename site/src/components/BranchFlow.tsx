@@ -1,10 +1,10 @@
 import { motion, useReducedMotion } from "framer-motion";
 
 const AGENTS = [
-  { id: "codex", label: "Codex", y: 50 },
+  { id: "cursor", label: "Cursor", y: 50 },
   { id: "claude", label: "Claude Code", y: 130 },
-  { id: "cursor", label: "Cursor", y: 210 },
-  { id: "warp", label: "Warp", y: 290 },
+  { id: "codex", label: "Codex", y: 210 },
+  { id: "mcp", label: "any MCP agent", y: 290 },
 ];
 
 const STAGES = [
@@ -30,7 +30,7 @@ export default function BranchFlow() {
         viewBox="0 0 1000 340"
         className="branchflow-svg"
         role="img"
-        aria-label="Diagram: Codex, Claude Code, Cursor, and Warp all route through relay, which identifies metrics, routes to the best backend, verifies the result, and returns a clean git diff."
+        aria-label="Diagram: Cursor, Claude Code, Codex, and any MCP agent all route through relay, which identifies metrics, routes to the best backend, verifies the result, and returns a clean git diff."
       >
         {AGENTS.map((agent, i) => {
           const path = `M ${AGENT_X + 58} ${agent.y} C ${RELAY.x - 130} ${agent.y}, ${RELAY.x - 110} ${RELAY.y}, ${RELAY.x - 38} ${RELAY.y}`;

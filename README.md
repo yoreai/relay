@@ -27,8 +27,8 @@ GitHub — it never uploads your tasks, code, or usage.
 
 ```
 relay "fix the flaky retry test in src/api"
-# → lane: quickfix · grok-4.5 · verify: lint+test ✓ · changes staged
-# → relay: ~$1.84 saved (grok-4.5 vs fable-5-high) [estimated]
+# → lane: quickfix · grok-4.5 · verify: ✓ · 1 file(s) changed
+# relay: ~$0.22 saved (grok-4.5 vs fable-5-high) [estimated]
 ```
 
 ## 60-second install
@@ -82,11 +82,9 @@ recursion guard: delegated workers cannot re-delegate to relay.
 
 `relay_run`, `relay_status`, `relay_savings`, `relay_doctor`, `relay_login`, `relay_backends`.
 
-`relay setup` asks which installed CLIs relay may route work to (say no to
-anything your org hasn't approved); change anytime with `relay backends
-enable|disable <tool>` — or ask your agent to do it.
-
-`relay setup` registers relay in **Cursor, Claude Code, and Codex** automatically.
+Setup registers relay in **Cursor, Claude Code, and Codex** automatically, and
+asks which installed CLIs relay may route work to — say no to anything your
+org hasn't approved (change anytime: `relay backends enable|disable <tool>`).
 
 ## How it works
 
@@ -101,8 +99,9 @@ enable|disable <tool>` — or ask your agent to do it.
 5. **Receipt** — honest savings vs your baseline (measured when the backend reports usage,
    estimated from bytes for Cursor until its CLI emits tokens)
 
-Git is the review surface: edits land **staged** by default (or in a worktree → draft PR for
-walkaway/build lanes). Relay never commits unless a lane says so.
+Git is the review surface: edits land **staged** by default. Walkaway lanes work in an
+isolated worktree instead — committed on a `relay/*` branch (draft PR when a remote
+exists), never auto-merged. Your branch and uncommitted work are never touched.
 
 ## The directive
 
@@ -139,14 +138,13 @@ your agents don't keep a dead MCP entry.
 
 - Verify gemini/grok/kimi adapter flags against real installs (codex is verified)
 - Success-rate-aware advise (already logs verify results per model)
-- Frankie adapter as a separate plugin package
 - Windows, npm SDK
 
 ## Status
 
-**v0.6.8** — one-command setup + uninstall, backend opt-in, pollable run
-progress, recursion guard, relayagent.dev site, open bench (6/6 quality
-parity, ~5.2× median savings). Not v1 yet: Windows, npm SDK, verified
+Stable core: setup/uninstall, backend opt-in, staged-edit lanes, pollable run
+progress, recursion guard, open bench (6/6 quality parity, ~5.2× median
+savings). Young: walkaway/worktree lane. Not yet: Windows, npm SDK, verified
 gemini/grok/kimi adapters.
 
 ## License
