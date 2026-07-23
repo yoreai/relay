@@ -1,1 +1,1 @@
-export const RELAY_VERSION = "0.6.16";
+export const RELAY_VERSION = "0.6.17";

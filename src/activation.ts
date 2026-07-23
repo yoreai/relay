@@ -23,7 +23,9 @@ const END = "<!-- END RELAY ACTIVATION -->";
 const HINT_BODY = `When the user explicitly hands a task to relay — "relay this: …",
 "hey relay …", "use relay to …", "ask relay …" — call the \`relay_run\` MCP
 tool with the task (and the workspace root as \`cwd\` if the tool accepts it)
-instead of doing the work yourself. relay routes it to the cheapest capable
+instead of doing the work yourself — even when the task looks trivial enough
+to just do. The user chose relay deliberately; doing it yourself silently
+defeats their cost tracking. relay routes it to the cheapest capable
 model, verifies with the repo's own lint/tests, and returns a receipt.
 For any task likely to take more than about 30 seconds, call \`relay_run\` with
 \`wait: false\` so it returns a run id immediately. Tell the user the run

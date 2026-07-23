@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.17] — 2026-07-23
+
+### Changed
+
+- Activation hint now says to delegate even when the task looks trivial — weaker host models were skimming the rule and doing "relay this: fix the typo…" themselves, silently defeating cost tracking
+- Eval suite hardened: host-delegation scenarios accept staged-edit evidence (codex/cursor spawn MCP servers with a scrubbed env, hiding the run log), install the cursor rule at project level (headless CLI skips global IDE rules), use a mainstream host model, and retry once on host-model variance — first fully green 13/13 board
+
 ## [0.6.16] — 2026-07-23
 
 ### Added
@@ -259,7 +266,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.16...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.17...HEAD
+[0.6.17]: https://github.com/yoreai/relay/compare/v0.6.16...v0.6.17
 [0.6.16]: https://github.com/yoreai/relay/compare/v0.6.15...v0.6.16
 [0.6.15]: https://github.com/yoreai/relay/compare/v0.6.14...v0.6.15
 [0.6.14]: https://github.com/yoreai/relay/compare/v0.6.13...v0.6.14

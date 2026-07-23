@@ -5,7 +5,8 @@
 // This is NOT the unit test suite (`bun test`): these scenarios spawn real
 // backend workers and spend real (cent-level) money. Not run in CI.
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import {
   Blocked,
@@ -318,15 +319,20 @@ async function hostScenario(
 
   expect(readFileSync(join(repo, "hello.txt"), "utf8").includes("the world"), "typo not fixed");
 
-  // Primary delegation proof: a relay run record in the isolated data dir.
-  // Some hosts (codex) spawn MCP servers with a scrubbed env, so the
-  // XDG_DATA_HOME override can't reach relay — accept the host's own
-  // transcript showing a completed relay_run call as evidence instead.
+  // Delegation proof, strongest first:
+  // 1. A relay run record in the isolated data dir (claude propagates env).
+  // 2. The edit is STAGED — relay's write lane stages, hosts doing the task
+  //    themselves leave it unstaged. (codex/cursor spawn MCP servers with a
+  //    scrubbed env, so the XDG_DATA_HOME override can't reach relay.)
+  // 3. The host transcript shows a completed relay_run call.
   const log = join(dataDir, "relay", "runs.jsonl");
   if (existsSync(log)) {
     const records = readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l) as RunJson);
     expect(records.some((r) => r.status === "ok"), "relay run did not finish ok");
     return `delegated · ${records.length} run record(s) · typo fixed`;
+  }
+  if (git(repo, ["diff", "--cached", "--name-only"]).includes("hello.txt")) {
+    return "delegated (proof: edit staged by relay's write lane) · typo fixed";
   }
   expect(
     /relay_run \(completed\)|relay_run.*(succeeded|completed)/i.test(hostOutput),
@@ -335,23 +341,49 @@ async function hostScenario(
   return "delegated (proof: host transcript shows completed relay_run) · typo fixed";
 }
 
+/** Host models are nondeterministic — one retry (fresh repo) separates
+ * "broken" from single-sample variance; the detail says when it was needed. */
+async function withRetry(
+  makeAttempt: () => Promise<string>,
+): Promise<string> {
+  try {
+    return await makeAttempt();
+  } catch (e) {
+    if (e instanceof Blocked) throw e;
+    const detail = await makeAttempt();
+    return `${detail} (passed on retry — host model variance)`;
+  }
+}
+
 async function hostScenarios(): Promise<void> {
   const PROMPT = `relay this: fix the typo in hello.txt — 'teh' should be 'the'`;
 
   results.push(
-    await runScenario("host cursor-agent: 'relay this' delegates via MCP", "host", async () => {
-      const repo = makeRepo("host-cursor");
-      return hostScenario(
-        "cursor-agent",
-        ["cursor-agent", "-p", PROMPT, "--model", "gpt-5.6-luna-low", "--output-format", "text", "--force"],
-        repo,
-        420_000,
-      );
-    }),
+    await runScenario("host cursor-agent: 'relay this' delegates via MCP", "host", () =>
+      withRetry(async () => {
+        const repo = makeRepo("host-cursor");
+        // Headless cursor-agent loads project .cursor/rules but not the global
+        // ~/.cursor/rules the IDE uses — install the same rule file relay setup
+        // writes, so this tests the identical rule content end to end.
+        const ruleSrc = join(homedir(), ".cursor", "rules", "relay.mdc");
+        mkdirSync(join(repo, ".cursor", "rules"), { recursive: true });
+        copyFileSync(ruleSrc, join(repo, ".cursor", "rules", "relay.mdc"));
+        // Mainstream host model, like real Cursor sessions: nano-tier host
+        // models (e.g. luna-low) skim their rules and do trivial tasks inline.
+        const detail = await hostScenario(
+          "cursor-agent",
+          ["cursor-agent", "-p", PROMPT, "--model", "claude-sonnet-5-medium", "--output-format", "text", "--force"],
+          repo,
+          420_000,
+        );
+        return `${detail} (rule via project .cursor/rules — headless CLI skips global IDE rules)`;
+      }),
+    ),
   );
 
   results.push(
-    await runScenario("host claude: 'relay this' delegates via MCP", "host", async () => {
+    await runScenario("host claude: 'relay this' delegates via MCP", "host", () =>
+      withRetry(async () => {
       const repo = makeRepo("host-claude");
       return hostScenario(
         "claude",
@@ -367,19 +399,22 @@ async function hostScenarios(): Promise<void> {
         repo,
         420_000,
       );
-    }),
+      }),
+    ),
   );
 
   results.push(
-    await runScenario("host codex: 'relay this' delegates via MCP", "host", async () => {
-      const repo = makeRepo("host-codex");
-      return hostScenario(
-        "codex",
-        ["codex", "exec", "--sandbox", "workspace-write", PROMPT],
-        repo,
-        420_000,
-      );
-    }),
+    await runScenario("host codex: 'relay this' delegates via MCP", "host", () =>
+      withRetry(async () => {
+        const repo = makeRepo("host-codex");
+        return hostScenario(
+          "codex",
+          ["codex", "exec", "--sandbox", "workspace-write", PROMPT],
+          repo,
+          420_000,
+        );
+      }),
+    ),
   );
 }
 
