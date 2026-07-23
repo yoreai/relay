@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.10] — 2026-07-22
+
+### Fixed
+
+- **Verify can no longer hang a run**: verify commands now run with `CI=1`
+  (flips vitest/jest/react-scripts out of watch mode) and a 10-minute kill
+  timer that reports as a verify failure — previously a repo whose `test`
+  script started a watcher would block relay forever
+
 ## [0.6.9] — 2026-07-22
 
 ### Fixed
@@ -297,7 +306,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.9...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.10...HEAD
+[0.6.10]: https://github.com/yoreai/relay/compare/v0.6.9...v0.6.10
 [0.6.9]: https://github.com/yoreai/relay/compare/v0.6.8...v0.6.9
 [0.6.8]: https://github.com/yoreai/relay/compare/v0.6.7...v0.6.8
 [0.6.7]: https://github.com/yoreai/relay/compare/v0.6.6...v0.6.7
