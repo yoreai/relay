@@ -121,7 +121,7 @@ export async function maybeOpenDraftPr(
   return (stdout || stderr).trim() || null;
 }
 
-async function runGit(cwd: string, args: string[]): Promise<string> {
+export async function runGit(cwd: string, args: string[]): Promise<string> {
   return (await runGitRaw(cwd, args)).trim();
 }
 

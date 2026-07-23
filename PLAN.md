@@ -133,6 +133,42 @@ demonstrably failed.
   `--log-tasks` opt-in.
 - **Never fabricate precision.** If we can't price something, the receipt says so.
 
+## 5b. Memory ("relay remembers") — design, added 2026-07-23
+
+The long-session problem is relay's own problem restated: every extra turn
+re-sends bloated context at frontier prices, but people keep sessions alive
+because starting fresh means re-explaining. Memory removes that reason.
+
+- **Two MCP tools, no hooks, no skills, no extra installs.** `relay_recall`
+  returns a per-repo catch-up digest; `relay_remember` deposits a durable
+  one-line note (decision / todo / context / watchout). Being plain MCP tools,
+  they work identically in every host by construction and are testable by the
+  eval suite like everything else. CLI twins: `relay recall` / `relay remember`.
+- **Recall is layered residue, newest first, deterministic (no LLM pass):**
+  1. *git* — branch, dirty files, recent commits, unreconciled `relay/*`
+     branches. Works for users who never delegate: memory is useful **before**
+     the routing habit forms.
+  2. *relay runs* — `runs.jsonl` filtered by repo cwd; failed runs surface as
+     open threads.
+  3. *notes* — `~/.local/share/relay/memory/<repo-hash>.jsonl`, keyed by git
+     root so any subdirectory recalls the same memory.
+  4. *host sessions* — recent USER asks read best-effort from the hosts' own
+     local session files (`~/.cursor/projects/...`, `~/.claude/projects/...`,
+     `~/.codex/sessions/...`). Formats are undocumented; adapters degrade to
+     empty on any parse failure and never block recall. relay's own worker
+     prompts and auth probes are filtered out.
+- **The digest protects context, it doesn't spend it:** hard cap (~6KB),
+  recency-weighted, notes beyond the last 10 collapse to a count.
+- **Honest claim, locked wording:** "relay wrote down everything that
+  matters" — NOT "nothing is ever lost". A digest is a good summary, not the
+  session.
+- **Privacy:** all layers are local files; recall never uploads anything;
+  `relay uninstall --purge` deletes the memory store.
+- Deliberately rejected for now: beads/graph-db dependency (second install,
+  schema we don't control — optional adapter later if demand appears), LLM
+  distillation on the recall path (latency + cost on the hot path; may come
+  later for the transcript layer), and host hooks (per-host fragility).
+
 ## 6. Backends — constraints
 
 - Common interface: `run(brief, model, opts) → {output, filesChanged, usage?, exitCode}`.

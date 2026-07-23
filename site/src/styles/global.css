@@ -214,13 +214,14 @@ section h2 {
 }
 .prompt { color: var(--green); margin-right: 8px; }
 
-.cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 34px; }
+.cols { display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; }
 @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
 .cols h3 { font-size: 15px; color: var(--green); margin-bottom: 10px; }
 .cols p { color: var(--ink-dim); font-size: 14px; }
 .cols b, .cols em { color: var(--ink); font-style: normal; }
 .honest { display: block; margin-top: 10px; font-size: 12.5px; opacity: 0.85; }
-.trust-cols { margin-top: 8px; }
+.trust-cols { margin-top: 8px; grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 900px) { .trust-cols { grid-template-columns: 1fr; } }
 
 /* how */
 .how-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; align-items: center; }

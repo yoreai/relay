@@ -8,6 +8,7 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { formatOutcome, runTask } from "./run.ts";
+import { recallDigest, rememberNote } from "./memory.ts";
 import {
   appendEvent,
   getRun,
@@ -52,7 +53,7 @@ export function requireRunCwd(explicit: string | undefined): string {
   };
   if (cwd === homedir() || cwd === "/" || !isRepo(cwd)) {
     throw new Error(
-      `relay_run: pass cwd (absolute path to the workspace root). ` +
+      `pass cwd (absolute path to the workspace root). ` +
         `This MCP server is running from ${cwd}, which is not a project repository — ` +
         `running there would track changes in the wrong place. Retry with the cwd argument.`,
     );
@@ -164,6 +165,48 @@ export async function serveMcp(): Promise<void> {
               description: "cursor | claude | codex | gemini | grok | kimi (required for enable/disable)",
             },
           },
+        },
+      },
+      {
+        name: "relay_recall",
+        description:
+          "Catch up on a repo instantly: returns a compact digest of recent git activity (branch, dirty files, " +
+          "commits), recent relay runs, notes deposited by past sessions, and recent agent-session asks. " +
+          "Call it at the START of a session in a repo, or whenever the user says 'catch me up' / 'where were we' / " +
+          "'what's the status here' — it replaces re-reading history and lets users start fresh sessions without " +
+          "re-explaining anything. Read-only, local files only, fast. Pass cwd (absolute workspace root).",
+        inputSchema: {
+          type: "object",
+          properties: {
+            cwd: {
+              type: "string",
+              description: "Absolute path to the repo/workspace root to recall.",
+            },
+          },
+        },
+      },
+      {
+        name: "relay_remember",
+        description:
+          "Deposit a durable one-line note into relay's per-repo memory so FUTURE sessions recall it via " +
+          "relay_recall. Use when the user says 'remember this / note that', and at natural wrap-up points for " +
+          "decisions, next steps, or watch-outs that would otherwise die with this chat. Store conclusions, not " +
+          "transcripts — one line each. Local file only; nothing leaves the machine.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            note: { type: "string", description: "One durable line (a decision, next step, or watch-out)." },
+            kind: {
+              type: "string",
+              enum: ["decision", "todo", "context", "watchout", "note"],
+              description: "Default note.",
+            },
+            cwd: {
+              type: "string",
+              description: "Absolute path to the repo/workspace root this note belongs to.",
+            },
+          },
+          required: ["note"],
         },
       },
       {
@@ -420,6 +463,33 @@ export async function serveMcp(): Promise<void> {
         return {
           content: [{ type: "text", text: result }],
           isError: result.startsWith("usage:") || result.startsWith("unknown"),
+        };
+      }
+
+      if (name === "relay_recall") {
+        const cwd = requireRunCwd(
+          args.cwd ? resolveRunCwd(String(args.cwd)) : undefined,
+        );
+        return {
+          content: [{ type: "text", text: await recallDigest(cwd) }],
+        };
+      }
+
+      if (name === "relay_remember") {
+        const cwd = requireRunCwd(
+          args.cwd ? resolveRunCwd(String(args.cwd)) : undefined,
+        );
+        const saved = await rememberNote(cwd, String(args.note ?? ""), {
+          kind: args.kind ? String(args.kind) : undefined,
+          source: "mcp",
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: `remembered [${saved.kind}] for this repo — future sessions will see it via relay_recall`,
+            },
+          ],
         };
       }
 

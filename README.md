@@ -60,6 +60,8 @@ relay doctor                        # backends found? tier resolution on this ma
 relay "fix the flaky retry test"   # route → run → verify → receipt
 relay --dry-run "review auth.ts"    # see routing without running
 relay -i                            # interactive REPL
+relay recall                        # catch-up digest: git + relay work + notes + sessions
+relay remember "auth uses JWT now"  # deposit a durable note for future sessions
 relay savings --by-lane
 relay update                        # refresh the model catalog (facts, not policy)
 relay advise                        # cheaper same-class models for your tiers
@@ -83,7 +85,8 @@ workers cannot re-delegate to relay.
 
 ### MCP tools
 
-`relay_run`, `relay_status`, `relay_savings`, `relay_doctor`, `relay_login`, `relay_backends`.
+`relay_run`, `relay_status`, `relay_recall`, `relay_remember`, `relay_savings`,
+`relay_doctor`, `relay_login`, `relay_backends`.
 
 Setup registers relay in **Cursor, Claude Code, and Codex** automatically —
 plus the **Claude desktop app** when it's installed (the Codex app shares the
@@ -110,6 +113,26 @@ Edits land in your working tree as ordinary uncommitted changes — exactly like
 agent's own edits, nothing staged or committed for you. Walkaway lanes work in an
 isolated worktree instead — committed on a `relay/*` branch (draft PR when a remote
 exists), never auto-merged. Your branch and uncommitted work are never touched.
+
+## relay remembers
+
+Long chats are the expensive habit relay exists to break: every extra turn re-sends
+the whole bloated context at frontier prices. So relay gives agents a reason to
+start fresh — **new sessions catch up in one call.**
+
+`relay_recall` (or `relay recall`) returns a compact per-repo digest built from
+local files only:
+
+1. **git** — branch, uncommitted changes, recent commits (works even if you never delegate)
+2. **relay runs** — what was delegated, what changed, what failed and needs a retry
+3. **notes** — durable one-liners past sessions deposited via `relay_remember`
+   ("decided: cursor-based pagination", "watch out: flaky auth test")
+4. **recent sessions** — your recent asks to Cursor / Claude Code / Codex, read
+   best-effort from the hosts' own local session files
+
+Say *"where were we?"* in a brand-new thread and the agent recalls instead of
+re-reading history — or asking you. Nothing leaves your machine; `relay
+uninstall --purge` deletes it all.
 
 ## The directive
 
@@ -155,7 +178,8 @@ progress, recursion guard, open bench (6/6 quality parity, ~5.2× median
 savings). An end-to-end eval suite (`bun run evals --hosts`,
 [latest report](./evals/report.md)) exercises the MCP surface and live
 cursor/claude/codex delegation on every preset scenario. Young:
-walkaway/worktree lane. Not yet: Windows, npm SDK, verified gemini/grok/kimi
+walkaway/worktree lane, memory (recall/remember — the transcript layer is
+best-effort by design). Not yet: Windows, npm SDK, verified gemini/grok/kimi
 adapters.
 
 ## License

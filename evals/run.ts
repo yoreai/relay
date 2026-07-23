@@ -5,8 +5,8 @@
 // This is NOT the unit test suite (`bun test`): these scenarios spawn real
 // backend workers and spend real (cent-level) money. Not run in CI.
 
-import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   Blocked,
@@ -277,6 +277,43 @@ async function mcpScenarios(): Promise<void> {
         return `all respond · live auth → ${health}`;
       } finally {
         await mcp.close();
+      }
+    }),
+  );
+
+  // ---- S11: memory — a note deposited in one session is recalled by the ----
+  // next (fresh server process = the "start a new thread" case), layered on
+  // top of git activity from the repo itself.
+  results.push(
+    await runScenario("memory: remember in one session, recall in the next (git+notes layers)", "mcp", async () => {
+      const repo = makeRepo("memory");
+      const dataDir = mkdtempSync(join(tmpdir(), "relay-eval-memdata-"));
+
+      const first = await RelayMcp.spawn({ dataDir });
+      try {
+        const saved = await first.call("relay_remember", {
+          note: "decided: pagination uses cursor-based tokens, not offsets",
+          kind: "decision",
+          cwd: repo,
+        });
+        expect(saved.ok, `remember failed: ${saved.text.slice(0, 200)}`);
+        expect(/remembered \[decision\]/.test(saved.text), "no remember confirmation");
+      } finally {
+        await first.close();
+      }
+
+      const second = await RelayMcp.spawn({ dataDir });
+      try {
+        const r = await second.call("relay_recall", { cwd: repo });
+        expect(r.ok, `recall failed: ${r.text.slice(0, 200)}`);
+        expect(r.text.includes("cursor-based tokens"), "note did not survive into the next session");
+        expect(r.text.includes("init"), "git layer missing (no recent commits)");
+        expect(/on branch/.test(r.text), "git status line missing");
+        // recall must protect context, not spend it
+        expect(r.text.length < 6_200, `digest too large: ${r.text.length} chars`);
+        return "note survived a fresh server · git+notes layers present";
+      } finally {
+        await second.close();
       }
     }),
   );

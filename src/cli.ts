@@ -3,6 +3,7 @@ import { runAdvise } from "./advise.ts";
 import { runDoctor } from "./doctor.ts";
 import { freshnessHint } from "./freshness.ts";
 import { runInit } from "./init.ts";
+import { recallDigest, rememberNote } from "./memory.ts";
 import { serveMcp } from "./mcp.ts";
 import { formatOutcome, runTask } from "./run.ts";
 import { getRun, modelStats, readEvents, readRuns, summarizeSavings } from "./runlog.ts";
@@ -25,6 +26,8 @@ Usage:
   relay advise [--apply]         # cheaper same-class models for your tiers
   relay backends [enable|disable <tool>]   # which installed CLIs relay may use
   relay uninstall [--purge]      # deregister MCP everywhere (then: brew uninstall relay)
+  relay recall                   # catch-up digest: git + relay work + notes + sessions
+  relay remember "<note>"        # deposit a durable note for future sessions
   relay status [id|--all]
   relay savings [--by-lane|--by-model]
   relay doctor
@@ -94,6 +97,8 @@ function parseArgs(argv: string[]): Parsed {
         "update",
         "advise",
         "backends",
+        "recall",
+        "remember",
         "uninstall",
         "help",
         "version",
@@ -205,6 +210,27 @@ async function main(): Promise<void> {
   }
   if (parsed.command === "backends") {
     console.log(runBackendsCommand(parsed.rest));
+    return;
+  }
+  if (parsed.command === "recall") {
+    console.log(await recallDigest(cwd));
+    return;
+  }
+  if (parsed.command === "remember") {
+    const rest = [...parsed.rest];
+    let kind: string | undefined;
+    const kindIdx = rest.indexOf("--kind");
+    if (kindIdx >= 0) {
+      kind = rest[kindIdx + 1];
+      rest.splice(kindIdx, 2);
+    }
+    const note = rest.filter((r) => !r.startsWith("-")).join(" ");
+    if (!note) {
+      console.error('usage: relay remember "<one-line note>" [--kind decision|todo|context|watchout]');
+      process.exit(2);
+    }
+    const saved = await rememberNote(cwd, note, { kind, source: "cli" });
+    console.log(`remembered [${saved.kind}] — future sessions see it via \`relay recall\``);
     return;
   }
   if (parsed.command === "uninstall") {

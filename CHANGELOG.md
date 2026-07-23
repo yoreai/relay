@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-07-23
+
+### Added
+
+- **relay remembers** — per-repo memory so new sessions catch up in one call instead of re-explaining (or paying for one giant thread). New MCP tools `relay_recall` (compact digest: recent git activity, relay runs with failed-run "open threads", deposited notes, and recent Cursor/Claude/Codex session asks read best-effort from the hosts' own local files) and `relay_remember` (durable one-line notes: decision/todo/context/watchout). CLI twins: `relay recall`, `relay remember "<note>" [--kind …]`. Notes are keyed by git root; everything is local files; `relay uninstall --purge` deletes it
+- Activation hints now teach hosts to call `relay_recall` on "where were we" / session start and to deposit wrap-up notes via `relay_remember`
+- Eval scenario: a note deposited in one MCP session is recalled by a fresh server process (the "new thread" case), layered on git history
+
 ## [0.6.19] — 2026-07-23
 
 ### Added
@@ -278,7 +286,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.19...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/yoreai/relay/compare/v0.6.19...v0.7.0
 [0.6.19]: https://github.com/yoreai/relay/compare/v0.6.18...v0.6.19
 [0.6.18]: https://github.com/yoreai/relay/compare/v0.6.17...v0.6.18
 [0.6.17]: https://github.com/yoreai/relay/compare/v0.6.16...v0.6.17

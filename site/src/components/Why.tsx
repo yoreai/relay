@@ -40,6 +40,17 @@ export default function Why() {
             you already logged into.
           </p>
         </div>
+        <div>
+          <h3>start fresh — relay remembers</h3>
+          <p>
+            Long chats re-send their whole bloated context at frontier prices, every turn. relay
+            gives you a way out: say <em>"where were we?"</em> in a brand-new thread and{" "}
+            <code>relay_recall</code> catches the agent up from local residue — recent git
+            activity, delegated runs, notes past sessions banked with{" "}
+            <code>relay_remember</code>, even your recent asks across Cursor / Claude / Codex.
+            All local files, nothing uploaded. No re-explaining, no thousand-turn sessions.
+          </p>
+        </div>
       </div>
     </section>
   );

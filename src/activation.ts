@@ -33,7 +33,18 @@ started, then poll \`relay_status\` with that id about every 30 seconds and
 briefly report new phases or blockers until it finishes; do not leave the user
 staring at one opaque, blocking tool call. Report the final outcome as the
 result. If the request is ambiguous or relay fails, do the task normally.
-Never call relay_run when the RELAY_WORKER environment variable is set —
+
+relay also remembers. When the user asks "where were we", "catch me up",
+"what's the status here" — or at the start of a session where prior context
+would clearly help — call the \`relay_recall\` MCP tool with the workspace
+root as \`cwd\`: it returns a compact local digest (recent git activity,
+relay runs, notes from past sessions, recent agent asks) so the user never
+re-explains. When the user says "remember this" or a session ends with a
+decision, next step, or watch-out worth keeping, deposit ONE line via
+\`relay_remember\`. Chat context dies with the chat; relay's memory survives
+it — users can start fresh sessions freely.
+
+Never call relay tools when the RELAY_WORKER environment variable is set —
 relay workers must not re-delegate to relay.`;
 
 export const ACTIVATION_BLOCK = `${BEGIN}\n${HINT_BODY}\n${END}\n`;
