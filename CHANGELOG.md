@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `PLAN.md` rewritten from the original "not yet built" build handover into a
+  slim, current design record (locked product decisions, architecture intent,
+  open questions). Drops content now authoritative elsewhere — release history
+  (`CHANGELOG.md`), install/use (`README.md`), maintenance playbook
+  (`AGENTS.md`), directive schema (`defaults/router.yaml`), prices
+  (`defaults/catalog.yaml`). Resolved open questions (classifier default,
+  build-lane draft PR, telemetry) updated in place; README and AGENTS
+  references to `PLAN.md` corrected to match
+
 - Catalog: GLM-5.2 promoted `cheap` → `workhorse` (62.1 SWE-bench Pro —
   ahead of GPT-5.5, open-weights leader; ≈opus-4.8 on FrontierSWE and
   Terminal-Bench). Starter directive now routes the `work` tier to

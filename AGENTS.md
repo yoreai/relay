@@ -4,7 +4,7 @@ Instructions for AI coding agents working on **relay**.
 
 ## Source-of-truth files
 
-- **`PLAN.md`** — product decisions, architecture, milestones (do not relitigate §2 without the owner)
+- **`PLAN.md`** — locked design record: product decisions, architecture intent, open questions (do not relitigate §2 without the owner)
 - **`CHANGELOG.md`** — released-version history (Keep a Changelog)
 - **`README.md`** — public install/use + roadmap
 - **`defaults/router.yaml`** + **`defaults/prices.yaml`** — starter directive and price table (data, not code)
@@ -16,7 +16,7 @@ There is intentionally **no `TODO.md`**. Released history → `CHANGELOG.md`. De
 1. Update `CHANGELOG.md` under `[Unreleased]`
 2. Add/update tests for changed behavior
 3. Run `bun test` and `bun run typecheck`
-4. Keep Abridge/Frankie references out of core — Frankie is an optional adapter (M6)
+4. Keep Abridge/Frankie references out of core — Frankie is an optional adapter (see `PLAN.md` §6)
 
 ## Catalog maintenance (every few weeks — the "always looked at" table)
 

@@ -107,7 +107,7 @@ exists), never auto-merged. Your branch and uncommitted work are never touched.
 
 Repo `./router.yaml` or `.relay/router.yaml` overrides `~/.config/relay/router.yaml`.
 People share directives, not tribal knowledge. See [`defaults/router.yaml`](./defaults/router.yaml)
-and [`PLAN.md`](./PLAN.md) for the full schema.
+for the full schema, and [`PLAN.md`](./PLAN.md) for the locked design decisions behind it.
 
 ## Staying current (facts vs policy)
 
