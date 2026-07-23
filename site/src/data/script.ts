@@ -30,7 +30,7 @@ export const SCRIPT: ScriptStep[] = [
           rows: [
             { c: "sub", t: "▸ Cursor sub-agent · glm-5.2" },
             { c: "ok", t: "✓ lint  ✓ your tests  · edits staged" },
-            { c: "money", t: "~$0.48 saved vs frontier  [measured]" },
+            { c: "money", t: "~$0.48 saved vs fable-5-high baseline  [measured]" },
           ],
         },
       },
@@ -68,7 +68,7 @@ export const SCRIPT: ScriptStep[] = [
   },
   {
     turn: [
-      { u: "relay: auth breaks on token refresh — find the root cause" },
+      { u: "hey relay — auth breaks on token refresh, find the root cause" },
       { a: "needs real judgment — relay routes it to frontier class" },
       {
         card: {

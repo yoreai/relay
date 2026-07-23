@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Docs/site consistency pass for the activation + measured-receipt era:
+  README and site no longer claim "no per-agent config" (setup installs a
+  removable delegation hint per host and says so); bench page notes the run
+  predates measured token reporting; demo receipts name the baseline and
+  demo turns use only installed trigger phrases
+
 ## [0.6.14] — 2026-07-23
 
 ### Fixed

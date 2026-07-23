@@ -68,15 +68,18 @@ relay advise --apply                # accept the suggestions into router.yaml
 
 ## Activate
 
-`relay setup` registers the MCP tools. From then on, just mention relay:
+`relay setup` registers the MCP tools and installs a small delegation hint in
+each agent (a Cursor rule, a marker-fenced block in `~/.claude/CLAUDE.md` and
+`~/.codex/AGENTS.md` — your existing content is untouched). From then on, just
+mention relay:
 
 ```
 "relay this: fix the flaky retry test"
 "use relay to bump the deps and clean up lint"
 ```
 
-No skills, no policy files, no per-agent config. Relay has a built-in
-recursion guard: delegated workers cannot re-delegate to relay.
+Nothing else to configure. Relay has a built-in recursion guard: delegated
+workers cannot re-delegate to relay.
 
 ### MCP tools
 
@@ -128,7 +131,7 @@ The model market moves; a routing table nobody looks at silently overpays. Relay
 ## Uninstall
 
 ```bash
-relay uninstall          # deregister the MCP server from Cursor/Claude/Codex
+relay uninstall          # deregister MCP + remove the delegation hints from Cursor/Claude/Codex
 relay uninstall --purge  # …also delete ~/.config/relay and ~/.local/share/relay
 brew uninstall relay     # then remove the binary
 ```

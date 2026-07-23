@@ -7,8 +7,9 @@ export default function Activate() {
         <span className="prompt">$</span> activate
       </h2>
       <p className="method">
-        <code>relay setup</code> registers the MCP tools. From then on, just say it — no skills,
-        no policy files, no per-agent config.
+        <code>relay setup</code> registers the MCP tools and drops a one-block delegation hint
+        into each agent so "relay this" reliably hands off. Nothing for you to configure —
+        and <code>relay uninstall</code> removes exactly what setup added.
       </p>
       <div className="install-steps">
         <div className="step">

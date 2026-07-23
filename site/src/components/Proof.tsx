@@ -8,8 +8,9 @@ export default function Proof() {
         We ran six mechanical bug-fix tasks twice with identical prompts: relay's normal routing
         (grok-4.5, workhorse class) vs the same lane forced to the frontier model (fable-5-high).{" "}
         <b>Grading is each repo's own deterministic tests — no LLM judging.</b> Costs use list
-        prices; the cursor CLI doesn't report tokens, so both arms use the same byte-estimator —
-        absolute dollars are approximate, the <em>ratio</em> is apples-to-apples.{" "}
+        prices; this run predates measured token reporting (relay now reads exact usage from the
+        CLI), so both arms used the same byte-estimator — absolute dollars are approximate, the{" "}
+        <em>ratio</em> is apples-to-apples.{" "}
         <a href="https://github.com/yoreai/relay/tree/main/bench">
           Method, fixtures &amp; raw results are in the repo
         </a>{" "}
