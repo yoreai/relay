@@ -53,6 +53,7 @@ bun run src/cli.ts doctor
 
 ```bash
 relay setup                         # probe your tools, guide sign-ins, register MCP
+relay backends                      # choose which installed CLIs relay may use
 relay login cursor                  # run a tool's sign-in flow (pops your browser)
 relay init                          # write ~/.config/relay/router.yaml
 relay doctor                        # backends found? tier resolution on this machine?
@@ -79,7 +80,11 @@ recursion guard: delegated workers cannot re-delegate to relay.
 
 ### MCP tools
 
-`relay_run`, `relay_status`, `relay_savings`, `relay_doctor`, `relay_login`.
+`relay_run`, `relay_status`, `relay_savings`, `relay_doctor`, `relay_login`, `relay_backends`.
+
+`relay setup` asks which installed CLIs relay may route work to (say no to
+anything your org hasn't approved); change anytime with `relay backends
+enable|disable <tool>` — or ask your agent to do it.
 
 `relay setup` registers relay in **Cursor, Claude Code, and Codex** automatically.
 

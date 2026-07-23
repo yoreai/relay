@@ -11,6 +11,7 @@ import { CLI_SPECS, discoverCliBinary } from "./backends/cli.ts";
 import { discoverClaudeBinary } from "./backends/claude.ts";
 import { discoverCursorBinary } from "./backends/cursor.ts";
 import { probeTools, runLogin, type ToolProbe } from "./probe.ts";
+import { disabledBackends, setBackendEnabled } from "./settings.ts";
 import { which } from "./which.ts";
 
 const RELAY_SERVER = { command: "relay", args: ["mcp", "serve"] };
@@ -211,6 +212,34 @@ export async function runSetup(
     }
   }
   say("");
+
+  // Backend opt-in — some tools are installed but not approved for relay
+  // work (org policy, personal preference). Ask once; `relay backends`
+  // changes it anytime.
+  const routable = tools.filter((t) => t.cliPresent);
+  if (routable.length > 0) {
+    const disabled = disabledBackends();
+    if (opts.yes === true || !interactive) {
+      // non-interactive: keep current choices, just show them
+      for (const t of routable) {
+        say(
+          `  ${disabled.has(t.id) ? "·" : "✓"} relay will ${disabled.has(t.id) ? "NOT use" : "use"} ${t.label}`,
+        );
+      }
+    } else {
+      say("which of these may relay route work to?");
+      for (const t of routable) {
+        const current = !disabled.has(t.id);
+        const yes = await askYesNo(
+          `→ use ${t.label} for relay work?${current ? "" : " (currently disabled)"}`,
+        );
+        setBackendEnabled(t.id, yes);
+        say(`  ${yes ? "✓ enabled" : "· disabled"} ${t.id}`);
+      }
+      say("  (change anytime: `relay backends enable|disable <tool>`)");
+    }
+    say("");
+  }
 
   // MCP registration — one command wires every agent surface we detect
   say("registering relay MCP…");

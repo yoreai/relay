@@ -17,6 +17,7 @@ import {
 import { briefFromTask, parseBrief } from "./brief.ts";
 import { freshnessHint } from "./freshness.ts";
 import { probeTools, runLogin } from "./probe.ts";
+import { listBackendChoices, runBackendsCommand } from "./backends_cmd.ts";
 import { RELAY_VERSION } from "./version.ts";
 
 function resolveRunCwd(raw: string): string {
@@ -112,6 +113,27 @@ export async function serveMcp(): Promise<void> {
           type: "object",
           properties: {
             fresh: { type: "boolean", description: "re-run auth probes now" },
+          },
+        },
+      },
+      {
+        name: "relay_backends",
+        description:
+          "List or change which installed CLIs relay may route work to (machine-local; e.g. an org that " +
+          "hasn't approved a tool). With no arguments, lists each backend's installed/enabled state. " +
+          "Only enable/disable when the user explicitly asks — this is their policy choice, not yours.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            action: {
+              type: "string",
+              enum: ["list", "enable", "disable"],
+              description: "Default list.",
+            },
+            tool: {
+              type: "string",
+              description: "cursor | claude | codex | gemini | grok | kimi (required for enable/disable)",
+            },
           },
         },
       },
@@ -300,6 +322,7 @@ export async function serveMcp(): Promise<void> {
       if (name === "relay_doctor") {
         const tools = await probeTools({ fresh: args.fresh === true });
         const hint = await freshnessHint();
+        const choices = new Map(listBackendChoices().map((c) => [c.backend, c.enabled]));
         return {
           content: [
             {
@@ -312,6 +335,7 @@ export async function serveMcp(): Promise<void> {
                     installed: t.cliPresent,
                     app_detected: t.appDetected,
                     signed_in: t.authed,
+                    enabled_for_relay: choices.get(t.id) ?? true,
                     status: t.summary,
                     fix:
                       t.cliPresent && t.authed === false
@@ -334,6 +358,26 @@ export async function serveMcp(): Promise<void> {
               ),
             },
           ],
+        };
+      }
+
+      if (name === "relay_backends") {
+        const action = args.action ? String(args.action) : "list";
+        if (action === "list") {
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({ backends: listBackendChoices() }, null, 2),
+              },
+            ],
+          };
+        }
+        const tool = String(args.tool ?? "");
+        const result = runBackendsCommand([action, tool]);
+        return {
+          content: [{ type: "text", text: result }],
+          isError: result.startsWith("usage:") || result.startsWith("unknown"),
         };
       }
 

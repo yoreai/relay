@@ -7,6 +7,7 @@ import { serveMcp } from "./mcp.ts";
 import { formatOutcome, runTask } from "./run.ts";
 import { getRun, modelStats, readEvents, readRuns, summarizeSavings } from "./runlog.ts";
 import { runLogin } from "./probe.ts";
+import { runBackendsCommand } from "./backends_cmd.ts";
 import { runSetup } from "./setup.ts";
 import { runUpdate } from "./update.ts";
 import { RELAY_VERSION as VERSION } from "./version.ts";
@@ -21,6 +22,7 @@ Usage:
   relay login <tool>             # run a tool's sign-in flow (pops browser)
   relay update [--check]         # refresh model catalog · check for new release
   relay advise [--apply]         # cheaper same-class models for your tiers
+  relay backends [enable|disable <tool>]   # which installed CLIs relay may use
   relay status [id|--all]
   relay savings [--by-lane|--by-model]
   relay doctor
@@ -89,6 +91,7 @@ function parseArgs(argv: string[]): Parsed {
         "login",
         "update",
         "advise",
+        "backends",
         "help",
         "version",
       ].includes(a)
@@ -195,6 +198,10 @@ async function main(): Promise<void> {
   }
   if (parsed.command === "advise") {
     console.log(runAdvise(cwd, parsed.rest.includes("--apply")));
+    return;
+  }
+  if (parsed.command === "backends") {
+    console.log(runBackendsCommand(parsed.rest));
     return;
   }
   if (parsed.command === "mcp") {

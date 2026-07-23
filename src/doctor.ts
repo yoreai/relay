@@ -1,4 +1,5 @@
 import { availableBackends } from "./backends/index.ts";
+import { disabledBackends } from "./settings.ts";
 import { probeTools } from "./probe.ts";
 import { loadCatalog } from "./catalog.ts";
 import { freshnessHint } from "./freshness.ts";
@@ -14,11 +15,15 @@ export async function runDoctor(
   const lines: string[] = ["relay doctor", ""];
 
   const tools = await probeTools({ fresh });
+  const disabled = disabledBackends();
   lines.push("tools:");
   for (const t of tools) {
     if (!t.cliPresent && !t.appDetected) continue;
-    const mark = !t.cliPresent ? "◐" : t.authed === false ? "◐" : "✓";
-    lines.push(`  ${mark} ${t.label.padEnd(26)} ${t.summary}`);
+    const off = disabled.has(t.id);
+    const mark = off ? "✗" : !t.cliPresent ? "◐" : t.authed === false ? "◐" : "✓";
+    lines.push(
+      `  ${mark} ${t.label.padEnd(26)} ${off ? "disabled by you (relay backends enable " + t.id + ")" : t.summary}`,
+    );
     if (t.cliPresent && t.authed === false && t.login) {
       lines.push(
         `      fix: relay login ${t.id}` +

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.7] — 2026-07-22
+
+### Added
+
+- **Backend opt-in**: choose which installed CLIs relay may route work to
+  (e.g. a tool your org hasn't approved). `relay setup` asks per detected
+  tool; `relay backends [enable|disable <tool>]` changes it anytime; agents
+  get the same via the new `relay_backends` MCP tool. Stored machine-locally
+  in `~/.config/relay/settings.yaml` (separate from the shareable directive);
+  disabled backends vanish from routing and are marked in doctor output
+
 ## [0.6.6] — 2026-07-22
 
 ### Added
@@ -262,7 +273,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.6...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.7...HEAD
+[0.6.7]: https://github.com/yoreai/relay/compare/v0.6.6...v0.6.7
 [0.6.6]: https://github.com/yoreai/relay/compare/v0.6.5...v0.6.6
 [0.6.5]: https://github.com/yoreai/relay/compare/v0.6.4...v0.6.5
 [0.6.4]: https://github.com/yoreai/relay/compare/v0.6.3...v0.6.4

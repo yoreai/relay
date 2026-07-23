@@ -3,6 +3,7 @@ import { CursorBackend, discoverCursorBinary } from "./cursor.ts";
 import { ClaudeBackend, discoverClaudeBinary } from "./claude.ts";
 import { FakeBackend } from "./fake.ts";
 import { CLI_SPECS, discoverCliBinary, GenericCliBackend } from "./cli.ts";
+import { disabledBackends } from "../settings.ts";
 
 /** Every backend name relay can route to (catalog entries must stay within this). */
 export const KNOWN_BACKENDS = [
@@ -30,8 +31,8 @@ export function getBackend(name: string): Backend {
   }
 }
 
-/** Backends whose CLI is actually present on this machine right now. */
-export function availableBackends(): Set<string> {
+/** Backends whose CLI is present on this machine right now. */
+export function installedBackends(): Set<string> {
   const s = new Set<string>();
   if (process.env.RELAY_ALLOW_FAKE) s.add("fake");
   if (discoverCursorBinary()) s.add("cursor");
@@ -39,6 +40,13 @@ export function availableBackends(): Set<string> {
   for (const [name, spec] of Object.entries(CLI_SPECS)) {
     if (discoverCliBinary(spec)) s.add(name);
   }
+  return s;
+}
+
+/** Installed backends minus the ones the user disabled (org policy etc.). */
+export function availableBackends(): Set<string> {
+  const s = installedBackends();
+  for (const name of disabledBackends()) s.delete(name);
   return s;
 }
 
