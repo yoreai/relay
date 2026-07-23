@@ -7,6 +7,7 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { removeActivationHints } from "./activation.ts";
 import { relayConfigDir, relayDataDir } from "./paths.ts";
 import { which } from "./which.ts";
 
@@ -97,6 +98,10 @@ export async function runUninstall(opts: { purge?: boolean } = {}): Promise<stri
   } else {
     say("  codex:  · not installed (nothing to remove)");
   }
+
+  say("");
+  say("removing activation hints…");
+  for (const line of removeActivationHints()) say(line);
 
   say("");
   if (opts.purge) {

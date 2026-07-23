@@ -1,4 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import {
+  ACTIVATION_BLOCK,
+  mergeActivationBlock,
+  removeActivationBlock,
+} from "../src/activation.ts";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -177,5 +182,46 @@ default_lane: quickfix
     const d = loadDirective(dir);
     expect(d.tiers.work?.[0]?.model).toBe("composer-2.5");
     expect(d.tiers.work?.[1]?.model).toBe("grok-4.5");
+  });
+});
+
+describe("activation hints", () => {
+  test("appends the fenced block to an existing memory file", () => {
+    const merged = mergeActivationBlock("# My CLAUDE.md\n\nsome prefs\n");
+    expect(merged.changed).toBe(true);
+    expect(merged.out).toContain("# My CLAUDE.md");
+    expect(merged.out).toContain("BEGIN RELAY ACTIVATION");
+    expect(merged.out).toContain("relay_run");
+    expect(merged.out).toContain("RELAY_WORKER");
+  });
+
+  test("idempotent when the block is current", () => {
+    const once = mergeActivationBlock("");
+    const twice = mergeActivationBlock(once.out);
+    expect(twice.changed).toBe(false);
+    expect(twice.out).toBe(once.out);
+  });
+
+  test("refreshes a stale block in place", () => {
+    const stale = ACTIVATION_BLOCK.replace("returns a receipt", "old wording");
+    const doc = `intro\n\n${stale}\nfooter\n`;
+    const merged = mergeActivationBlock(doc);
+    expect(merged.changed).toBe(true);
+    expect(merged.out).toContain("returns a receipt");
+    expect(merged.out).toContain("footer");
+    expect(merged.out.match(/BEGIN RELAY ACTIVATION/g)).toHaveLength(1);
+  });
+
+  test("setup → uninstall round-trips to the original file", () => {
+    const original = "# notes\n\nkeep me\n";
+    const merged = mergeActivationBlock(original);
+    const removed = removeActivationBlock(merged.out);
+    expect(removed.changed).toBe(true);
+    expect(removed.out).not.toContain("RELAY ACTIVATION");
+    expect(removed.out).toContain("keep me");
+  });
+
+  test("remove is a no-op without the block", () => {
+    expect(removeActivationBlock("plain file\n").changed).toBe(false);
   });
 });

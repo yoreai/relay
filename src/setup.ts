@@ -10,6 +10,7 @@ import { dirname, join } from "node:path";
 import { CLI_SPECS, discoverCliBinary } from "./backends/cli.ts";
 import { discoverClaudeBinary } from "./backends/claude.ts";
 import { discoverCursorBinary } from "./backends/cursor.ts";
+import { installActivationHints } from "./activation.ts";
 import { probeTools, runLogin, type ToolProbe } from "./probe.ts";
 import { disabledBackends, setBackendEnabled } from "./settings.ts";
 import { which } from "./which.ts";
@@ -243,13 +244,29 @@ export async function runSetup(
 
   // MCP registration — one command wires every agent surface we detect
   say("registering relay MCP…");
-  if (tools.find((t) => t.id === "cursor")?.appDetected || discoverCursorBinary()) {
+  const hasCursor =
+    tools.find((t) => t.id === "cursor")?.appDetected || !!discoverCursorBinary();
+  if (hasCursor) {
     say(`  cursor: ${registerInJsonConfig(join(homedir(), ".cursor", "mcp.json"), true)}`);
   } else {
     say("  cursor: · skipped (not installed)");
   }
   say(`  claude: ${await registerClaudeMcp()}`);
   say(`  codex:  ${await registerCodexMcp()}`);
+
+  // Activation hints — MCP registration makes relay *available*; this makes
+  // "relay this: …" actually delegate (hosts otherwise favor built-in tools).
+  say("");
+  say('teaching agents to hand off when you say "relay this"…');
+  const claudeTool = tools.find((t) => t.id === "claude");
+  const codexTool = tools.find((t) => t.id === "codex");
+  for (const line of installActivationHints({
+    cursor: hasCursor,
+    claude: !!(claudeTool?.cliPresent || claudeTool?.appDetected),
+    codex: !!(codexTool?.cliPresent || codexTool?.appDetected),
+  })) {
+    say(line);
+  }
 
   if (!which("relay")) {
     say("");

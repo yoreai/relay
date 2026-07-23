@@ -14,7 +14,7 @@ describe("run with fake backend", () => {
     });
     expect(outcome.dryRun).toBe(true);
     expect(outcome.output).toContain("lane: quickfix");
-    expect(outcome.model).toBe("grok-4.5");
+    expect(outcome.model).toBe("glm-5.2");
   });
 
   test("end-to-end fake backend succeeds", async () => {
