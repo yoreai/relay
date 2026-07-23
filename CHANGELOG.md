@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.19] — 2026-07-23
+
+### Added
+
+- `relay setup` now registers relay in the Claude desktop app's `claude_desktop_config.json` when the app is installed, using the absolute binary path (GUI apps don't inherit shell PATH); `relay uninstall` removes it. The Codex app already shares the CLI's `~/.codex/config.toml`, so no change needed there
+
 ## [0.6.18] — 2026-07-23
 
 ### Changed
@@ -272,7 +278,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.18...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.19...HEAD
+[0.6.19]: https://github.com/yoreai/relay/compare/v0.6.18...v0.6.19
 [0.6.18]: https://github.com/yoreai/relay/compare/v0.6.17...v0.6.18
 [0.6.17]: https://github.com/yoreai/relay/compare/v0.6.16...v0.6.17
 [0.6.16]: https://github.com/yoreai/relay/compare/v0.6.15...v0.6.16

@@ -36,6 +36,22 @@ describe("mergeMcpJson", () => {
     const second = mergeMcpJson(first);
     expect(second.changed).toBe(false);
   });
+
+  test("custom server (claude desktop absolute path) preserves unrelated keys", () => {
+    const desktop = JSON.stringify({
+      preferences: { sidebarMode: "chat" },
+      coworkUserFilesPath: "/Users/x/Claude",
+    });
+    const server = { command: "/opt/homebrew/bin/relay", args: ["mcp", "serve"] };
+    const { out, changed } = mergeMcpJson(desktop, server);
+    expect(changed).toBe(true);
+    const cfg = JSON.parse(out);
+    expect(cfg.preferences.sidebarMode).toBe("chat");
+    expect(cfg.coworkUserFilesPath).toBe("/Users/x/Claude");
+    expect(cfg.mcpServers.relay.command).toBe("/opt/homebrew/bin/relay");
+    // re-merge with the same server is a no-op
+    expect(mergeMcpJson(out, server).changed).toBe(false);
+  });
 });
 
 describe("mergeCodexToml", () => {

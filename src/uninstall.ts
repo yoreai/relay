@@ -8,6 +8,7 @@ import {
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { removeActivationHints } from "./activation.ts";
+import { claudeDesktopConfigPath } from "./setup.ts";
 import { relayConfigDir, relayDataDir } from "./paths.ts";
 import { which } from "./which.ts";
 
@@ -72,6 +73,7 @@ export async function runUninstall(opts: { purge?: boolean } = {}): Promise<stri
 
   say("relay uninstall — deregistering MCP…");
   say(`  cursor: ${deregisterJson(join(homedir(), ".cursor", "mcp.json"))}`);
+  say(`  claude app: ${deregisterJson(claudeDesktopConfigPath())}`);
 
   if (await runToolMcpRemove(["claude", "mcp", "remove", "-s", "user", "relay"])) {
     say("  claude: ✓ removed via `claude mcp remove`");

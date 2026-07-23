@@ -64,17 +64,35 @@ export function ensureCodexRelayKeys(text: string): { out: string; changed: bool
 }
 
 /** Merge relay into an mcpServers-style JSON config. Pure for testability. */
-export function mergeMcpJson(text: string): { out: string; changed: boolean } {
+export function mergeMcpJson(
+  text: string,
+  server: { command: string; args: string[] } = RELAY_SERVER,
+): { out: string; changed: boolean } {
   const cfg = (text.trim() ? JSON.parse(text) : {}) as {
     mcpServers?: Record<string, unknown>;
   };
   cfg.mcpServers ??= {};
   const current = cfg.mcpServers.relay;
-  if (current && JSON.stringify(current) === JSON.stringify(RELAY_SERVER)) {
+  if (current && JSON.stringify(current) === JSON.stringify(server)) {
     return { out: text, changed: false };
   }
-  cfg.mcpServers.relay = RELAY_SERVER;
+  cfg.mcpServers.relay = server;
   return { out: JSON.stringify(cfg, null, 2) + "\n", changed: true };
+}
+
+/**
+ * Claude Desktop's chat side reads its own config, not Claude Code's. GUI
+ * apps launch with launchd's bare PATH, so the command must be an absolute
+ * path to the relay binary or the server silently fails to spawn.
+ */
+export function claudeDesktopConfigPath(): string {
+  if (process.platform === "darwin") {
+    return join(homedir(), "Library", "Application Support", "Claude", "claude_desktop_config.json");
+  }
+  if (process.platform === "win32") {
+    return join(process.env.APPDATA ?? join(homedir(), "AppData", "Roaming"), "Claude", "claude_desktop_config.json");
+  }
+  return join(homedir(), ".config", "Claude", "claude_desktop_config.json");
 }
 
 /** Append or skip relay block in Codex config.toml. Fallback when `codex mcp` is unavailable. */
@@ -92,7 +110,11 @@ export function mergeCodexToml(text: string): { out: string; changed: boolean } 
   return { out: prefix + RELAY_CODEX_BLOCK, changed: true };
 }
 
-function registerInJsonConfig(path: string, createIfMissing: boolean): string {
+function registerInJsonConfig(
+  path: string,
+  createIfMissing: boolean,
+  server?: { command: string; args: string[] },
+): string {
   const exists = existsSync(path);
   if (!exists && !createIfMissing) {
     return `· skipped ${path} (file not found — configure manually)`;
@@ -100,7 +122,7 @@ function registerInJsonConfig(path: string, createIfMissing: boolean): string {
   const text = exists ? readFileSync(path, "utf8") : "";
   let merged;
   try {
-    merged = mergeMcpJson(text);
+    merged = mergeMcpJson(text, server);
   } catch {
     return `✗ could not parse ${path} — add relay manually (see README)`;
   }
@@ -308,6 +330,19 @@ export async function runSetup(
   }
   say(`  claude: ${await registerClaudeMcp()}`);
   say(`  codex:  ${await registerCodexMcp()}`);
+
+  // Claude Desktop app (chat, not Claude Code) — only when the app is present.
+  // The Codex app shares ~/.codex/config.toml, so it's covered above.
+  const desktopCfg = claudeDesktopConfigPath();
+  if (existsSync(dirname(desktopCfg))) {
+    const relayBin = which("relay") ?? process.execPath;
+    const line = registerInJsonConfig(desktopCfg, true, {
+      command: relayBin,
+      args: ["mcp", "serve"],
+    });
+    say(`  claude app: ${line}`);
+    if (line.startsWith("✓")) say("    (quit and relaunch the Claude app to pick it up)");
+  }
 
   // Activation hints — MCP registration makes relay *available*; this makes
   // "relay this: …" actually delegate (hosts otherwise favor built-in tools).

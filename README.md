@@ -85,7 +85,9 @@ workers cannot re-delegate to relay.
 
 `relay_run`, `relay_status`, `relay_savings`, `relay_doctor`, `relay_login`, `relay_backends`.
 
-Setup registers relay in **Cursor, Claude Code, and Codex** automatically, and
+Setup registers relay in **Cursor, Claude Code, and Codex** automatically —
+plus the **Claude desktop app** when it's installed (the Codex app shares the
+CLI's config, so it's covered) — and
 asks which installed CLIs relay may route work to — say no to anything your
 org hasn't approved (change anytime: `relay backends enable|disable <tool>`).
 
