@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `relay backends` now shows "disabled by you" even for tools that aren't
+  installed (the disable was applied but invisible) — also fixes the CI-only
+  test failure that kept the main badge red
+
 ## [0.6.11] — 2026-07-22
 
 ### Fixed

@@ -21,9 +21,11 @@ export function listBackendChoices(): BackendChoice[] {
 export function formatBackends(): string {
   const lines = ["backends relay may route work to:", ""];
   for (const c of listBackendChoices()) {
-    const mark = !c.installed ? "·" : c.enabled ? "✓" : "✗";
+    const mark = !c.enabled ? "✗" : c.installed ? "✓" : "·";
     const note = !c.installed
-      ? "not installed"
+      ? c.enabled
+        ? "not installed"
+        : "not installed · disabled by you"
       : c.enabled
         ? "enabled"
         : "disabled by you";
