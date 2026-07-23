@@ -9,6 +9,7 @@ import { getRun, modelStats, readEvents, readRuns, summarizeSavings } from "./ru
 import { runLogin } from "./probe.ts";
 import { runBackendsCommand } from "./backends_cmd.ts";
 import { runSetup } from "./setup.ts";
+import { runUninstall } from "./uninstall.ts";
 import { runUpdate } from "./update.ts";
 import { RELAY_VERSION as VERSION } from "./version.ts";
 
@@ -23,6 +24,7 @@ Usage:
   relay update [--check]         # refresh model catalog · check for new release
   relay advise [--apply]         # cheaper same-class models for your tiers
   relay backends [enable|disable <tool>]   # which installed CLIs relay may use
+  relay uninstall [--purge]      # deregister MCP everywhere (then: brew uninstall relay)
   relay status [id|--all]
   relay savings [--by-lane|--by-model]
   relay doctor
@@ -92,6 +94,7 @@ function parseArgs(argv: string[]): Parsed {
         "update",
         "advise",
         "backends",
+        "uninstall",
         "help",
         "version",
       ].includes(a)
@@ -202,6 +205,10 @@ async function main(): Promise<void> {
   }
   if (parsed.command === "backends") {
     console.log(runBackendsCommand(parsed.rest));
+    return;
+  }
+  if (parsed.command === "uninstall") {
+    await runUninstall({ purge: parsed.rest.includes("--purge") });
     return;
   }
   if (parsed.command === "mcp") {

@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { applySuggestions } from "../src/advise.ts";
 import { loadDirective } from "../src/directive.ts";
 import { mergeCodexToml, mergeMcpJson } from "../src/setup.ts";
+import { removeCodexToml, removeMcpJson } from "../src/uninstall.ts";
 
 describe("mergeMcpJson", () => {
   test("adds relay to empty config", () => {
@@ -47,6 +48,60 @@ args = ["mcp", "serve"]
 enabled = true
 `;
     const { changed } = mergeCodexToml(existing);
+    expect(changed).toBe(false);
+  });
+});
+
+describe("removeMcpJson", () => {
+  test("setup → uninstall round-trips to a relay-free config", () => {
+    const registered = mergeMcpJson(
+      JSON.stringify({ mcpServers: { other: { command: "other-tool", args: [] } } }),
+    ).out;
+    const { out, changed } = removeMcpJson(registered);
+    expect(changed).toBe(true);
+    const cfg = JSON.parse(out);
+    expect(cfg.mcpServers.relay).toBeUndefined();
+    expect(cfg.mcpServers.other.command).toBe("other-tool");
+  });
+
+  test("no-op when relay is not registered", () => {
+    const { changed } = removeMcpJson(JSON.stringify({ mcpServers: {} }));
+    expect(changed).toBe(false);
+  });
+});
+
+describe("removeCodexToml", () => {
+  test("strips the relay block, keeps everything else", () => {
+    const existing = `model = "gpt-5.6-sol"
+
+[mcp_servers.other]
+command = "other"
+
+[mcp_servers.relay]
+command = "relay"
+args = ["mcp", "serve"]
+enabled = true
+
+[projects."/Users/x"]
+trust_level = "trusted"
+`;
+    const { out, changed } = removeCodexToml(existing);
+    expect(changed).toBe(true);
+    expect(out).not.toContain("[mcp_servers.relay]");
+    expect(out).not.toContain('"relay"');
+    expect(out).toContain("[mcp_servers.other]");
+    expect(out).toContain('[projects."/Users/x"]');
+    expect(out).toContain('model = "gpt-5.6-sol"');
+  });
+
+  test("strips a relay block that sits at EOF", () => {
+    const { out, changed } = removeCodexToml(mergeCodexToml("").out);
+    expect(changed).toBe(true);
+    expect(out.trim()).toBe("");
+  });
+
+  test("no-op when relay block absent", () => {
+    const { changed } = removeCodexToml('[mcp_servers.other]\ncommand = "x"\n');
     expect(changed).toBe(false);
   });
 });

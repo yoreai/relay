@@ -124,6 +124,17 @@ The model market moves; a routing table nobody looks at silently overpays. Relay
   verify-success rates as evidence. `relay advise --apply` accepts — as a visible,
   git-diffable edit.
 
+## Uninstall
+
+```bash
+relay uninstall          # deregister the MCP server from Cursor/Claude/Codex
+relay uninstall --purge  # …also delete ~/.config/relay and ~/.local/share/relay
+brew uninstall relay     # then remove the binary
+```
+
+`brew uninstall` alone only removes the binary — run `relay uninstall` first so
+your agents don't keep a dead MCP entry.
+
 ## Roadmap
 
 - Verify gemini/grok/kimi adapter flags against real installs (codex is verified)
@@ -133,9 +144,10 @@ The model market moves; a routing table nobody looks at silently overpays. Relay
 
 ## Status
 
-**v0.6.1** — recursion guard, pull-only freshness hints, relayagent.dev site,
-open bench (6/6 quality parity, ~5.2× median savings). Not v1 yet: Windows,
-npm SDK, verified gemini/grok/kimi adapters.
+**v0.6.8** — one-command setup + uninstall, backend opt-in, pollable run
+progress, recursion guard, relayagent.dev site, open bench (6/6 quality
+parity, ~5.2× median savings). Not v1 yet: Windows, npm SDK, verified
+gemini/grok/kimi adapters.
 
 ## License
 
