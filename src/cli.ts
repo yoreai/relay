@@ -190,7 +190,7 @@ async function main(): Promise<void> {
       console.error("usage: relay login <cursor|claude|codex|gemini|grok|kimi>");
       process.exit(2);
     }
-    const result = await runLogin(target);
+    const result = await runLogin(target, { stream: true });
     console.log(result.message);
     if (!result.ok) process.exit(1);
     return;

@@ -228,9 +228,20 @@ export async function probeTools(
   return results;
 }
 
-/** Run a tool's login flow (pops a browser where supported), then re-probe. */
+/**
+ * Run a tool's login flow (pops a browser where supported), then re-probe.
+ *
+ * `stream: true` (the human CLI path only — never MCP) echoes the login
+ * command's output live to stderr as it runs. Without it, lines like
+ * cursor-agent's "if your browser didn't open, use this link: …" stay
+ * invisible until the timeout kills the process, at which point the pending
+ * browser challenge is already dead. stderr, not stdout, so this is safe
+ * even if a caller forgets to gate it — the MCP server's protocol lives on
+ * stdout and must never see child output mixed into it.
+ */
 export async function runLogin(
   id: string,
+  opts: { stream?: boolean; timeoutMs?: number } = {},
 ): Promise<{ ok: boolean; message: string }> {
   const tools = await probeTools();
   const tool = tools.find((t) => t.id === id);
@@ -249,7 +260,15 @@ export async function runLogin(
     };
   }
 
-  const r = await runCli(tool.login.cmd, { timeoutMs: 180_000 });
+  const onChunk = opts.stream ? (chunk: string) => process.stderr.write(chunk) : undefined;
+  const r = await runCli(tool.login.cmd, {
+    timeoutMs: opts.timeoutMs ?? 180_000,
+    // a login command isn't a backend worker relay is dispatching — don't
+    // tag it RELAY_WORKER (that flag exists to block recursive relay_run).
+    env: process.env,
+    onStdout: onChunk,
+    onStderr: onChunk,
+  });
   invalidateAuthCache(id);
   // `only: id` — re-check just this tool. Without it, a fresh probe pulls
   // every other installed tool into a live (sometimes model-calling) auth

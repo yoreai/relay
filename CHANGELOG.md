@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Activation hints now tell host agents to start nontrivial relay tasks asynchronously and poll `relay_status`, giving users periodic phase/blocker updates instead of leaving one opaque tool call running for minutes
+
+### Fixed
+
+- `relay login <tool>` / `relay setup`'s sign-in prompt could go silent right when a browser challenge needed attention: cursor-agent's "if your browser didn't open, use this link: …" fallback only surfaced after the 3-minute timeout killed the process, by which point the link was already dead. The login command's stdout/stderr now stream live to stderr as they run, and login commands no longer get tagged `RELAY_WORKER=1` (that tag is for backend work relay dispatches, not for a login the user is driving directly)
+
 ## [0.6.15] — 2026-07-23
 
 ### Added

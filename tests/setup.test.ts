@@ -222,6 +222,8 @@ describe("activation hints", () => {
     expect(merged.out).toContain("# My CLAUDE.md");
     expect(merged.out).toContain("BEGIN RELAY ACTIVATION");
     expect(merged.out).toContain("relay_run");
+    expect(merged.out).toContain("wait: false");
+    expect(merged.out).toContain("relay_status");
     expect(merged.out).toContain("RELAY_WORKER");
   });
 

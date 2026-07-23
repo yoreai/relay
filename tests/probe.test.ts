@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { invalidateAuthCache, probeTools } from "../src/probe.ts";
+import { invalidateAuthCache, probeTools, runLogin } from "../src/probe.ts";
 
 let prevXdg: string | undefined;
 
@@ -130,6 +130,141 @@ describe("probe", () => {
       }
     } finally {
       process.env.PATH = prevPath;
+    }
+  });
+});
+
+describe("runLogin", () => {
+  // Captures writes instead of letting them hit the real fds, so the test
+  // doesn't spew fake login output into the test runner's own console.
+  function captureWrites() {
+    const stderr: string[] = [];
+    const stdout: string[] = [];
+    const origErr = process.stderr.write.bind(process.stderr);
+    const origOut = process.stdout.write.bind(process.stdout);
+    process.stderr.write = ((chunk: unknown) => {
+      stderr.push(String(chunk));
+      return true;
+    }) as typeof process.stderr.write;
+    process.stdout.write = ((chunk: unknown) => {
+      stdout.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    return {
+      stderr,
+      stdout,
+      restore: () => {
+        process.stderr.write = origErr;
+        process.stdout.write = origOut;
+      },
+    };
+  }
+
+  function makeFakeCursorBin(dir: string, name: string, script: string): string {
+    const p = join(dir, name);
+    writeFileSync(p, script, { mode: 0o755 });
+    return p;
+  }
+
+  let prevCursorBin: string | undefined;
+
+  beforeEach(() => {
+    prevCursorBin = process.env.RELAY_CURSOR_BIN;
+  });
+
+  afterEach(() => {
+    if (prevCursorBin === undefined) delete process.env.RELAY_CURSOR_BIN;
+    else process.env.RELAY_CURSOR_BIN = prevCursorBin;
+  });
+
+  test("stream:true echoes the login command's output live to stderr, never stdout", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "relay-login-ok-"));
+    process.env.RELAY_CURSOR_BIN = makeFakeCursorBin(
+      dir,
+      "fake-cursor",
+      [
+        "#!/bin/sh",
+        'if [ "$1" = "login" ]; then',
+        '  echo "opening your browser..."',
+        '  echo "If your browser did not open, use this link: https://example.com/auth/xyz"',
+        "  exit 0",
+        "fi",
+        "echo ok",
+      ].join("\n"),
+    );
+
+    const cap = captureWrites();
+    try {
+      const result = await runLogin("cursor", { stream: true });
+      expect(result.ok).toBe(true);
+      expect(cap.stderr.join("")).toContain(
+        "If your browser did not open, use this link",
+      );
+      expect(cap.stdout.join("")).toBe("");
+    } finally {
+      cap.restore();
+    }
+  });
+
+  test("streaming is opt-in: without stream:true, nothing is echoed live", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "relay-login-default-"));
+    process.env.RELAY_CURSOR_BIN = makeFakeCursorBin(
+      dir,
+      "fake-cursor",
+      [
+        "#!/bin/sh",
+        'if [ "$1" = "login" ]; then',
+        '  echo "If your browser did not open, use this link: https://example.com/auth/xyz"',
+        "  exit 0",
+        "fi",
+        "echo ok",
+      ].join("\n"),
+    );
+
+    const cap = captureWrites();
+    try {
+      const result = await runLogin("cursor");
+      expect(result.ok).toBe(true);
+      expect(cap.stderr.join("")).toBe("");
+      expect(cap.stdout.join("")).toBe("");
+    } finally {
+      cap.restore();
+    }
+  });
+
+  test("bounded timeout: still visible live, still reports a browser-finish hint", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "relay-login-timeout-"));
+    process.env.RELAY_CURSOR_BIN = makeFakeCursorBin(
+      dir,
+      "fake-cursor",
+      [
+        "#!/bin/sh",
+        'if [ "$1" = "login" ]; then',
+        '  echo "If your browser did not open, use this link: https://example.com/auth/xyz"',
+        // exec so the timeout kill hits the sleeping process itself — a
+        // forked sleep would keep the stdout pipe open past the kill and
+        // stall the output drain until the sleep finishes on its own.
+        "  exec sleep 5",
+        "fi",
+        'echo "authentication required"',
+        "exit 1",
+      ].join("\n"),
+    );
+
+    const cap = captureWrites();
+    try {
+      const result = await runLogin("cursor", { stream: true, timeoutMs: 300 });
+      expect(result.ok).toBe(false);
+      expect(result.message).toContain("timed out waiting");
+      expect(result.message).toContain("finish it in the browser");
+      // the fallback link must have reached stderr WHILE the process was
+      // still running — not just recovered from a dead process after kill.
+      expect(cap.stderr.join("")).toContain(
+        "If your browser did not open, use this link",
+      );
+      expect(cap.stdout.join("")).toBe("");
+    } finally {
+      cap.restore();
     }
   });
 });

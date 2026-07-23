@@ -24,10 +24,15 @@ const HINT_BODY = `When the user explicitly hands a task to relay — "relay thi
 "hey relay …", "use relay to …", "ask relay …" — call the \`relay_run\` MCP
 tool with the task (and the workspace root as \`cwd\` if the tool accepts it)
 instead of doing the work yourself. relay routes it to the cheapest capable
-model, verifies with the repo's own lint/tests, and returns a receipt; report
-its outcome as the result. If the request is ambiguous or relay fails, do the
-task normally. Never call relay_run when the RELAY_WORKER environment
-variable is set — relay workers must not re-delegate to relay.`;
+model, verifies with the repo's own lint/tests, and returns a receipt.
+For any task likely to take more than about 30 seconds, call \`relay_run\` with
+\`wait: false\` so it returns a run id immediately. Tell the user the run
+started, then poll \`relay_status\` with that id about every 30 seconds and
+briefly report new phases or blockers until it finishes; do not leave the user
+staring at one opaque, blocking tool call. Report the final outcome as the
+result. If the request is ambiguous or relay fails, do the task normally.
+Never call relay_run when the RELAY_WORKER environment variable is set —
+relay workers must not re-delegate to relay.`;
 
 export const ACTIVATION_BLOCK = `${BEGIN}\n${HINT_BODY}\n${END}\n`;
 

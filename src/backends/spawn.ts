@@ -16,9 +16,32 @@ export type CliResult = {
   timedOut: boolean;
 };
 
+async function drain(
+  stream: ReadableStream<Uint8Array>,
+  onChunk?: (chunk: string) => void,
+): Promise<string> {
+  const decoder = new TextDecoder();
+  let out = "";
+  for await (const bytes of stream) {
+    const chunk = decoder.decode(bytes, { stream: true });
+    out += chunk;
+    onChunk?.(chunk);
+  }
+  out += decoder.decode();
+  return out;
+}
+
 export async function runCli(
   cmd: string[],
-  opts: { cwd?: string; timeoutMs?: number } = {},
+  opts: {
+    cwd?: string;
+    timeoutMs?: number;
+    /** overrides the default env (which tags the child RELAY_WORKER=1) */
+    env?: Record<string, string | undefined>;
+    /** called with each chunk of stdout/stderr as it arrives, for live streaming */
+    onStdout?: (chunk: string) => void;
+    onStderr?: (chunk: string) => void;
+  } = {},
 ): Promise<CliResult> {
   const timeoutMs = opts.timeoutMs ?? backendTimeoutMs();
   const proc = Bun.spawn(cmd, {
@@ -27,7 +50,9 @@ export async function runCli(
     stderr: "pipe",
     // RELAY_WORKER marks the child (and anything it spawns, incl. MCP servers)
     // so relay_run / the relay CLI can hard-refuse recursive delegation.
-    env: { ...process.env, RELAY_WORKER: "1" },
+    // Callers that aren't dispatching backend work (e.g. a login command)
+    // can pass their own `env` to skip this tag.
+    env: opts.env ?? { ...process.env, RELAY_WORKER: "1" },
   });
 
   let timedOut = false;
@@ -37,8 +62,8 @@ export async function runCli(
   }, timeoutMs);
 
   const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
+    drain(proc.stdout, opts.onStdout),
+    drain(proc.stderr, opts.onStderr),
     proc.exited,
   ]);
   clearTimeout(timer);

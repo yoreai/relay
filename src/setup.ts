@@ -261,7 +261,7 @@ export async function runSetup(
     }
     if (doIt) {
       say(`  signing in — finish in the browser if one opens…`);
-      const result = await runLogin(t.id);
+      const result = await runLogin(t.id, { stream: true });
       say(`  ${result.message}`);
     } else {
       say(`  later: ${t.login.cmd.join(" ")}`);
