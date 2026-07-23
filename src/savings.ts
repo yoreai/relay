@@ -26,6 +26,7 @@ export type Receipt = {
   baselineModel: string;
   tokensIn: number;
   tokensOut: number;
+  tokensCacheRead: number;
   estimated: boolean;
   costUsedUsd: number;
   costBaselineUsd: number;
@@ -54,10 +55,18 @@ export function priceTokens(
   model: string,
   tokensIn: number,
   tokensOut: number,
+  tokensCacheRead = 0,
 ): number | null {
   const p = prices.models[model];
   if (!p) return null;
-  return (tokensIn / 1_000_000) * p.in + (tokensOut / 1_000_000) * p.out;
+  // Cache reads often dominate agentic runs; bill them at the listed
+  // cache-read rate, or the industry-typical 10% of input price if unlisted.
+  const cacheRate = p.cache_read ?? p.in * 0.1;
+  return (
+    (tokensIn / 1_000_000) * p.in +
+    (tokensOut / 1_000_000) * p.out +
+    (tokensCacheRead / 1_000_000) * cacheRate
+  );
 }
 
 export function makeReceipt(opts: {
@@ -68,14 +77,22 @@ export function makeReceipt(opts: {
 }): Receipt | null {
   const tokensIn = opts.usage?.tokensIn ?? 0;
   const tokensOut = opts.usage?.tokensOut ?? 0;
+  const tokensCacheRead = opts.usage?.tokensCacheRead ?? 0;
   if (!tokensIn && !tokensOut) return null;
 
-  const costUsed = priceTokens(opts.prices, opts.usedModel, tokensIn, tokensOut);
+  const costUsed = priceTokens(
+    opts.prices,
+    opts.usedModel,
+    tokensIn,
+    tokensOut,
+    tokensCacheRead,
+  );
   const costBase = priceTokens(
     opts.prices,
     opts.baselineModel,
     tokensIn,
     tokensOut,
+    tokensCacheRead,
   );
   if (costUsed == null || costBase == null) {
     return {
@@ -83,6 +100,7 @@ export function makeReceipt(opts: {
       baselineModel: opts.baselineModel,
       tokensIn,
       tokensOut,
+      tokensCacheRead,
       estimated: opts.usage?.estimated ?? true,
       costUsedUsd: 0,
       costBaselineUsd: 0,
@@ -93,13 +111,24 @@ export function makeReceipt(opts: {
 
   const saved = Math.max(0, costBase - costUsed);
   const tag = opts.usage?.estimated ? "estimated" : "measured";
-  const line = `relay: ~$${saved.toFixed(2)} saved (${opts.usedModel} vs ${opts.baselineModel}) [${tag}]`;
+  const fmt = (n: number) => (n > 0 && n < 0.01 ? "<$0.01" : `$${n.toFixed(2)}`);
+  const savedStr = saved < 0.01 ? "<$0.01" : `~$${saved.toFixed(2)}`;
+
+  // Savings are a named counterfactual, not an absolute claim: "same work on
+  // your baseline model would have cost X". The baseline is the quality bar
+  // in router.yaml — if it's cheaper than what ran, say so instead of
+  // pretending $0.00 saved.
+  const line =
+    costUsed >= costBase
+      ? `relay: no savings — ${opts.usedModel} cost ${fmt(costUsed)}, your baseline ${opts.baselineModel} is not pricier (~${fmt(costBase)}) [${tag}]`
+      : `relay: ${savedStr} saved — ${opts.usedModel} cost ${fmt(costUsed)}, baseline ${opts.baselineModel} would've cost ~${fmt(costBase)} [${tag}]`;
 
   return {
     usedModel: opts.usedModel,
     baselineModel: opts.baselineModel,
     tokensIn,
     tokensOut,
+    tokensCacheRead,
     estimated: opts.usage?.estimated ?? true,
     costUsedUsd: costUsed,
     costBaselineUsd: costBase,

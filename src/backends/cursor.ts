@@ -3,7 +3,9 @@ import type { Brief } from "../brief.ts";
 import { renderBriefPrompt } from "../brief.ts";
 import { runCli } from "./spawn.ts";
 import {
+  assistantTextFromStream,
   estimateTokensFromText,
+  parseStreamUsage,
   type Backend,
   type BackendResult,
   type BackendRunOpts,
@@ -70,13 +72,19 @@ export class CursorBackend implements Backend {
 
     const output = stdout || stderr;
     const filesChanged = parseChangedFiles(stdout);
-    const tokensIn = estimateTokensFromText(prompt);
-    const tokensOut = estimateTokensFromText(output);
+    // cursor-agent's final result event reports exact usage; only fall back
+    // to byte-estimation (over assistant text, not the raw event stream)
+    // when the transcript is missing it
+    const usage = parseStreamUsage(stdout) ?? {
+      tokensIn: estimateTokensFromText(prompt),
+      tokensOut: estimateTokensFromText(assistantTextFromStream(stdout) || output),
+      estimated: true,
+    };
 
     return {
       output,
       filesChanged,
-      usage: { tokensIn, tokensOut, estimated: true },
+      usage,
       exitCode,
     };
   }

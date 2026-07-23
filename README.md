@@ -28,7 +28,7 @@ GitHub — it never uploads your tasks, code, or usage.
 ```
 relay "fix the flaky retry test in src/api"
 # → lane: quickfix · grok-4.5 · verify: ✓ · 1 file(s) changed
-# relay: ~$0.22 saved (grok-4.5 vs fable-5-high) [estimated]
+# relay: ~$0.22 saved — grok-4.5 cost $0.02, baseline fable-5-high would've cost ~$0.24 [measured]
 ```
 
 ## 60-second install
@@ -96,8 +96,10 @@ org hasn't approved (change anytime: `relay backends enable|disable <tool>`).
 3. **Run** — headless `cursor-agent`, `claude`, or `codex` in your working tree
    (experimental adapters: `gemini`, `grok`, `kimi`)
 4. **Verify → widen → escalate** — thin briefs that self-heal before spending frontier tokens
-5. **Receipt** — honest savings vs your baseline (measured when the backend reports usage,
-   estimated from bytes for Cursor until its CLI emits tokens)
+5. **Receipt** — savings as a named counterfactual: what the same tokens would have cost on
+   your `baseline` model (default `fable-5-high` — the quality bar relay routes within; set it
+   in `router.yaml` to whatever you'd otherwise run). Measured from backend-reported tokens
+   for cursor/claude, byte-estimated `[estimated]` otherwise
 
 Git is the review surface: edits land **staged** by default. Walkaway lanes work in an
 isolated worktree instead — committed on a `relay/*` branch (draft PR when a remote

@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.13] — 2026-07-23
+
+### Fixed
+
+- **Savings were inflated ~10x for cursor runs**: output tokens were
+  byte-estimated from the raw stream-json transcript (every event envelope
+  and tool payload) instead of read from cursor-agent's result event, which
+  reports exact usage. Cursor and claude receipts are now `[measured]`;
+  the estimation fallback now counts only assistant-visible text
+
+### Changed
+
+- Cache-read tokens (often the bulk of an agentic run) are now priced into
+  both sides of the receipt, at the catalog `cache_read` rate or 10% of
+  input price when unlisted
+- Receipt wording makes the counterfactual explicit and honest:
+  `~$0.37 saved — glm-5.2 cost $0.05, baseline fable-5-high would've cost
+  ~$0.42 [measured]`. When the configured baseline is cheaper than what
+  ran, the receipt says "no savings" instead of `$0.00 saved`
+
 ## [0.6.12] — 2026-07-23
 
 ### Added
@@ -361,7 +381,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.12...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.6.13...HEAD
+[0.6.13]: https://github.com/yoreai/relay/compare/v0.6.12...v0.6.13
 [0.6.12]: https://github.com/yoreai/relay/compare/v0.6.11...v0.6.12
 [0.6.11]: https://github.com/yoreai/relay/compare/v0.6.10...v0.6.11
 [0.6.10]: https://github.com/yoreai/relay/compare/v0.6.9...v0.6.10

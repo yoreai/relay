@@ -3,7 +3,9 @@ import type { Brief } from "../brief.ts";
 import { renderBriefPrompt } from "../brief.ts";
 import { runCli } from "./spawn.ts";
 import {
+  assistantTextFromStream,
   estimateTokensFromText,
+  parseStreamUsage,
   type Backend,
   type BackendResult,
   type BackendRunOpts,
@@ -65,9 +67,9 @@ export class ClaudeBackend implements Backend {
     });
 
     const output = stdout || stderr;
-    const usage = parseClaudeUsage(stdout) ?? {
+    const usage = parseStreamUsage(stdout) ?? {
       tokensIn: estimateTokensFromText(prompt),
-      tokensOut: estimateTokensFromText(output),
+      tokensOut: estimateTokensFromText(assistantTextFromStream(stdout) || output),
       estimated: true,
     };
 
@@ -98,36 +100,4 @@ export class ClaudeBackend implements Backend {
       message: `found ${bin} (auth owned by Claude CLI; relay stores no credentials)`,
     };
   }
-}
-
-function parseClaudeUsage(
-  streamJson: string,
-): { tokensIn: number; tokensOut: number; estimated: boolean } | null {
-  // Claude stream-json result event typically includes usage
-  for (const line of streamJson.split("\n").reverse()) {
-    const t = line.trim();
-    if (!t.startsWith("{")) continue;
-    try {
-      const evt = JSON.parse(t) as {
-        type?: string;
-        usage?: {
-          input_tokens?: number;
-          output_tokens?: number;
-          inputTokens?: number;
-          outputTokens?: number;
-        };
-        result?: { usage?: Record<string, number> };
-      };
-      const u = evt.usage ?? evt.result?.usage;
-      if (!u) continue;
-      const tokensIn = u.input_tokens ?? u.inputTokens ?? 0;
-      const tokensOut = u.output_tokens ?? u.outputTokens ?? 0;
-      if (tokensIn || tokensOut) {
-        return { tokensIn, tokensOut, estimated: false };
-      }
-    } catch {
-      // continue
-    }
-  }
-  return null;
 }
