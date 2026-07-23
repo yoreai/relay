@@ -1,7 +1,7 @@
 const YAML_HTML = `<span class="c"># router.yaml — the directive. share it like a dotfile.</span>
 tiers:
   work:                                <span class="c"># first available backend wins</span>
-    - { backend: cursor, model: grok-4.5 }
+    - { backend: cursor, model: glm-5.2 }
     - { backend: claude, model: sonnet-5 }
     - { backend: codex,  model: gpt-5.6-sol }
   deep:

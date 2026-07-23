@@ -17,7 +17,7 @@ export const SCRIPT: ScriptStep[] = [
         card: {
           lane: "quickfix",
           rows: [
-            { c: "sub", t: "▸ Cursor sub-agent · grok-4.5" },
+            { c: "sub", t: "▸ Cursor sub-agent · glm-5.2" },
             { c: "ok", t: "✓ lint  ✓ your tests  · edits staged" },
             { c: "money", t: "~$0.48 saved vs frontier  [measured]" },
           ],

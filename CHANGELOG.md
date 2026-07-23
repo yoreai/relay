@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Catalog: GLM-5.2 promoted `cheap` → `workhorse` (62.1 SWE-bench Pro —
+  ahead of GPT-5.5, open-weights leader; ≈opus-4.8 on FrontierSWE and
+  Terminal-Bench). Starter directive now routes the `work` tier to
+  cursor/glm-5.2 first ($1.40/$4.40 vs grok-4.5's $2/$6) — same quality
+  bar, ~35% cheaper; grok-4.5 stays as first fallback
+
 ### Fixed
 
 - `relay backends` now shows "disabled by you" even for tools that aren't

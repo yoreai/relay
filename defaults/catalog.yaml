@@ -7,7 +7,7 @@
 # classes are ordered weakest → strongest. A model's class is its quality
 # bar: advise only ever suggests swaps WITHIN a class.
 version: 1
-updated: "2026-07-20"
+updated: "2026-07-23"
 classes: [nano, cheap, workhorse, opus-class, frontier]
 models:
   gpt-5.6-luna:
@@ -29,7 +29,9 @@ models:
     cache_read: 0.08
     backends: [claude]
   glm-5.2:
-    class: cheap
+    # promoted cheap → workhorse 2026-07-23: 62.1 SWE-bench Pro (> gpt-5.5,
+    # open-weights leader), ≈opus-4.8 on FrontierSWE/Terminal-Bench
+    class: workhorse
     in: 1.40
     out: 4.40
     cache_read: 0.26

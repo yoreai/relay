@@ -14,6 +14,7 @@ tiers:
     - { backend: gemini, model: gemini-3-flash }
     - { backend: codex, model: gpt-5.6-luna }
   work:
+    - { backend: cursor, model: glm-5.2 }
     - { backend: cursor, model: grok-4.5 }
     - { backend: claude, model: sonnet-5 }
     - { backend: codex, model: gpt-5.6-sol }
@@ -103,7 +104,7 @@ bytes_per_token: 4
 `;
 
 export const EMBEDDED_CATALOG_YAML = `version: 1
-updated: "2026-07-20"
+updated: "2026-07-23"
 classes: [nano, cheap, workhorse, opus-class, frontier]
 models:
   gpt-5.6-luna:
@@ -125,7 +126,7 @@ models:
     cache_read: 0.08
     backends: [claude]
   glm-5.2:
-    class: cheap
+    class: workhorse
     in: 1.40
     out: 4.40
     cache_read: 0.26
