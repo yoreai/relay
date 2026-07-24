@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.3] — 2026-07-24
+
+### Added
+
+- **`relay_doctor` over MCP now returns the whole picture, not just auth.** It reported tool
+  sign-in state and nothing else, so an agent-run doctor — how most people will ever run it —
+  could not see that a tier was routing to a superseded model, that the catalog was stale, or
+  that a local `prices.yaml` was freezing receipts. It now includes relay's version, where every
+  tier actually lands on this machine, catalog freshness, and warnings, and the tool description
+  tells the agent to report routing and warnings rather than just tools
+- Both doctors now print relay's **version** — the MCP one labels it as the version *serving the
+  call*, which is the only way to tell that an agent session is holding a stale server process
+  after an upgrade
+
 ## [0.8.2] — 2026-07-24
 
 ### Fixed
@@ -383,7 +397,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.8.2...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.8.3...HEAD
+[0.8.3]: https://github.com/yoreai/relay/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/yoreai/relay/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/yoreai/relay/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/yoreai/relay/compare/v0.7.2...v0.8.0

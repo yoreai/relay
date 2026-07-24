@@ -11,6 +11,7 @@ import {
   relayDataDir,
 } from "./paths.ts";
 import { loadDirective, resolveTier } from "./directive.ts";
+import { RELAY_VERSION } from "./version.ts";
 import { existsSync, readFileSync } from "node:fs";
 import { parse as parseYaml } from "yaml";
 
@@ -45,7 +46,7 @@ export async function runDoctor(
   cwd: string = process.cwd(),
   fresh = false,
 ): Promise<string> {
-  const lines: string[] = ["relay doctor", ""];
+  const lines: string[] = [`relay doctor · v${RELAY_VERSION}`, ""];
 
   const tools = await probeTools({ fresh });
   const disabled = disabledBackends();

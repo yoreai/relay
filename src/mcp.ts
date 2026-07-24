@@ -20,6 +20,11 @@ import { briefFromTask, parseBrief } from "./brief.ts";
 import { freshnessHint } from "./freshness.ts";
 import { probeTools, runLogin } from "./probe.ts";
 import { listBackendChoices, runBackendsCommand } from "./backends_cmd.ts";
+import { availableBackends } from "./backends/index.ts";
+import { loadCatalog } from "./catalog.ts";
+import { loadDirective, resolveTier } from "./directive.ts";
+import { pricesShadowWarning } from "./doctor.ts";
+import { findDirectivePath } from "./paths.ts";
 import { RELAY_VERSION } from "./version.ts";
 
 function resolveRunCwd(raw: string): string {
@@ -40,6 +45,50 @@ function resolveRunCwd(raw: string): string {
  * staging, and verify all watched the wrong place while the worker edited
  * the real repo via absolute paths. Refuse to default to a non-repo dir.
  */
+/**
+ * Where each tier actually lands on this machine, plus anything that would make
+ * a receipt wrong. The CLI doctor has always shown this; the MCP one returned
+ * only tool auth, so an agent-driven `relay doctor` — how most people run it —
+ * could not see that a tier was routing to a superseded model.
+ */
+export function routingSnapshot(cwd: string): Record<string, unknown> {
+  const snapshot: Record<string, unknown> = {};
+  try {
+    const d = loadDirective(cwd);
+    const available = availableBackends();
+    const tiers: Record<string, string> = {};
+    for (const tierName of Object.keys(d.tiers)) {
+      try {
+        const t = resolveTier(d, tierName, available);
+        tiers[tierName] = `${t.backend}/${t.model}${t.fallback ? " (fallback)" : ""}`;
+      } catch {
+        tiers[tierName] = "no installed backend";
+      }
+    }
+    snapshot.directive = {
+      path: findDirectivePath(cwd) ?? "(bundled default)",
+      lanes: d.lanes.length,
+      baseline: d.baseline,
+    };
+    snapshot.tier_resolution = tiers;
+  } catch (e) {
+    snapshot.directive_error = (e as Error).message;
+  }
+  try {
+    const { catalog, source } = loadCatalog();
+    snapshot.catalog = {
+      models: Object.keys(catalog.models).length,
+      updated: catalog.updated,
+      source,
+    };
+  } catch (e) {
+    snapshot.catalog_error = (e as Error).message;
+  }
+  const warnings = pricesShadowWarning(cwd);
+  if (warnings.length) snapshot.warnings = warnings;
+  return snapshot;
+}
+
 export function requireRunCwd(explicit: string | undefined): string {
   if (explicit) return explicit;
   const cwd = process.cwd();
@@ -136,13 +185,20 @@ export async function serveMcp(): Promise<void> {
       {
         name: "relay_doctor",
         description:
-          "Probe which AI coding CLIs exist on this machine and whether each is signed in for background runs. " +
-          "Use before delegating (or when a run fails with an auth error) to know what to fix. " +
-          "Returns plain-language status per tool plus machine-runnable fixes; pass fresh=true to bypass the 24h auth cache.",
+          "Full health check: which AI coding CLIs exist and are signed in, plus relay's version, " +
+          "where each tier actually routes on this machine, the catalog's freshness, and any warning " +
+          "that would make a receipt wrong. Use before delegating (or when a run fails with an auth " +
+          "error). Report the tier routing and warnings too, not just tool status — a stale tier or a " +
+          "local prices.yaml silently costs the user money. Pass fresh=true to bypass the 24h auth cache.",
         inputSchema: {
           type: "object",
           properties: {
             fresh: { type: "boolean", description: "re-run auth probes now" },
+            cwd: {
+              type: "string",
+              description:
+                "absolute workspace root, so tier routing reflects the repo's own router.yaml",
+            },
           },
         },
       },
@@ -408,12 +464,22 @@ export async function serveMcp(): Promise<void> {
         const tools = await probeTools({ fresh: args.fresh === true });
         const hint = await freshnessHint();
         const choices = new Map(listBackendChoices().map((c) => [c.backend, c.enabled]));
+        // Everything below the tool list exists because an agent calling this
+        // could previously only see auth state — not that the user's tiers were
+        // stale, or that a local prices.yaml was freezing their receipts.
+        const cwd = typeof args.cwd === "string" ? args.cwd : process.cwd();
         return {
           content: [
             {
               type: "text",
               text: JSON.stringify(
                 {
+                  relay_version: RELAY_VERSION,
+                  relay_version_note:
+                    "this is the version of the relay serving this MCP call. If it trails the " +
+                    "installed binary (relay --version), this server is a stale process — the " +
+                    "user should restart their agent session.",
+                  ...routingSnapshot(cwd),
                   tools: tools.map((t) => ({
                     tool: t.id,
                     label: t.label,
