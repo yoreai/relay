@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `relay savings --json` prints the full savings summary as JSON (2-space indent), ignoring `--by-lane`/`--by-model` — for scripts and hosts that want machine-readable totals
+
 ## [0.7.0] — 2026-07-23
 
 ### Added

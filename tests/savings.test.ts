@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { loadPrices, makeReceipt } from "../src/savings.ts";
+import { summarizeSavings } from "../src/runlog.ts";
 
 describe("savings", () => {
   test("receipt compares against baseline", () => {
@@ -62,6 +63,42 @@ describe("savings", () => {
     });
     expect(r!.savedUsd).toBe(0);
     expect(r!.line).toContain("no savings");
+  });
+});
+
+describe("relay savings --json", () => {
+  test("summary serializes with the documented keys", () => {
+    const s = summarizeSavings();
+    const json = JSON.parse(JSON.stringify(s, null, 2));
+    expect(json).toEqual({
+      totalSavedUsd: s.totalSavedUsd,
+      byLane: s.byLane,
+      byModel: s.byModel,
+      runs: s.runs,
+      estimatedRuns: s.estimatedRuns,
+      measuredRuns: s.measuredRuns,
+    });
+  });
+
+  test("CLI prints JSON when --json is passed", async () => {
+    const proc = Bun.spawn(
+      ["bun", "run", "src/cli.ts", "savings", "--json"],
+      { cwd: joinRoot(), stdout: "pipe", stderr: "pipe" },
+    );
+    const [stdout, stderr] = await Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+    ]);
+    const exit = await proc.exited;
+    expect(stderr).toBe("");
+    expect(exit).toBe(0);
+    const parsed = JSON.parse(stdout);
+    expect(parsed).toHaveProperty("totalSavedUsd");
+    expect(parsed).toHaveProperty("byLane");
+    expect(parsed).toHaveProperty("byModel");
+    expect(parsed).toHaveProperty("runs");
+    expect(parsed).toHaveProperty("estimatedRuns");
+    expect(parsed).toHaveProperty("measuredRuns");
   });
 });
 
