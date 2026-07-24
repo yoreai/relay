@@ -6,6 +6,48 @@ import { invalidateAuthCache, probeTools, runLogin } from "../src/probe.ts";
 
 let prevXdg: string | undefined;
 
+const BIN_ENV = ["RELAY_CURSOR_BIN", "RELAY_CLAUDE_BIN", "RELAY_CODEX_BIN"];
+
+function readCalls(callsFile: string): string[] {
+  return readFileSync(callsFile, "utf8").trim().split("\n").filter(Boolean);
+}
+
+/**
+ * Point all three backend CLIs at fake binaries that log every invocation.
+ * Anything asserting *which* CLIs relay spawned has to work this way — probing
+ * the real ones makes the result depend on what the machine has installed and
+ * how slowly it answers.
+ */
+async function withFakeBins(
+  fn: (callsFile: string) => Promise<void>,
+): Promise<void> {
+  const dir = mkdtempSync(join(tmpdir(), "relay-probe-bins-"));
+  const callsFile = join(dir, "calls.log");
+  writeFileSync(callsFile, "");
+  const fake = (name: string, stdout: string): string => {
+    const p = join(dir, name);
+    writeFileSync(
+      p,
+      `#!/bin/sh\necho ${name} >> "${callsFile}"\necho "${stdout}"\n`,
+      { mode: 0o755 },
+    );
+    return p;
+  };
+
+  const prev = BIN_ENV.map((k) => [k, process.env[k]] as const);
+  process.env.RELAY_CURSOR_BIN = fake("fake-cursor", "ok");
+  process.env.RELAY_CLAUDE_BIN = fake("fake-claude", "ok");
+  process.env.RELAY_CODEX_BIN = fake("fake-codex", "logged in");
+  try {
+    await fn(callsFile);
+  } finally {
+    for (const [k, v] of prev) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  }
+}
+
 beforeEach(() => {
   prevXdg = process.env.XDG_DATA_HOME;
   process.env.XDG_DATA_HOME = mkdtempSync(join(tmpdir(), "relay-probe-"));
@@ -57,65 +99,46 @@ describe("probe", () => {
   );
 
   test("second probe reuses cache (no fresh flag)", async () => {
-    await probeTools();
-    const t0 = Date.now();
-    await probeTools();
-    // cached probe must be near-instant (no model-call auth checks)
-    expect(Date.now() - t0).toBeLessThan(1_500);
+    // Asserted by counting CLI spawns, not by wall-clock: a timing assertion
+    // here measured whatever the real installed CLIs felt like doing.
+    await withFakeBins(async (callsFile) => {
+      await probeTools({ fresh: true }); // warm the cache
+      writeFileSync(callsFile, "");
+
+      await probeTools();
+
+      expect(readCalls(callsFile)).toEqual([]);
+    });
   });
 
   test("invalidateAuthCache clears entries", async () => {
-    await probeTools();
-    invalidateAuthCache();
-    const cache = JSON.parse(
-      readFileSync(
-        join(process.env.XDG_DATA_HOME!, "relay", "probe.json"),
-        "utf8",
-      ),
-    );
-    expect(Object.keys(cache).length).toBe(0);
+    await withFakeBins(async () => {
+      await probeTools({ fresh: true });
+      const cachePath = join(
+        process.env.XDG_DATA_HOME!,
+        "relay",
+        "probe.json",
+      );
+      expect(
+        Object.keys(JSON.parse(readFileSync(cachePath, "utf8"))).length,
+      ).toBeGreaterThan(0);
+
+      invalidateAuthCache();
+
+      const cache = JSON.parse(readFileSync(cachePath, "utf8"));
+      expect(Object.keys(cache).length).toBe(0);
+    });
   });
 
   test("fresh probe scoped with `only` re-checks just that tool", async () => {
-    // Fake binaries (invoked via the RELAY_*_BIN overrides) let us prove the
-    // scoping without depending on which real CLIs happen to be installed.
-    const dir = mkdtempSync(join(tmpdir(), "relay-probe-only-"));
-    const callsFile = join(dir, "calls.log");
-    const makeFakeBin = (name: string, stdout: string): string => {
-      const p = join(dir, name);
-      writeFileSync(p, `#!/bin/sh\necho ${name} >> "${callsFile}"\necho "${stdout}"\n`, {
-        mode: 0o755,
-      });
-      return p;
-    };
-    const cursorBin = makeFakeBin("fake-cursor", "ok");
-    const claudeBin = makeFakeBin("fake-claude", "ok");
-    const codexBin = makeFakeBin("fake-codex", "logged in");
-
-    const prev = {
-      cursor: process.env.RELAY_CURSOR_BIN,
-      claude: process.env.RELAY_CLAUDE_BIN,
-      codex: process.env.RELAY_CODEX_BIN,
-    };
-    process.env.RELAY_CURSOR_BIN = cursorBin;
-    process.env.RELAY_CLAUDE_BIN = claudeBin;
-    process.env.RELAY_CODEX_BIN = codexBin;
-
-    try {
+    await withFakeBins(async (callsFile) => {
       await probeTools({ fresh: true }); // warm the cache for all three
       writeFileSync(callsFile, "");
 
       await probeTools({ fresh: true, only: "codex" });
 
-      const calls = readFileSync(callsFile, "utf8").trim().split("\n").filter(Boolean);
-      expect(calls).toEqual(["fake-codex"]);
-    } finally {
-      for (const [k, v] of Object.entries(prev)) {
-        const key = `RELAY_${k.toUpperCase()}_BIN`;
-        if (v === undefined) delete process.env[key];
-        else process.env[key] = v;
-      }
-    }
+      expect(readCalls(callsFile)).toEqual(["fake-codex"]);
+    });
   });
 
   test("probing on a machine with zero CLIs still succeeds", async () => {

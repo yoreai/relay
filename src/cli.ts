@@ -27,9 +27,9 @@ Usage:
   relay backends [enable|disable <tool>]   # which installed CLIs relay may use
   relay uninstall [--purge]      # deregister MCP everywhere (then: brew uninstall relay)
   relay recall                   # catch-up digest: git + relay work + notes + sessions
-  relay remember "<note>"        # deposit a durable note for future sessions
+  relay remember "<note>" [--kind decision|todo|context|watchout]
   relay status [id|--all]
-  relay savings [--by-lane|--by-model]
+  relay savings [--by-lane|--by-model|--json]
   relay doctor
   relay init
   relay mcp serve
@@ -276,6 +276,10 @@ async function main(): Promise<void> {
   }
   if (parsed.command === "savings") {
     const s = summarizeSavings();
+    if (parsed.rest.includes("--json")) {
+      console.log(JSON.stringify(s, null, 2));
+      return;
+    }
     console.log(`total saved: ~$${s.totalSavedUsd.toFixed(2)} across ${s.runs} ok runs`);
     console.log(`  measured: ${s.measuredRuns} · estimated: ${s.estimatedRuns}`);
     if (parsed.rest.includes("--by-lane")) {

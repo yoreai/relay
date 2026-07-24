@@ -228,21 +228,31 @@ because starting fresh means re-explaining. Memory removes that reason.
 
 ## 8. Open questions for the owner
 
+### Still open
+
 1. Final public name check when open-sourcing widely (bare `relay` is fine for tap; revisit if it
-   ever goes registry-global). — *Still open.*
-5. Should the frontier class require independently-verified benchmarks to enter? Vendor-only
+   ever goes registry-global).
+2. Should the frontier class require independently-verified benchmarks to enter? Vendor-only
    numbers put `kimi-k2.7-code` in frontier, where `advise` recommended it as a fable-5
    replacement on price alone (demoted 2026-07-24). — *Convention for now; not enforced by
    `check-catalog`.*
-6. Should `advise` surface a *newer sibling* a backend CLI offers but the catalog doesn't know
+3. **A `[todo]` note has no close.** Notes are append-only, so a finished todo keeps showing up in
+   `relay recall` until the last-10 cap ages it out; the only way to correct the record is to
+   deposit a superseding note. Bounded, but it makes the digest slowly less trustworthy — which is
+   the one thing memory cannot afford. Options: a `--resolve` flag matching an earlier note, an
+   explicit note id, or letting `[todo]` notes expire faster than the rest.
+4. Should `advise` surface a *newer sibling* a backend CLI offers but the catalog doesn't know
    about yet (e.g. by diffing `cursor-agent models`)? Would have caught opus-5 locally on day
    one, but family/version inference from arbitrary model strings is fragile. — *Deferred; the
    catalog + `supersedes` path covers it with a human in the loop.*
-2. Classifier default: on or off? — *Resolved: on, nano-tier (see `defaults/router.yaml`).*
-3. Should `build`-lane worktree runs auto-open a PR when `gh` is present? — *Resolved: yes, draft
-   PR on a `relay/*` branch, never auto-merged.*
-4. Telemetry: none beyond local `runs.jsonl`? — *Resolved: yes — no telemetry, no phone-home
-   (only pull-only catalog/release checks via `relay update`).*
+
+### Resolved
+
+5. Classifier default: on or off? — *On, nano-tier (see `defaults/router.yaml`).*
+6. Should `build`-lane worktree runs auto-open a PR when `gh` is present? — *Yes, draft PR on a
+   `relay/*` branch, never auto-merged.*
+7. Telemetry: none beyond local `runs.jsonl`? — *Yes — no telemetry, no phone-home (only
+   pull-only catalog/release checks via `relay update`).*
 
 ---
 

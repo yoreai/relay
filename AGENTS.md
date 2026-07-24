@@ -11,7 +11,12 @@ Instructions for AI coding agents working on **relay**.
 - **`defaults/catalog.yaml`** — the model facts table: price + quality class + serving backends
   (`defaults/prices.yaml` is the legacy per-tier override users may still keep locally)
 
-There is intentionally **no `TODO.md`**. Released history → `CHANGELOG.md`. Design → `PLAN.md`.
+- **`docs/design/*.md`** — long-form *explorations* of directions we may or may not take.
+  Never authoritative: if one conflicts with `PLAN.md`, `PLAN.md` wins. Each must state up
+  front what has since shipped and what was deferred, so a reader can't mistake it for a plan.
+
+There is intentionally **no `TODO.md`**. Released history → `CHANGELOG.md`. Locked design →
+`PLAN.md`. Speculative design → `docs/design/`.
 
 ## After every code change
 

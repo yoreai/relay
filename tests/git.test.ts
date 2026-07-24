@@ -1,8 +1,15 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { listChangedFiles, maybeOpenDraftPr, stagePaths } from "../src/git.ts";
+import {
+  createWorktree,
+  listChangedFiles,
+  maybeOpenDraftPr,
+  pruneWorktrees,
+  runGit,
+  stagePaths,
+} from "../src/git.ts";
 
 async function sh(cwd: string, args: string[]): Promise<void> {
   const proc = Bun.spawn(["git", ...args], { cwd, stdout: "ignore", stderr: "ignore" });
@@ -125,5 +132,44 @@ describe("maybeOpenDraftPr", () => {
     const proc = Bun.spawn(["git", "branch", "-a"], { cwd: origin, stdout: "pipe" });
     const branches = await new Response(proc.stdout).text();
     expect(branches.trim()).toBe("");
+  });
+});
+
+describe("pruneWorktrees", () => {
+  test("sweeps the empty scaffolding a removed worktree leaves behind", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "relay-prune-"));
+    await runGit(dir, ["init"]);
+    await runGit(dir, ["config", "user.email", "t@t.co"]);
+    await runGit(dir, ["config", "user.name", "t"]);
+    writeFileSync(join(dir, "a.txt"), "hi\n");
+    await runGit(dir, ["add", "-A"]);
+    await runGit(dir, ["commit", "-m", "init"]);
+
+    const wt = await createWorktree(dir, "relay/build-abc");
+    expect(existsSync(wt)).toBe(true);
+
+    // what `git worktree remove` leaves: the leaf is gone, `relay/` is not
+    await runGit(dir, ["worktree", "remove", wt, "--force"]);
+    expect(existsSync(join(dir, ".relay", "worktrees", "relay"))).toBe(true);
+
+    await pruneWorktrees(dir);
+    expect(existsSync(join(dir, ".relay", "worktrees", "relay"))).toBe(false);
+    // the whole scaffold goes, including .relay itself — but never the repo root
+    expect(existsSync(join(dir, ".relay"))).toBe(false);
+    expect(existsSync(dir)).toBe(true);
+  });
+
+  test("leaves a live worktree alone", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "relay-prune-live-"));
+    await runGit(dir, ["init"]);
+    await runGit(dir, ["config", "user.email", "t@t.co"]);
+    await runGit(dir, ["config", "user.name", "t"]);
+    writeFileSync(join(dir, "a.txt"), "hi\n");
+    await runGit(dir, ["add", "-A"]);
+    await runGit(dir, ["commit", "-m", "init"]);
+
+    const wt = await createWorktree(dir, "relay/build-live");
+    await pruneWorktrees(dir);
+    expect(existsSync(wt)).toBe(true);
   });
 });

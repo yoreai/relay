@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { summarizeSavings } from "../src/runlog.ts";
 import { loadPrices, makeReceipt } from "../src/savings.ts";
 
 describe("savings", () => {
@@ -62,6 +63,45 @@ describe("savings", () => {
     });
     expect(r!.savedUsd).toBe(0);
     expect(r!.line).toContain("no savings");
+  });
+});
+
+describe("relay savings --json", () => {
+  test("summary serializes with the documented keys", () => {
+    const s = summarizeSavings();
+    const json = JSON.parse(JSON.stringify(s, null, 2));
+    expect(json).toEqual({
+      totalSavedUsd: s.totalSavedUsd,
+      byLane: s.byLane,
+      byModel: s.byModel,
+      runs: s.runs,
+      estimatedRuns: s.estimatedRuns,
+      measuredRuns: s.measuredRuns,
+    });
+  });
+
+  test("the CLI prints parseable JSON and nothing else", async () => {
+    const proc = Bun.spawn(["bun", "run", "src/cli.ts", "savings", "--json"], {
+      cwd: joinRoot(),
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const [stdout, exit] = await Promise.all([
+      new Response(proc.stdout).text(),
+      proc.exited,
+    ]);
+    expect(exit).toBe(0);
+    const parsed = JSON.parse(stdout);
+    for (const key of [
+      "totalSavedUsd",
+      "byLane",
+      "byModel",
+      "runs",
+      "estimatedRuns",
+      "measuredRuns",
+    ]) {
+      expect(parsed).toHaveProperty(key);
+    }
   });
 });
 

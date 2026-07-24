@@ -2,7 +2,9 @@ import {
   appendFileSync,
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
+  rmdirSync,
 } from "node:fs";
 import { join } from "node:path";
 
@@ -57,12 +59,61 @@ export async function listChangedFiles(cwd: string): Promise<string[]> {
   return paths.filter(Boolean);
 }
 
+/**
+ * Remove `dir` and any now-empty ancestors. `stopAt` is exclusive and is never
+ * itself removed, which is what keeps this from ever walking up to the repo root.
+ */
+function removeEmptyDirsUpTo(dir: string, stopAt: string): void {
+  let current = dir;
+  while (
+    current !== stopAt &&
+    current.startsWith(stopAt) &&
+    existsSync(current)
+  ) {
+    try {
+      if (readdirSync(current).length > 0) return;
+      rmdirSync(current);
+    } catch {
+      return;
+    }
+    current = join(current, "..");
+  }
+}
+
+/**
+ * Drop worktree registrations whose directories are gone, then sweep up the
+ * empty scaffolding underneath. relay branches contain a slash
+ * (`relay/build-x`), so `git worktree remove` leaves an empty `relay/` behind —
+ * harmless, but it reads as a stray "relay inside relay" folder in the user's
+ * tree. Cosmetic bookkeeping only: never throws.
+ */
+export async function pruneWorktrees(cwd: string): Promise<void> {
+  try {
+    const root = (await gitRoot(cwd)) ?? cwd;
+    await runGitCode(root, ["worktree", "prune"]);
+    const relayDir = join(root, ".relay");
+    const base = join(relayDir, "worktrees");
+    if (existsSync(base)) {
+      for (const entry of readdirSync(base)) {
+        removeEmptyDirsUpTo(join(base, entry), base);
+      }
+    }
+    removeEmptyDirsUpTo(base, relayDir);
+    removeEmptyDirsUpTo(relayDir, root);
+  } catch {
+    // cosmetic — never fail a run over directory bookkeeping
+  }
+}
+
 export async function createWorktree(
   cwd: string,
   branch: string,
 ): Promise<string> {
   const root = (await gitRoot(cwd)) ?? cwd;
   const dest = join(root, ".relay", "worktrees", branch);
+  // self-healing: clear out anything a previous run's `git worktree remove`
+  // left behind before we add to it
+  await pruneWorktrees(root);
   await Bun.$`mkdir -p ${join(root, ".relay", "worktrees")}`.quiet();
   excludeRelayDir(root);
   // create branch from HEAD if needed, then worktree

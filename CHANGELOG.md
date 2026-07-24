@@ -7,8 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `relay savings --json` — the full summary as JSON for scripting, instead of parsing the
+  human table
+- `relay remember`'s `--kind` flag is now shown in `--help` and the README. It always worked;
+  nothing advertised it
+
+### Fixed
+
+- **`relay uninstall`'s own docs undersold it** — it deregisters the Claude *desktop app* as
+  well as the CLI, and `--purge` deletes per-repo memory. Both now said out loud, since
+  "where does my memory live" deserves a straight answer
+- Removing a walkaway worktree left an empty `.relay/worktrees/relay/` behind, which reads as
+  a stray "relay inside relay" folder. `createWorktree` now prunes dead registrations and
+  sweeps the empty scaffold (including `.relay` itself) before it adds anything
+- Two probe tests asserted against the *real* installed CLIs on bun's default 5s timeout, so
+  the suite went red on any machine where an auth check was slow — a first-contribution
+  papercut. They now count spawns against fake binaries and finish in ~0.5s instead of timing
+  out at 5s
+
 ### Documentation
 
+- `docs/design/` is now an acknowledged place for long-form *explorations*, distinct from
+  `PLAN.md`'s locked decisions — with the rule that each one states what has since shipped and
+  what was deferred, so nobody mistakes an option for a roadmap. First resident: the
+  context-hygiene analysis that memory came out of
 - Site: dedicated **cross-agent memory** section (real `relay recall` digest shape, the
   repo-not-tool keying, the day-one git layer), memory in the hero lede and nav, and the origin
   story plus motivation in `about`
