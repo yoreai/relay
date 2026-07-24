@@ -18,13 +18,13 @@ function eventsPath(id: string): string {
 export function appendEvent(id: string, phase: string, detail?: string): void {
   try {
     const path = eventsPath(id);
-    mkdirSync(dirname(path), { recursive: true });
+    mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
     const event: RunEvent = {
       ts: new Date().toISOString(),
       phase,
       ...(detail ? { detail } : {}),
     };
-    appendFileSync(path, JSON.stringify(event) + "\n", "utf8");
+    appendFileSync(path, JSON.stringify(event) + "\n", { encoding: "utf8", mode: 0o600 });
   } catch {
     // progress is best-effort — never fail a run over it
   }
@@ -75,8 +75,8 @@ export function hashTask(task: string): string {
 
 export function appendRun(record: RunRecord): void {
   const path = runsLogPath();
-  mkdirSync(dirname(path), { recursive: true });
-  appendFileSync(path, JSON.stringify(record) + "\n", "utf8");
+  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+  appendFileSync(path, JSON.stringify(record) + "\n", { encoding: "utf8", mode: 0o600 });
 }
 
 export function readRuns(limit = 50): RunRecord[] {
@@ -104,7 +104,7 @@ export function getRun(id: string): RunRecord | null {
 }
 
 export function ensureDataDir(): void {
-  mkdirSync(relayDataDir(), { recursive: true });
+  mkdirSync(relayDataDir(), { recursive: true, mode: 0o700 });
 }
 
 export type SavingsSummary = {

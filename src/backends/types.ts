@@ -26,6 +26,12 @@ export type BackendRunOpts = {
    * never into blanket permission bypasses.
    */
   write?: "none" | "tree" | "worktree";
+  /**
+   * Lane autonomy from the directive. "safe" (default) keeps the backend's
+   * command guardrails on; "full" is the user's explicit opt-in to
+   * unattended command execution (cursor: --force).
+   */
+  autonomy?: "safe" | "full";
   /** Injected binary override (tests / config). */
   binary?: string;
   signal?: AbortSignal;

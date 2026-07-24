@@ -188,6 +188,12 @@ Things worth knowing before you rely on it:
   acceptance beats more context.
 - **A cheap model that's wrong costs you review time.** The verify → escalate ladder bounds
   this, and it's why relay runs your repo's own lint/tests rather than trusting the model.
+- **Workers inherit the trust model of the CLI that runs them.** Relay keeps its own posture
+  conservative — read-only lanes are enforced read-only, write lanes never get `--force` unless
+  your router.yaml says `autonomy: full`, and repo-committed verify commands need a one-time
+  `relay trust` — but a worker still reads the repo's AGENTS.md/CLAUDE.md like any agent, and
+  cursor's sandbox boundaries (including what it allowlists) are Cursor's config, not relay's.
+  Treat a repo you wouldn't run `npm test` in as a repo you shouldn't point a worker at.
 - **Memory is a digest, not a transcript.** `relay recall` can omit something that mattered.
   The host-session layer reads undocumented file formats best-effort and will silently skip a
   host whose format changed.

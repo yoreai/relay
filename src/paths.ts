@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { existsSync } from "node:fs";
+import { chmodSync, existsSync, readdirSync, statSync } from "node:fs";
 
 export function relayConfigDir(): string {
   const xdg = process.env.XDG_CONFIG_HOME;
@@ -14,6 +14,32 @@ export function relayDataDir(): string {
 
 export function runsLogPath(): string {
   return join(relayDataDir(), "runs.jsonl");
+}
+
+/**
+ * The data dir holds run history, memory notes, and (with --log-tasks) task
+ * text — personal data that default umask left world-readable on shared
+ * machines. Owner-only, recursively, and best-effort: permissions must
+ * never brick a run. Called once per process at CLI/MCP startup so files
+ * created by older relays get tightened too.
+ */
+export function hardenRelayDataDir(): void {
+  try {
+    hardenTree(relayDataDir());
+  } catch {
+    // best-effort
+  }
+}
+
+function hardenTree(path: string): void {
+  if (!existsSync(path)) return;
+  const st = statSync(path);
+  if (st.isDirectory()) {
+    if ((st.mode & 0o077) !== 0) chmodSync(path, 0o700);
+    for (const entry of readdirSync(path)) hardenTree(join(path, entry));
+  } else if ((st.mode & 0o077) !== 0) {
+    chmodSync(path, 0o600);
+  }
 }
 
 /** Resolve directive path: repo override → user config → bundled default. */

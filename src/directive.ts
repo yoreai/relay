@@ -34,6 +34,12 @@ const LaneSchema = z.object({
     .enum(["none", "tree", "stage", "worktree"])
     .default("tree")
     .transform((w) => (w === "stage" ? ("tree" as const) : w)),
+  // Worker permission posture. "safe" (default): the worker may edit files
+  // but the backend's command guardrails stay on (cursor: sandboxed
+  // commands, never --force). "full": the user explicitly accepts
+  // unattended command execution for this lane. This is policy — relay
+  // never flips it itself, the user writes it into their router.yaml.
+  autonomy: z.enum(["safe", "full"]).default("safe"),
 });
 
 export const DirectiveSchema = z.object({

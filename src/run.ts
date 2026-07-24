@@ -4,7 +4,8 @@ import { loadDirective, resolveTier, type Directive } from "./directive.ts";
 import { routeTask } from "./route.ts";
 import { assembleContext } from "./context/assemble.ts";
 import { availableBackends, getBackend } from "./backends/index.ts";
-import { runVerify } from "./verify.ts";
+import { assertVerifyTrusted, runVerify } from "./verify.ts";
+import { memoryRepoKey } from "./memory.ts";
 import { nextEscalation, type EscalationState } from "./escalate.ts";
 import { loadPrices, makeReceipt, type Receipt } from "./savings.ts";
 import {
@@ -115,6 +116,11 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
     };
   }
 
+  // Repo-committed verify commands are arbitrary code chosen by the repo,
+  // not the user — refuse them up front (before any tokens are spent)
+  // unless this machine approved them via `relay trust`.
+  assertVerifyTrusted(cwd, await memoryRepoKey(cwd), directive, decision.lane.verify);
+
   const id = newRunId();
 
   // One writing run per repo: overlapping write runs share a working tree
@@ -202,6 +208,7 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
       model: tier.model,
       effort: tier.effort,
       write: decision.lane.write,
+      autonomy: decision.lane.autonomy,
     });
     lastOutput = result.output;
     usage = result.usage;

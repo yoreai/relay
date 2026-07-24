@@ -1,9 +1,13 @@
 #!/usr/bin/env bun
 import { runAdvise } from "./advise.ts";
+import { loadDirective } from "./directive.ts";
 import { runDoctor } from "./doctor.ts";
 import { freshnessHint } from "./freshness.ts";
 import { runInit } from "./init.ts";
-import { recallDigest, rememberNote } from "./memory.ts";
+import { memoryRepoKey, recallDigest, rememberNote } from "./memory.ts";
+import { hardenRelayDataDir } from "./paths.ts";
+import { isVerifyCommandTrusted, trustVerifyCommands } from "./settings.ts";
+import { resolveVerifyCommands } from "./verify.ts";
 import { serveMcp } from "./mcp.ts";
 import { formatOutcome, runTask } from "./run.ts";
 import { getRun, modelStats, readEvents, readRuns, summarizeSavings } from "./runlog.ts";
@@ -28,6 +32,7 @@ Usage:
   relay uninstall [--purge]      # deregister MCP everywhere (then: brew uninstall relay)
   relay recall                   # catch-up digest: git + relay work + notes + sessions
   relay remember "<note>" [--kind decision|todo|context|watchout]
+  relay trust [--yes]            # review/approve this repo's committed verify commands
   relay status [id|--all]
   relay savings [--by-lane|--by-model|--json]
   relay doctor
@@ -99,6 +104,7 @@ function parseArgs(argv: string[]): Parsed {
         "backends",
         "recall",
         "remember",
+        "trust",
         "uninstall",
         "help",
         "version",
@@ -159,6 +165,7 @@ function readLine(): Promise<string | null> {
 }
 
 async function main(): Promise<void> {
+  hardenRelayDataDir();
   const parsed = parseArgs(process.argv.slice(2));
   const cwd = parsed.cwd ?? process.cwd();
 
@@ -231,6 +238,30 @@ async function main(): Promise<void> {
     }
     const saved = await rememberNote(cwd, note, { kind, source: "cli" });
     console.log(`remembered [${saved.kind}] — future sessions see it via \`relay recall\``);
+    return;
+  }
+  if (parsed.command === "trust") {
+    const directive = loadDirective(cwd);
+    const names = [...new Set(directive.lanes.flatMap((l) => l.verify ?? []))];
+    const repoSourced = resolveVerifyCommands(cwd, directive, names).filter(
+      (c): c is typeof c & { command: string } => c.command != null && c.repoSourced,
+    );
+    if (repoSourced.length === 0) {
+      console.log("no repo-supplied verify commands here — nothing to trust");
+      return;
+    }
+    const repoKey = await memoryRepoKey(cwd);
+    console.log("repo-supplied verify commands (committed to this repo, run as you):");
+    for (const c of repoSourced) {
+      const trusted = isVerifyCommandTrusted(repoKey, c.command);
+      console.log(`  [${trusted ? "trusted" : "NOT trusted"}] ${c.name}: ${c.command}`);
+    }
+    if (parsed.rest.includes("--yes")) {
+      trustVerifyCommands(repoKey, repoSourced.map((c) => c.command));
+      console.log("\napproved for this repo on this machine — re-approval is required if a command changes");
+    } else if (repoSourced.some((c) => !isVerifyCommandTrusted(repoKey, c.command))) {
+      console.log("\nreview the command(s) above, then approve with: relay trust --yes");
+    }
     return;
   }
   if (parsed.command === "uninstall") {

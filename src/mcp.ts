@@ -24,7 +24,7 @@ import { availableBackends } from "./backends/index.ts";
 import { loadCatalog } from "./catalog.ts";
 import { loadDirective, resolveTier } from "./directive.ts";
 import { pricesShadowWarning } from "./doctor.ts";
-import { findDirectivePath } from "./paths.ts";
+import { findDirectivePath, hardenRelayDataDir } from "./paths.ts";
 import { RELAY_VERSION } from "./version.ts";
 
 function resolveRunCwd(raw: string): string {
@@ -111,6 +111,7 @@ export function requireRunCwd(explicit: string | undefined): string {
 }
 
 export async function serveMcp(): Promise<void> {
+  hardenRelayDataDir();
   const server = new Server(
     { name: "relay", version: RELAY_VERSION },
     { capabilities: { tools: {} } },

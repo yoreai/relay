@@ -62,8 +62,8 @@ export async function rememberNote(
     source: opts.source ?? "cli",
   };
   const path = memoryPath(await memoryRepoKey(cwd));
-  mkdirSync(dirname(path), { recursive: true });
-  appendFileSync(path, JSON.stringify(record) + "\n", "utf8");
+  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+  appendFileSync(path, JSON.stringify(record) + "\n", { encoding: "utf8", mode: 0o600 });
   return record;
 }
 

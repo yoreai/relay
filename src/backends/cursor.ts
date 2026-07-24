@@ -45,6 +45,54 @@ export function cursorModelId(canonical: string, effort?: string): string {
   return map[canonical] ?? canonical;
 }
 
+export type CursorFlagSupport = { mode: boolean; sandbox: boolean };
+
+let flagSupportCache: CursorFlagSupport | null = null;
+
+/**
+ * cursor-agent's flag surface drifts (AGENTS.md rule: feature-detect, never
+ * crash). One `--help` spawn per process tells us whether the posture flags
+ * below exist; absent flags degrade to plain `--trust`.
+ */
+export async function detectCursorFlags(bin: string): Promise<CursorFlagSupport> {
+  if (flagSupportCache) return flagSupportCache;
+  try {
+    const { stdout, stderr } = await runCli([bin, "--help"], { timeoutMs: 15_000 });
+    const help = stdout + stderr;
+    flagSupportCache = {
+      mode: help.includes("--mode"),
+      sandbox: help.includes("--sandbox"),
+    };
+  } catch {
+    flagSupportCache = { mode: false, sandbox: false };
+  }
+  return flagSupportCache;
+}
+
+/**
+ * Permission posture for a headless cursor run. Verified empirically
+ * (2026-07): print mode auto-runs edits AND sandboxed shell commands even
+ * without --force, so flags — not prompts — are the only enforcement.
+ *
+ * - read lanes → `--mode ask`: the one mode that actually refuses writes.
+ * - write lanes (default "safe") → no --force; commands stay inside
+ *   cursor's sandbox / the user's own allowlist.
+ * - write lanes with `autonomy: full` in the user's router.yaml → --force.
+ *   That's the user's explicit, written-down posture, never relay's default.
+ */
+export function cursorPostureArgs(
+  write: BackendRunOpts["write"],
+  autonomy: BackendRunOpts["autonomy"],
+  supports: CursorFlagSupport,
+): string[] {
+  const canWrite = write === "tree" || write === "worktree";
+  if (!canWrite) {
+    return supports.mode ? ["--trust", "--mode", "ask"] : ["--trust"];
+  }
+  if (autonomy === "full") return ["--force"];
+  return supports.sandbox ? ["--trust", "--sandbox", "enabled"] : ["--trust"];
+}
+
 export class CursorBackend implements Backend {
   name = "cursor";
 
@@ -65,11 +113,7 @@ export class CursorBackend implements Backend {
       "--output-format",
       "stream-json",
     ];
-    // --force auto-approves edits and commands — only lanes that may write
-    // get it. Read-only lanes get --trust (skip the workspace-trust prompt)
-    // so headless runs don't hang, while approvals stay denied-by-default.
-    if (opts.write === "tree" || opts.write === "worktree") args.push("--force");
-    else args.push("--trust");
+    args.push(...cursorPostureArgs(opts.write, opts.autonomy, await detectCursorFlags(bin)));
 
     const { stdout, stderr, exitCode } = await runCli([bin, ...args], {
       cwd: opts.cwd,
@@ -141,7 +185,7 @@ export async function probeCursorAuth(bin: string): Promise<boolean | "unknown">
     clearTimeout(timeout);
     const text = out + err;
     // Workspace-trust prompt means auth already succeeded — trust is per-repo
-    // and real runs pass --force. Don't mistake it for a login failure.
+    // and real runs pass --trust. Don't mistake it for a login failure.
     if (/workspace trust/i.test(text)) return true;
     if (/authentication required|not authenticated|login/i.test(text) && code !== 0) {
       return false;

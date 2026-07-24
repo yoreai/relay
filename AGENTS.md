@@ -110,6 +110,16 @@ Change these only deliberately — each one is load-bearing.
   forever — `relay update` cannot reach it — so `EMBEDDED_PRICES_YAML` lists no models and
   `relay init` writes no prices file. Guarded by `tests/savings.test.ts`.
 - **Read-only lanes must be read-only in the backend flags too**, not just in the prompt.
+ cursor-agent's headless print mode auto-runs edits and sandboxed commands even without
+ `--force` (verified 2026-07; its docs understate this) — `--mode ask` is the only enforced
+ read-only. Guarded by `tests/autonomy.test.ts`.
+- **`--force`-class flags are user policy, never a relay default.** A write lane only gets
+ cursor `--force` when the user's router.yaml sets `autonomy: full` on that lane.
+- **Repo-committed verify commands are untrusted input.** `.relay.yaml` / repo-local
+ `router.yaml` shell strings run as the user — they require a hash-pinned `relay trust`
+ approval per repo, fail-fast before tokens are spent, and verify always runs with an
+ allowlisted env (a full env made `lint: curl -d "$(env)"` an exfiltration one-liner).
+ Guarded by `tests/verify_trust.test.ts`.
 - **Workers must never re-delegate:** `RELAY_WORKER=1` plus a hard refuse in `src/mcp.ts`.
 - **Host transcript readers must degrade to empty, never throw.** They parse undocumented
   formats; a format change must not break `relay recall`.

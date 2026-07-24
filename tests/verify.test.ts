@@ -56,4 +56,30 @@ describe("runVerify", () => {
     );
     expect(result.ok).toBe(true);
   });
+
+  test("scrubs the environment — verify commands can't read the caller's secrets", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "relay-verify-"));
+    process.env.RELAY_TEST_SECRET = "hunter2";
+    try {
+      // succeeds only when the secret is NOT visible to the verify shell
+      const result = await runVerify(
+        dir,
+        directiveWith({ lint: "test -z ${RELAY_TEST_SECRET:-}" }),
+        ["lint"],
+      );
+      expect(result.ok).toBe(true);
+    } finally {
+      delete process.env.RELAY_TEST_SECRET;
+    }
+  });
+
+  test("still passes the toolchain basics through", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "relay-verify-"));
+    const result = await runVerify(
+      dir,
+      directiveWith({ lint: "test -n ${PATH:+x} && test -n ${HOME:+x}" }),
+      ["lint"],
+    );
+    expect(result.ok).toBe(true);
+  });
 });
