@@ -108,6 +108,14 @@ export async function maybeOpenDraftPr(
   title: string,
   body: string,
 ): Promise<string | null> {
+  // gh can't open a PR for a branch that only exists locally, and headless gh
+  // won't push one. Pushing the relay/* branch is consent-implied by choosing
+  // a walkaway lane (it never touches the user's own branches); if the push
+  // fails (no remote, no access), there is no PR to open — return null.
+  const branch = await runGit(cwd, ["rev-parse", "--abbrev-ref", "HEAD"]);
+  if (!branch.startsWith("relay/")) return null;
+  const pushed = await runGitCode(cwd, ["push", "-u", "origin", branch]);
+  if (pushed !== 0) return null;
   const proc = Bun.spawn(
     ["gh", "pr", "create", "--draft", "--title", title, "--body", body],
     { cwd, stdout: "pipe", stderr: "pipe" },

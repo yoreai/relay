@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] — 2026-07-24
+
+### Fixed
+
+- Walkaway lanes now actually open the promised draft PR: relay pushes the `relay/*` branch to origin first (gh cannot create a PR for a local-only branch, and headless gh won't push one). Found live-dogfooding the PR flow; relay never pushes non-`relay/*` branches
+
 ## [0.7.0] — 2026-07-23
 
 ### Added
@@ -286,7 +292,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/yoreai/relay/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/yoreai/relay/compare/v0.6.19...v0.7.0
 [0.6.19]: https://github.com/yoreai/relay/compare/v0.6.18...v0.6.19
 [0.6.18]: https://github.com/yoreai/relay/compare/v0.6.17...v0.6.18

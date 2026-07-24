@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { listChangedFiles, stagePaths } from "../src/git.ts";
+import { listChangedFiles, maybeOpenDraftPr, stagePaths } from "../src/git.ts";
 
 async function sh(cwd: string, args: string[]): Promise<void> {
   const proc = Bun.spawn(["git", ...args], { cwd, stdout: "ignore", stderr: "ignore" });
@@ -86,5 +86,44 @@ describe("stagePaths", () => {
     });
     const staged = (await new Response(proc.stdout).text()).trim();
     expect(staged).toBe("math.js");
+  });
+});
+
+describe("maybeOpenDraftPr", () => {
+  test("pushes the relay/* branch to origin before attempting the PR", async () => {
+    // bare "origin" + a clone on a relay/* branch — gh will fail (no GitHub
+    // remote), but the branch must land on origin so a PR is even possible
+    const origin = mkdtempSync(join(tmpdir(), "relay-git-origin-"));
+    await sh(origin, ["init", "-q", "--bare"]);
+    const dir = await makeRepo();
+    writeFileSync(join(dir, "a.txt"), "x\n");
+    await sh(dir, ["add", "-A"]);
+    await sh(dir, ["commit", "-qm", "init"]);
+    await sh(dir, ["remote", "add", "origin", origin]);
+    await sh(dir, ["checkout", "-qb", "relay/build-test"]);
+
+    await maybeOpenDraftPr(dir, "t", "b");
+
+    const proc = Bun.spawn(["git", "branch", "-a"], { cwd: origin, stdout: "pipe" });
+    const branches = await new Response(proc.stdout).text();
+    expect(branches).toContain("relay/build-test");
+  });
+
+  test("refuses to push non-relay branches", async () => {
+    const origin = mkdtempSync(join(tmpdir(), "relay-git-origin2-"));
+    await sh(origin, ["init", "-q", "--bare"]);
+    const dir = await makeRepo();
+    writeFileSync(join(dir, "a.txt"), "x\n");
+    await sh(dir, ["add", "-A"]);
+    await sh(dir, ["commit", "-qm", "init"]);
+    await sh(dir, ["remote", "add", "origin", origin]);
+    // stays on the default branch — the user's branch is never pushed
+
+    const url = await maybeOpenDraftPr(dir, "t", "b");
+    expect(url).toBeNull();
+
+    const proc = Bun.spawn(["git", "branch", "-a"], { cwd: origin, stdout: "pipe" });
+    const branches = await new Response(proc.stdout).text();
+    expect(branches.trim()).toBe("");
   });
 });
