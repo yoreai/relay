@@ -1,4 +1,11 @@
 import { describe, expect, test } from "bun:test";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { parse as parseYaml } from "yaml";
+import { loadCatalog } from "../src/catalog.ts";
+import { pricesShadowWarning } from "../src/doctor.ts";
+import { EMBEDDED_PRICES_YAML } from "../src/embedded_defaults.ts";
 import { summarizeSavings } from "../src/runlog.ts";
 import { loadPrices, makeReceipt } from "../src/savings.ts";
 
@@ -63,6 +70,47 @@ describe("savings", () => {
     });
     expect(r!.savedUsd).toBe(0);
     expect(r!.line).toContain("no savings");
+  });
+});
+
+describe("prices never shadow the catalog", () => {
+  test("the embedded price file lists no models", () => {
+    // Anything listed here wins over the catalog permanently, so `relay update`
+    // could not fix a stale price. Shipping the price table twice froze the
+    // duplicate; the catalog is the single source.
+    const embedded = parseYaml(EMBEDDED_PRICES_YAML) as {
+      models?: Record<string, unknown>;
+      bytes_per_token?: number;
+    };
+    expect(Object.keys(embedded.models ?? {})).toEqual([]);
+    expect(embedded.bytes_per_token).toBeGreaterThan(0);
+  });
+
+  test("catalog prices reach the receipt untouched", () => {
+    const { catalog } = loadCatalog();
+    const prices = loadPrices(joinRoot());
+    for (const [id, m] of Object.entries(catalog.models)) {
+      expect(prices.models[id]).toBeDefined();
+      expect(prices.models[id]!.in).toBe(m.in);
+      expect(prices.models[id]!.out).toBe(m.out);
+    }
+  });
+
+  test("doctor warns about a prices.yaml that overrides the catalog", () => {
+    const dir = mkdtempSync(join(tmpdir(), "relay-prices-"));
+    writeFileSync(
+      join(dir, "prices.yaml"),
+      "version: 1\nmodels:\n  opus-5:\n    in: 1.0\n    out: 2.0\nbytes_per_token: 4\n",
+    );
+    const warning = pricesShadowWarning(dir).join("\n");
+    expect(warning).toContain("overrides the catalog for 1 model(s)");
+    expect(warning).toContain("frozen");
+  });
+
+  test("no warning when there is nothing to shadow", () => {
+    const dir = mkdtempSync(join(tmpdir(), "relay-prices-empty-"));
+    writeFileSync(join(dir, "prices.yaml"), "version: 1\nmodels: {}\n");
+    expect(pricesShadowWarning(dir)).toEqual([]);
   });
 });
 

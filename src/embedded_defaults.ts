@@ -69,42 +69,14 @@ classifier:
   enabled: true
 `;
 
+// Prices are catalog facts (see EMBEDDED_CATALOG_YAML / defaults/catalog.yaml),
+// which is what lets `relay update` correct them without a release. So this
+// file deliberately lists NO models: anything under `models:` overrides the
+// catalog permanently, and a shipped copy of the price table would freeze the
+// numbers it duplicates. It exists for the one honest case — a user pinning a
+// rate they actually negotiated — plus the byte-estimation fallback.
 export const EMBEDDED_PRICES_YAML = `version: 1
-models:
-  gpt-5.6-luna:
-    in: 1.0
-    out: 6.0
-    cache_read: 0.10
-  glm-5.2:
-    in: 1.40
-    out: 4.40
-    cache_read: 0.26
-  grok-4.5:
-    in: 2.0
-    out: 6.0
-    cache_read: 0.50
-  grok-4.5-fast:
-    in: 4.0
-    out: 18.0
-  opus-4.8-high:
-    in: 5.0
-    out: 25.0
-    cache_read: 0.50
-  fable-5-high:
-    in: 10.0
-    out: 50.0
-    cache_read: 1.0
-  gpt-5.6-sol:
-    in: 5.0
-    out: 30.0
-  sonnet-5:
-    in: 3.0
-    out: 15.0
-    cache_read: 0.30
-  haiku-4.5:
-    in: 0.80
-    out: 4.0
-    cache_read: 0.08
+models: {}
 bytes_per_token: 4
 `;
 

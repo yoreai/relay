@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Receipts were priced off a frozen copy of the price table.** Prices live in the catalog so
+  `relay update` can correct them without a release — but `EMBEDDED_PRICES_YAML` *also* listed
+  nine models, and a `prices.yaml` entry overrides the catalog by design. Worse, `relay init`
+  wrote that list to `~/.config/relay/prices.yaml`, where nothing could ever correct it: anyone
+  who ran `init` had those prices pinned for good. The embedded file now lists no models,
+  `relay init` writes no prices file, and `relay doctor` warns when an existing one shadows the
+  catalog. Same bug family as the two shipped in 0.8.0 — a second source of truth nobody
+  remembers to update
+- Deleted `defaults/prices.yaml`, which no code path ever read. It duplicated catalog prices, so
+  its only real function was to drift
+
+### Removed
+
+- **`PLAN.md`.** It was an internal design memo — "open questions for the owner", "do not
+  relitigate without the owner" — that also named this project's relationship to an employer's
+  internal tools, which this repo's own rules say to keep out. Now that people are reading the
+  repo, the parts worth keeping went where they're actually useful: design rules and invariants
+  into `AGENTS.md`, honest caveats into a new **Honest limits** section in `README.md`, and
+  rationale into these changelog entries. Unbuilt ideas belong in issues, where they can be
+  discussed and closed
+- `docs/design/context-hygiene.md`, added earlier the same day. It described four capabilities
+  that don't exist and pointed at a prototype directory only present on one machine — a
+  false roadmap for anyone arriving from the announcement
+
 ## [0.8.1] — 2026-07-24
 
 ### Added

@@ -150,7 +150,7 @@ transcript of everything.
 
 Repo `./router.yaml` or `.relay/router.yaml` overrides `~/.config/relay/router.yaml`.
 People share directives, not tribal knowledge. See [`defaults/router.yaml`](./defaults/router.yaml)
-for the full schema, and [`PLAN.md`](./PLAN.md) for the locked design decisions behind it.
+for the full schema, and [`AGENTS.md`](./AGENTS.md) for the design rules behind it.
 
 ## Staying current (facts vs policy)
 
@@ -176,6 +176,25 @@ brew uninstall relay     # then remove the binary
 
 `brew uninstall` alone only removes the binary — run `relay uninstall` first so
 your agents don't keep a dead MCP entry.
+
+## Honest limits
+
+Things worth knowing before you rely on it:
+
+- **Relay is only as good as its briefs.** Short sessions on cheap models win on cost, but a
+  vague brief wastes a run. The `done_means` field is the real quality control — verifiable
+  acceptance beats more context.
+- **A cheap model that's wrong costs you review time.** The verify → escalate ladder bounds
+  this, and it's why relay runs your repo's own lint/tests rather than trusting the model.
+- **Memory is a digest, not a transcript.** `relay recall` can omit something that mattered.
+  The host-session layer reads undocumented file formats best-effort and will silently skip a
+  host whose format changed.
+- **Prices drift.** They live in the catalog as data, so `relay update` fixes them without a
+  release — but a receipt is only as accurate as the catalog's last review. Anything relay
+  can't price says so instead of guessing.
+- **Savings are per-task counterfactuals**, not a promise about your monthly bill. Relay
+  measures what the run cost versus what your baseline model would have cost on the same
+  tokens, and labels the row measured or estimated.
 
 ## Roadmap
 

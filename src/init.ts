@@ -1,9 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-  EMBEDDED_PRICES_YAML,
-  EMBEDDED_ROUTER_YAML,
-} from "./embedded_defaults.ts";
+import { EMBEDDED_ROUTER_YAML } from "./embedded_defaults.ts";
 import { relayConfigDir } from "./paths.ts";
 
 export function runInit(cwd: string = process.cwd()): string {
@@ -19,12 +16,14 @@ export function runInit(cwd: string = process.cwd()): string {
     lines.push(`kept existing ${userRouter}`);
   }
 
+  // Deliberately no prices.yaml: prices come from the catalog so `relay update`
+  // can fix them. Writing one here used to freeze a copy of the price table in
+  // user config, where nothing could ever correct it.
   const userPrices = join(configDir, "prices.yaml");
-  if (!existsSync(userPrices)) {
-    writeFileSync(userPrices, EMBEDDED_PRICES_YAML, "utf8");
-    lines.push(`wrote ${userPrices}`);
-  } else {
-    lines.push(`kept existing ${userPrices}`);
+  if (existsSync(userPrices)) {
+    lines.push(
+      `note: ${userPrices} overrides catalog prices — delete it to track the catalog`,
+    );
   }
 
   const repoRelay = join(cwd, ".relay");

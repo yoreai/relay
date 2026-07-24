@@ -4,9 +4,42 @@ import { probeTools } from "./probe.ts";
 import { loadCatalog } from "./catalog.ts";
 import { freshnessHint } from "./freshness.ts";
 import { which } from "./which.ts";
-import { findDirectivePath, relayConfigDir, relayDataDir } from "./paths.ts";
+import {
+  findDirectivePath,
+  findPricesPath,
+  relayConfigDir,
+  relayDataDir,
+} from "./paths.ts";
 import { loadDirective, resolveTier } from "./directive.ts";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { parse as parseYaml } from "yaml";
+
+/**
+ * A local `prices.yaml` wins over the catalog for every model it lists, and
+ * `relay update` can never correct it — so a copy of the price table left in
+ * config silently freezes those numbers. Early versions of `relay init` wrote
+ * exactly that, so say so instead of quietly pricing receipts off stale rates.
+ */
+export function pricesShadowWarning(cwd: string): string[] {
+  const path = findPricesPath(cwd);
+  if (!path) return [];
+  try {
+    const listed = Object.keys(
+      (parseYaml(readFileSync(path, "utf8")) as {
+        models?: Record<string, unknown>;
+      })?.models ?? {},
+    );
+    if (listed.length === 0) return [];
+    return [
+      `prices:     ⚠ ${path} overrides the catalog for ${listed.length} model(s)`,
+      `            these prices are frozen — \`relay update\` cannot correct them.`,
+      `            delete the file (or its \`models:\` entries) to track the catalog,`,
+      `            unless you are pinning a rate you negotiated.`,
+    ];
+  } catch {
+    return [`prices:     ⚠ ${path} could not be parsed`];
+  }
+}
 
 export async function runDoctor(
   cwd: string = process.cwd(),
@@ -59,6 +92,7 @@ export async function runDoctor(
   } catch (e) {
     lines.push(`catalog:    ERROR ${(e as Error).message}`);
   }
+  for (const w of pricesShadowWarning(cwd)) lines.push(w);
   lines.push("");
 
   // Show where each tier actually lands on THIS machine

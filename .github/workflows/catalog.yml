@@ -12,7 +12,6 @@ on:
     paths:
       - "defaults/catalog.yaml"
       - "defaults/router.yaml"
-      - "defaults/prices.yaml"
       - "scripts/check-catalog.ts"
 
 permissions:
