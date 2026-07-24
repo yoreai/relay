@@ -139,6 +139,9 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
     escalations: 0,
     task_hash: taskHash,
     cwd,
+    // Who to check on: this process drives the run, so if it dies the run is
+    // abandoned and readers must stop reporting it as still working.
+    owner_pid: process.pid,
     ...(opts.logTasks ? { task: opts.task } : {}),
   });
 

@@ -303,7 +303,7 @@ async function main(): Promise<void> {
     } else {
       for (const r of runs) {
         console.log(
-          `${r.ts}  ${r.id}  ${r.status.padEnd(7)}  ${r.lane}/${r.model}` +
+          `${r.ts}  ${r.id}  ${r.status.padEnd(11)}  ${r.lane}/${r.model}` +
             (r.saved_usd != null ? `  ~$${r.saved_usd.toFixed(2)}` : ""),
         );
       }

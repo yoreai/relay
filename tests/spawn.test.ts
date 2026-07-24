@@ -30,6 +30,18 @@ describe("runCli", () => {
     expect(r.stdout).toContain("tick");
   });
 
+  test("returns promptly when a leftover child keeps the pipe open", async () => {
+    // The backend exits but leaves a helper holding stdout (cursor-agent does
+    // this with its worker-server): waiting for EOF would wait on the orphan.
+    const started = Date.now();
+    const r = await runCli(["sh", "-c", "sleep 30 & echo parent-done"]);
+    const elapsed = Date.now() - started;
+    expect(r.stdout).toContain("parent-done");
+    expect(elapsed).toBeLessThan(10_000);
+    expect(r.stderr).toContain("still held the pipe open");
+    expect(r.timedOut).toBe(false);
+  });
+
   test("streams stdout/stderr chunks live via onStdout/onStderr", async () => {
     const outChunks: string[] = [];
     const errChunks: string[] = [];

@@ -50,6 +50,22 @@ the OS's most permissive file defaults, and neither was a decision anyone had ac
   fails loudly instead of quietly becoming prompt text. `relay run "…"` also works now: `run`
   is accepted as the implicit verb rather than prepended to the goal. Guarded by
   `tests/cli_args.test.ts`, which can exist because the entrypoint is behind `import.meta.main`
+- **A background run whose controller died reported "working" forever**
+  ([#4](https://github.com/yoreai/relay/issues/4)). Runs are driven
+  in-process, so when the MCP server restarts mid-run the run dies with it — but its last record
+  says `running`, and `relay_status` served that unchanged indefinitely. An agent polling every
+  30s could not distinguish "still thinking" from "gone", which is the worst possible answer for
+  the `wait: false` path we tell agents to prefer. Records now carry the controller's pid, and
+  any `running` record whose controller is gone reads back as `interrupted` with the reason.
+  Reconciled on read, so pollers never race each other rewriting history, and a merely-slow
+  controller is never mislabeled; pre-0.9.0 records without a pid fall back to age. Abandoned
+  runs are also excluded from `relay advise`'s per-model success stats — the controller died,
+  not the model, and counting it would quietly argue against a model that did nothing wrong
+- **`runCli` could hang forever on a backend that had already exited.** Backend CLIs leave
+  helpers behind (cursor-agent keeps a `worker-server`) which inherit the stdout/stderr pipes,
+  so waiting for the streams to close waited on the orphan rather than the run — a killed
+  backend could still stall its own timeout. Reading now stops 2s after the child exits and
+  says so, rather than trading a wall-clock timeout for an unbounded wait
 
 ## [0.8.4] — 2026-07-24
 

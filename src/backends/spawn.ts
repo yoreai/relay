@@ -38,21 +38,42 @@ function createInactivityTimer(
   return { reset, clear };
 }
 
+/** Collects streamed text where the caller can still read it if we stop waiting. */
+type Sink = { text: string };
+
 async function drain(
   stream: ReadableStream<Uint8Array>,
+  sink: Sink,
   onChunk?: (chunk: string) => void,
   onActivity?: () => void,
-): Promise<string> {
+): Promise<void> {
   const decoder = new TextDecoder();
-  let out = "";
   for await (const bytes of stream) {
     const chunk = decoder.decode(bytes, { stream: true });
-    out += chunk;
+    sink.text += chunk;
     onChunk?.(chunk);
     onActivity?.();
   }
-  out += decoder.decode();
-  return out;
+  sink.text += decoder.decode();
+}
+
+/**
+ * Backend CLIs leave helper processes behind (cursor-agent keeps a
+ * `worker-server`), and those inherit the stdout/stderr pipes. Waiting for the
+ * streams to close then waits on the orphan, not the run — a kill can look like
+ * a hang forever. Once the child itself is gone, reading gets a short grace
+ * period and then we move on with whatever arrived.
+ */
+const POST_EXIT_DRAIN_MS = 2_000;
+
+/** A cancellable ceiling: left pending it would delay every run's exit by 2s. */
+function graceTimer(ms: number): { reached: Promise<void>; cancel: () => void } {
+  let cancel = () => {};
+  const reached = new Promise<void>((resolve) => {
+    const t = setTimeout(resolve, ms);
+    cancel = () => clearTimeout(t);
+  });
+  return { reached, cancel };
 }
 
 export async function runCli(
@@ -86,19 +107,39 @@ export async function runCli(
   });
   const resetInactivity = () => inactivity.reset();
 
-  const [stdout, stderr, exitCode] = await Promise.all([
-    drain(proc.stdout, opts.onStdout, resetInactivity),
-    drain(proc.stderr, opts.onStderr, resetInactivity),
-    proc.exited,
-  ]);
+  const out: Sink = { text: "" };
+  const err: Sink = { text: "" };
+  // Started eagerly so the child never blocks on a full pipe while we await it.
+  let drained = false;
+  const drains = Promise.all([
+    drain(proc.stdout, out, opts.onStdout, resetInactivity),
+    drain(proc.stderr, err, opts.onStderr, resetInactivity),
+  ])
+    .then(() => {
+      drained = true;
+    })
+    .catch(() => {
+      // a stream error still leaves whatever arrived in the sinks
+    });
+
+  const exitCode = await proc.exited;
+  const grace = graceTimer(POST_EXIT_DRAIN_MS);
+  await Promise.race([drains, grace.reached]);
+  grace.cancel();
   inactivity.clear();
 
+  const notes = [
+    timedOut
+      ? `[relay] backend produced no output for ${timeoutMs}ms and was killed (set RELAY_BACKEND_TIMEOUT_MS to raise the limit)`
+      : "",
+    drained
+      ? ""
+      : `[relay] stopped reading output ${POST_EXIT_DRAIN_MS}ms after the backend exited — a leftover child process still held the pipe open, so this output may be truncated`,
+  ].filter(Boolean);
+
   return {
-    stdout,
-    stderr: timedOut
-      ? stderr +
-        `\n[relay] backend produced no output for ${timeoutMs}ms and was killed (set RELAY_BACKEND_TIMEOUT_MS to raise the limit)`
-      : stderr,
+    stdout: out.text,
+    stderr: notes.length ? [err.text, ...notes].join("\n") : err.text,
     exitCode: timedOut && exitCode === 0 ? 124 : exitCode,
     timedOut,
   };

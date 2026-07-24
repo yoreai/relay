@@ -47,8 +47,10 @@ export function readEvents(id: string): RunEvent[] {
 export type RunRecord = {
   id: string;
   ts: string;
-  status: "running" | "ok" | "failed";
+  status: "running" | "ok" | "failed" | "interrupted";
   lane: string;
+  /** pid of the process driving the run, so readers can spot an abandoned one. */
+  owner_pid?: number;
   backend: string;
   model: string;
   tier: string;
@@ -79,6 +81,47 @@ export function appendRun(record: RunRecord): void {
   appendFileSync(path, JSON.stringify(record) + "\n", { encoding: "utf8", mode: 0o600 });
 }
 
+/**
+ * A run is driven in-process, so if that process dies the run can never finish
+ * or append its terminal record — it just sits at "running" forever, and a
+ * poller can't tell that from real progress. Reconciled on read rather than
+ * rewritten: reads stay side-effect-free, so concurrent pollers can't race each
+ * other appending, and a controller that's merely slow is never mislabeled.
+ */
+function processAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (e) {
+    // EPERM means it exists but belongs to another user; only ESRCH means gone.
+    return (e as NodeJS.ErrnoException).code === "EPERM";
+  }
+}
+
+/** Records from before owner pids carry no controller, so age is the only
+ * signal left. Generous: no run survives the backend timeout by hours. */
+const ORPHAN_AFTER_MS = 6 * 60 * 60 * 1000;
+
+function reconcileAbandoned(r: RunRecord): RunRecord {
+  if (r.status !== "running") return r;
+  if (r.owner_pid != null) {
+    if (processAlive(r.owner_pid)) return r;
+    return {
+      ...r,
+      status: "interrupted",
+      error: r.error ?? `controller process ${r.owner_pid} exited before the run finished`,
+    };
+  }
+  if (Date.now() - Date.parse(r.ts) > ORPHAN_AFTER_MS) {
+    return {
+      ...r,
+      status: "interrupted",
+      error: r.error ?? "no controller recorded and the run is hours old",
+    };
+  }
+  return r;
+}
+
 export function readRuns(limit = 50): RunRecord[] {
   const path = runsLogPath();
   if (!existsSync(path)) return [];
@@ -96,7 +139,8 @@ export function readRuns(limit = 50): RunRecord[] {
   for (const r of records) byId.set(r.id, r);
   return [...byId.values()]
     .sort((a, b) => a.ts.localeCompare(b.ts))
-    .slice(-limit);
+    .slice(-limit)
+    .map(reconcileAbandoned);
 }
 
 export function getRun(id: string): RunRecord | null {
@@ -122,7 +166,9 @@ export type ModelStats = Record<string, { runs: number; ok: number }>;
 export function modelStats(): ModelStats {
   const stats: ModelStats = {};
   for (const r of readRuns(10_000)) {
-    if (r.status === "running") continue;
+    // An abandoned run says nothing about the model — the controller died, not
+    // the backend — so it must not count against it in `relay advise`.
+    if (r.status === "running" || r.status === "interrupted") continue;
     const s = (stats[r.model] ??= { runs: 0, ok: 0 });
     s.runs += 1;
     if (r.status === "ok") s.ok += 1;
