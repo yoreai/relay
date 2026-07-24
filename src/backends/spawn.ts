@@ -1,6 +1,8 @@
-/** Shared spawn helper: every backend invocation gets a hard timeout so a
+/** Shared spawn helper: every backend invocation gets an inactivity timeout so a
  * hung CLI (e.g. silently waiting on auth/network) fails over to the next
- * fallback backend instead of stalling the run forever. */
+ * fallback backend instead of stalling the run forever. The timer resets on
+ * every stdout/stderr chunk — a working CLI that streams output can run longer
+ * than the silence window; only total silence triggers a kill. */
 
 const DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
 
@@ -16,9 +18,30 @@ export type CliResult = {
   timedOut: boolean;
 };
 
+function createInactivityTimer(
+  timeoutMs: number,
+  onTimeout: () => void,
+): { reset: () => void; clear: () => void } {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const reset = () => {
+    if (timer !== undefined) clearTimeout(timer);
+    timer = setTimeout(onTimeout, timeoutMs);
+  };
+
+  const clear = () => {
+    if (timer !== undefined) clearTimeout(timer);
+    timer = undefined;
+  };
+
+  reset();
+  return { reset, clear };
+}
+
 async function drain(
   stream: ReadableStream<Uint8Array>,
   onChunk?: (chunk: string) => void,
+  onActivity?: () => void,
 ): Promise<string> {
   const decoder = new TextDecoder();
   let out = "";
@@ -26,6 +49,7 @@ async function drain(
     const chunk = decoder.decode(bytes, { stream: true });
     out += chunk;
     onChunk?.(chunk);
+    onActivity?.();
   }
   out += decoder.decode();
   return out;
@@ -56,22 +80,24 @@ export async function runCli(
   });
 
   let timedOut = false;
-  const timer = setTimeout(() => {
+  const inactivity = createInactivityTimer(timeoutMs, () => {
     timedOut = true;
     proc.kill();
-  }, timeoutMs);
+  });
+  const resetInactivity = () => inactivity.reset();
 
   const [stdout, stderr, exitCode] = await Promise.all([
-    drain(proc.stdout, opts.onStdout),
-    drain(proc.stderr, opts.onStderr),
+    drain(proc.stdout, opts.onStdout, resetInactivity),
+    drain(proc.stderr, opts.onStderr, resetInactivity),
     proc.exited,
   ]);
-  clearTimeout(timer);
+  inactivity.clear();
 
   return {
     stdout,
     stderr: timedOut
-      ? stderr + `\n[relay] backend timed out after ${timeoutMs}ms and was killed`
+      ? stderr +
+        `\n[relay] backend produced no output for ${timeoutMs}ms and was killed (set RELAY_BACKEND_TIMEOUT_MS to raise the limit)`
       : stderr,
     exitCode: timedOut && exitCode === 0 ? 124 : exitCode,
     timedOut,

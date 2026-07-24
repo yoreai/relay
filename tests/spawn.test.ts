@@ -9,11 +9,25 @@ describe("runCli", () => {
     expect(r.timedOut).toBe(false);
   });
 
-  test("kills hung processes and reports timeout", async () => {
-    const r = await runCli(["sleep", "30"], { timeoutMs: 300 });
+  test("kills silent processes after inactivity and reports timeout", async () => {
+    const r = await runCli(
+      ["sh", "-c", 'trap "exit 0" TERM; while true; do sleep 1; done'],
+      { timeoutMs: 300 },
+    );
     expect(r.timedOut).toBe(true);
-    expect(r.exitCode).not.toBe(0);
-    expect(r.stderr).toContain("timed out");
+    expect(r.exitCode).toBe(124);
+    expect(r.stderr).toContain("no output for 300ms");
+    expect(r.stderr).toContain("RELAY_BACKEND_TIMEOUT_MS");
+  });
+
+  test("does not kill a slow process that keeps producing output", async () => {
+    const r = await runCli(
+      ["sh", "-c", "for i in 1 2 3 4 5 6 7 8; do echo tick; sleep 0.1; done"],
+      { timeoutMs: 300 },
+    );
+    expect(r.timedOut).toBe(false);
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout).toContain("tick");
   });
 
   test("streams stdout/stderr chunks live via onStdout/onStderr", async () => {
