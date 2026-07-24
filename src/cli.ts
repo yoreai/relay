@@ -27,7 +27,7 @@ Usage:
   relay backends [enable|disable <tool>]   # which installed CLIs relay may use
   relay uninstall [--purge]      # deregister MCP everywhere (then: brew uninstall relay)
   relay recall                   # catch-up digest: git + relay work + notes + sessions
-  relay remember "<note>"        # deposit a durable note for future sessions
+  relay remember "<note>" [--kind decision|todo|context|watchout]  # deposit a durable note for future sessions
   relay status [id|--all]
   relay savings [--by-lane|--by-model]
   relay doctor

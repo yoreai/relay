@@ -61,7 +61,7 @@ relay "fix the flaky retry test"   # route → run → verify → receipt
 relay --dry-run "review auth.ts"    # see routing without running
 relay -i                            # interactive REPL
 relay recall                        # catch-up digest: git + relay work + notes + sessions
-relay remember "auth uses JWT now"  # deposit a durable note for future sessions
+relay remember "auth uses JWT now" [--kind decision|todo|context|watchout]  # deposit a durable note for future sessions
 relay savings --by-lane
 relay update                        # refresh the model catalog (facts, not policy)
 relay advise                        # cheaper same-class models for your tiers

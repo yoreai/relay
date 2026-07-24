@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `relay remember` usage line in `src/cli.ts` and the README Quick use section now show the `[--kind decision|todo|context|watchout]` flag (the flag already worked; only the help text omitted it)
+
 ## [0.7.0] — 2026-07-23
 
 ### Added
