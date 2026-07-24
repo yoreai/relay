@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Backend timeout was wall-clock, killing legitimately long tasks mid-work.** A beta
+  tester's run died at exactly 10 minutes while the CLI was still streaming progress.
+  `RELAY_BACKEND_TIMEOUT_MS` (default 10 min) now measures **inactivity** — silence since
+  the last stdout/stderr chunk — so hung CLIs waiting on auth/network still fail over,
+  but a working backend that keeps producing output is not cut off
+
+## [0.8.4] — 2026-07-24
+
 ### Changed
 
 - **composer-2.5 now leads the `cheap`, `work` and `fast` tiers**, with glm-5.2 one line below it
@@ -38,11 +48,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   shipped starter policy, and the summary records which directive it used
 - The bench's stored note still claimed cursor costs were byte-estimated, which stopped being true
   when measured token reporting landed. It now counts measured vs estimated runs from the results
-- **Backend timeout was wall-clock, killing legitimately long tasks mid-work.** A beta
-  tester's run died at exactly 10 minutes while the CLI was still streaming progress.
-  `RELAY_BACKEND_TIMEOUT_MS` (default 10 min) now measures **inactivity** — silence since
-  the last stdout/stderr chunk — so hung CLIs waiting on auth/network still fail over,
-  but a working backend that keeps producing output is not cut off
 
 ## [0.8.3] — 2026-07-24
 
@@ -434,7 +439,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.8.3...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.8.4...HEAD
+[0.8.4]: https://github.com/yoreai/relay/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/yoreai/relay/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/yoreai/relay/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/yoreai/relay/compare/v0.8.0...v0.8.1
