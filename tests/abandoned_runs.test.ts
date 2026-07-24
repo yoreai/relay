@@ -16,17 +16,25 @@ function record(over: Partial<RunRecord> = {}): RunRecord {
   };
 }
 
-/** A pid that cannot be alive: spawn something trivial and wait for it to exit. */
-async function deadPid(): Promise<number> {
-  const proc = Bun.spawn(["true"], { stdout: "ignore", stderr: "ignore" });
-  const pid = proc.pid;
-  await proc.exited;
-  return pid;
+/**
+ * A pid nothing is using. Reusing a just-exited process's pid looked simpler
+ * but flaked: those are exactly the pids the OS recycles first, so under load
+ * the "dead" controller came back to life. Probe for one that's actually free.
+ */
+function unusedPid(): number {
+  for (let pid = 90_000; pid > 1; pid--) {
+    try {
+      process.kill(pid, 0);
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === "ESRCH") return pid;
+    }
+  }
+  throw new Error("no unused pid found");
 }
 
 describe("abandoned runs", () => {
-  test("a running record whose controller is gone reads back as interrupted", async () => {
-    const r = record({ owner_pid: await deadPid() });
+  test("a running record whose controller is gone reads back as interrupted", () => {
+    const r = record({ owner_pid: unusedPid() });
     appendRun(r);
     const read = getRun(r.id);
     expect(read?.status).toBe("interrupted");
@@ -39,8 +47,8 @@ describe("abandoned runs", () => {
     expect(getRun(r.id)?.status).toBe("running");
   });
 
-  test("a finished run is never reinterpreted, even if its controller is gone", async () => {
-    const r = record({ owner_pid: await deadPid(), status: "ok", verify_ok: true });
+  test("a finished run is never reinterpreted, even if its controller is gone", () => {
+    const r = record({ owner_pid: unusedPid(), status: "ok", verify_ok: true });
     appendRun(r);
     expect(getRun(r.id)?.status).toBe("ok");
   });
@@ -59,9 +67,9 @@ describe("abandoned runs", () => {
     expect(read?.error).toContain("no controller recorded");
   });
 
-  test("an abandoned run is not counted against its model in advise stats", async () => {
+  test("an abandoned run is not counted against its model in advise stats", () => {
     const model = `test-model-${Math.random().toString(36).slice(2, 8)}`;
-    appendRun(record({ owner_pid: await deadPid(), model }));
+    appendRun(record({ owner_pid: unusedPid(), model }));
     expect(modelStats()[model]).toBeUndefined();
   });
 });
