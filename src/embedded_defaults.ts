@@ -25,11 +25,16 @@ tiers:
     - { backend: gemini, model: gemini-3-flash }
     - { backend: codex, model: gpt-5.6-luna }
   review:
-    - { backend: cursor, model: opus-4.8-high }
-    - { backend: claude, model: opus-4.8-high }
+    - { backend: cursor, model: opus-5, effort: high }
+    - { backend: claude, model: opus-5 }
     - { backend: codex, model: gpt-5.6-sol }
     - { backend: gemini, model: gemini-3.1-pro }
+  # opus-5 leads deep: ~parity with fable-5 on coding benchmarks at half the
+  # price. fable-5 stays as the \`baseline\` (the counterfactual you'd otherwise
+  # have run) and behind opus-5 here for anyone who wants the top of the card.
   deep:
+    - { backend: cursor, model: opus-5, effort: high }
+    - { backend: claude, model: opus-5 }
     - { backend: cursor, model: fable-5-high }
     - { backend: claude, model: fable-5-high }
     - { backend: codex, model: gpt-5.6-sol }
@@ -104,7 +109,7 @@ bytes_per_token: 4
 `;
 
 export const EMBEDDED_CATALOG_YAML = `version: 1
-updated: "2026-07-23"
+updated: "2026-07-24"
 classes: [nano, cheap, workhorse, opus-class, frontier]
 models:
   gpt-5.6-luna:
@@ -171,12 +176,37 @@ models:
     in: 5.0
     out: 30.0
     backends: [cursor, codex]
-  kimi-k2.7-code:
+  opus-5:
+    # frontier on evidence, not vibes (2026-07-24): within 0.5pp of fable-5 on
+    # CursorBench 3.2 at max effort for ~half the cost per task, 3x the
+    # next-best on ARC-AGI-3, and clears fable-5's OSWorld 2.0 peak on ~1/3 the
+    # budget — at opus-4.8's unchanged rate card. Supersedes opus-4.8-high:
+    # same price, strictly better, so nothing should route to 4.8 by choice.
     class: frontier
+    in: 5.0
+    out: 25.0
+    cache_read: 0.50
+    supersedes: [opus-4.8-high]
+    backends: [cursor, claude]
+  kimi-k2.7-code:
+    # demoted frontier → workhorse 2026-07-24. It was the cheapest thing in the
+    # frontier class, so advise kept proposing it as a fable-5 replacement for
+    # the deep tier on price alone. The class never held up: every published
+    # K2.7 number is a Moonshot-proprietary suite (no independent SWE-bench,
+    # Terminal-Bench or LiveCodeBench results exist), and on Moonshot's OWN
+    # table it trails opus-4.8 — our opus-class marker — on Kimi Code Bench v2
+    # (62.0 vs 67.4), Program Bench (53.6 vs 63.8) and MCP Atlas (76.0 vs 81.3).
+    # Below the opus-class marker means below opus-class. Revisit if audited
+    # public-suite numbers land.
+    class: workhorse
     in: 1.0
     out: 4.0
     backends: [cursor, kimi]
   fable-5-high:
+    # note: the claude API gates fable-5 behind data retention being enabled,
+    # so \`claude --model claude-fable-5\` 400s on ZDR workspaces. relay pins the
+    # model rather than silently substituting one — you get a clear error, and
+    # the deep tier reaches opus-5 first anyway.
     class: frontier
     in: 10.0
     out: 50.0

@@ -37,6 +37,7 @@ export function cursorModelId(canonical: string, effort?: string): string {
     "grok-4.5-fast": `cursor-grok-4.5-${e}-fast`,
     "glm-5.2": "glm-5.2-high",
     "sonnet-5": `claude-sonnet-5-${e}`,
+    "opus-5": `claude-opus-5-${e}`,
     "opus-4.8-high": "claude-opus-4-8-high",
     "fable-5-high": "claude-fable-5-high",
     "gemini-3.1-pro": "gemini-3.1-pro",

@@ -12,6 +12,14 @@ const CatalogModelSchema = z.object({
   cache_read: z.number().nonnegative().optional(),
   /** latency-optimized model; advise won't swap a fast model for a slow one */
   fast: z.boolean().optional(),
+  /**
+   * Catalog ids this model replaces outright — strictly better at no higher
+   * price (typically a new release on its predecessor's rate card). This is
+   * how a new model reaches people who already have a directive: `advise`
+   * flags superseded picks even when the successor saves nothing, which the
+   * cheaper-model rule alone can never do.
+   */
+  supersedes: z.array(z.string()).optional(),
   backends: z.array(z.string()).min(1),
 });
 
@@ -42,24 +50,38 @@ export function fetchedCatalogPath(): string {
 
 export type LoadedCatalog = { catalog: Catalog; source: string };
 
-/** Resolution: user config override → fetched by `relay update` → embedded. */
-export function loadCatalog(): LoadedCatalog {
-  const candidates = [
-    { path: join(relayConfigDir(), "catalog.yaml"), source: "user config" },
-    { path: fetchedCatalogPath(), source: "fetched" },
-  ];
-  for (const c of candidates) {
-    if (!existsSync(c.path)) continue;
-    try {
-      return {
-        catalog: parseCatalog(readFileSync(c.path, "utf8")),
-        source: c.source,
-      };
-    } catch {
-      // corrupt override — fall through rather than break routing
-    }
+function tryLoad(path: string, source: string): LoadedCatalog | null {
+  if (!existsSync(path)) return null;
+  try {
+    return { catalog: parseCatalog(readFileSync(path, "utf8")), source };
+  } catch {
+    return null; // corrupt override — fall through rather than break routing
   }
-  return { catalog: parseCatalog(EMBEDDED_CATALOG_YAML), source: "embedded" };
+}
+
+/**
+ * Resolution: user config override → newer of (fetched, embedded).
+ *
+ * A hand-written config always wins — it's deliberate. Between the other two
+ * we take whichever was reviewed most recently: upgrading the binary ships a
+ * fresh embedded catalog AND a default directive that may route to models only
+ * that catalog knows, so letting an older `relay update` download shadow it
+ * would silently strip prices (and therefore receipts) from those models.
+ */
+export function loadCatalog(): LoadedCatalog {
+  const user = tryLoad(join(relayConfigDir(), "catalog.yaml"), "user config");
+  if (user) return user;
+
+  const embedded: LoadedCatalog = {
+    catalog: parseCatalog(EMBEDDED_CATALOG_YAML),
+    source: "embedded",
+  };
+  const fetched = tryLoad(fetchedCatalogPath(), "fetched");
+  if (!fetched) return embedded;
+
+  return fetched.catalog.updated >= embedded.catalog.updated
+    ? fetched
+    : embedded;
 }
 
 /**

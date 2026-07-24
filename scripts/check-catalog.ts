@@ -5,7 +5,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { KNOWN_BACKENDS } from "../src/backends/index.ts";
-import { parseCatalog } from "../src/catalog.ts";
+import { blendedCost, parseCatalog } from "../src/catalog.ts";
 import { loadDirectiveFromText } from "../src/directive.ts";
 
 const MAX_AGE_DAYS = 45;
@@ -48,6 +48,24 @@ for (const [id, m] of Object.entries(catalog.models)) {
   for (const b of m.backends) {
     if (!known.has(b)) {
       errors.push(`model "${id}": backend "${b}" has no relay adapter`);
+    }
+  }
+}
+
+// 3b. supersedes must point at real models, and must never cost more —
+//     otherwise "free upgrade" advice quietly becomes an upsell
+for (const [id, m] of Object.entries(catalog.models)) {
+  for (const old of m.supersedes ?? []) {
+    const prev = catalog.models[old];
+    if (!prev) {
+      errors.push(`model "${id}": supersedes unknown model "${old}"`);
+      continue;
+    }
+    if (blendedCost(m) > blendedCost(prev)) {
+      errors.push(
+        `model "${id}": claims to supersede "${old}" but costs more (blended ` +
+          `${blendedCost(m).toFixed(2)} vs ${blendedCost(prev).toFixed(2)})`,
+      );
     }
   }
 }

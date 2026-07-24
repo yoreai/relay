@@ -13,16 +13,21 @@ import {
 } from "./types.ts";
 
 /**
- * The claude CLI resolves model ALIASES (sonnet/haiku/opus), not the
- * canonical catalog ids relay uses for pricing. Map what we know; pass
- * unknown ids through so users can pin exact model strings.
+ * The claude CLI takes either a family ALIAS ("opus", "fable") that floats to
+ * the newest model in that family, or a pinned full name ("claude-opus-5").
+ * relay pins: the receipt prices a specific model, so the run has to BE that
+ * model. Floating aliases silently broke this once — `fable-5-high` mapped to
+ * the "opus" alias, so deep-tier runs billed as fable while actually running
+ * opus, and "opus" itself started resolving to opus-5 the day it shipped.
+ * Unknown ids pass through so users can pin exact model strings themselves.
  */
 export function claudeModelId(canonical: string): string {
   const map: Record<string, string> = {
-    "sonnet-5": "sonnet",
-    "haiku-4.5": "haiku",
-    "opus-4.8-high": "opus",
-    "fable-5-high": "opus", // best claude-served tier until fable alias confirmed
+    "sonnet-5": "claude-sonnet-5",
+    "haiku-4.5": "claude-haiku-4-5",
+    "opus-5": "claude-opus-5",
+    "opus-4.8-high": "claude-opus-4-8",
+    "fable-5-high": "claude-fable-5",
   };
   return map[canonical] ?? canonical;
 }

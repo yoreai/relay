@@ -35,15 +35,15 @@ const ROWS: { tier: string; lanes: string; cursor: Cell; claude: Cell; codex: Ce
   {
     tier: "review",
     lanes: "diagnose · root-cause · audit",
-    cursor: { model: "opus-4.8-high", inP: 5.0, outP: 25.0 },
-    claude: { model: "opus-4.8-high", inP: 5.0, outP: 25.0 },
+    cursor: { model: "opus-5", inP: 5.0, outP: 25.0 },
+    claude: { model: "opus-5", inP: 5.0, outP: 25.0 },
     codex: { model: "gpt-5.6-sol", inP: 5.0, outP: 30.0 },
   },
   {
     tier: "deep",
     lanes: "escalation ceiling",
-    cursor: { model: "fable-5-high", inP: 10.0, outP: 50.0 },
-    claude: { model: "fable-5-high", inP: 10.0, outP: 50.0 },
+    cursor: { model: "opus-5", inP: 5.0, outP: 25.0, hot: true },
+    claude: { model: "opus-5", inP: 5.0, outP: 25.0 },
     codex: { model: "gpt-5.6-sol", inP: 5.0, outP: 30.0 },
   },
 ];
@@ -102,10 +102,11 @@ export default function Matrix() {
         ))}
       </div>
       <p className="sub">
-        <span className="pass">glm-5.2</span> promoted to the work tier 2026-07-23 — 62.1
-        SWE-bench Pro (open-weights leader) at $1.40/$4.40, ~35% cheaper than the previous
-        default, same quality class. Quality floor unchanged: your own lint &amp; tests, with
-        escalation to review/deep on failure.
+        <span className="pass">opus-5</span> took the review and deep tiers 2026-07-24 — within
+        0.5pp of fable-5 on CursorBench 3.2 at half the cost per task, on opus-4.8's unchanged
+        rate card. Already on a directive of your own? <code>relay advise</code> flags the swap;
+        it never edits your policy for you. Quality floor unchanged: your own lint &amp; tests,
+        with escalation to review/deep on failure.
       </p>
     </section>
   );

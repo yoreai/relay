@@ -156,6 +156,7 @@ default_lane: quickfix
         cost: 1.75,
         class: "frontier",
         savingsPct: 91,
+        kind: "cheaper",
       },
     ]);
     expect(msg).toContain("router.yaml");
@@ -192,6 +193,7 @@ default_lane: quickfix
         cost: 1.58,
         class: "workhorse",
         savingsPct: 47,
+        kind: "cheaper",
       },
     ]);
 

@@ -25,11 +25,16 @@ tiers:
     - { backend: gemini, model: gemini-3-flash }
     - { backend: codex, model: gpt-5.6-luna }
   review:
-    - { backend: cursor, model: opus-4.8-high }
-    - { backend: claude, model: opus-4.8-high }
+    - { backend: cursor, model: opus-5, effort: high }
+    - { backend: claude, model: opus-5 }
     - { backend: codex, model: gpt-5.6-sol }
     - { backend: gemini, model: gemini-3.1-pro }
+  # opus-5 leads deep: ~parity with fable-5 on coding benchmarks at half the
+  # price. fable-5 stays as the `baseline` (the counterfactual you'd otherwise
+  # have run) and behind opus-5 here for anyone who wants the top of the card.
   deep:
+    - { backend: cursor, model: opus-5, effort: high }
+    - { backend: claude, model: opus-5 }
     - { backend: cursor, model: fable-5-high }
     - { backend: claude, model: fable-5-high }
     - { backend: codex, model: gpt-5.6-sol }

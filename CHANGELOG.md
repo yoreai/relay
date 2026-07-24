@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-07-24
+
+### Added
+
+- **opus-5** in the catalog as `frontier` class, and leading the `review` and `deep` tiers of the default directive. Within 0.5pp of fable-5 on CursorBench 3.2 at max effort for ~half the cost per task, 3x the next-best on ARC-AGI-3, and clears fable-5's OSWorld 2.0 peak on ~1/3 the budget — all on opus-4.8's unchanged $5/$25 rate card
+- Catalog models can declare `supersedes: [id]`. `relay advise` now flags a superseded pick **even when the successor saves nothing**, which the cheaper-model rule structurally could not: opus-5 costs exactly what opus-4.8 costs, so price-only advice stayed silent about a strictly better model. This is how new models reach people who already have a directive — catalog data ships without a release, and relay still never edits your policy for you
+
+### Changed
+
+- **`kimi-k2.7-code` reclassed `frontier` → `workhorse`.** As the cheapest model in the frontier class it was what `advise` recommended to replace fable-5 in the `deep` tier — a ~91% "saving" across a two-tier quality drop. The class never held up: every published K2.7 number comes from Moonshot's own proprietary suites (no independent SWE-bench, Terminal-Bench or LiveCodeBench results exist), and on Moonshot's own table it trails opus-4.8 — relay's opus-class marker — on Kimi Code Bench v2, Program Bench and MCP Atlas. `advise` now sends deep-tier users to opus-5 (~50% cheaper, genuinely same class) instead. Revisit if audited public-suite numbers land
+
+### Fixed
+
+- **The claude backend ran a different model than it billed.** `fable-5-high` mapped to the floating CLI alias `opus`, so deep-tier runs on claude executed Opus while pricing Fable; `opus-4.8-high` mapped to `opus` too, which silently became Opus 5 the day it shipped. All claude ids are now pinned full names (`claude-opus-5`, `claude-fable-5`, …) — relay runs the model the receipt is priced against, or fails loudly. Note: the claude API gates `claude-fable-5` behind data retention, so it 400s on ZDR workspaces rather than quietly substituting
+- **Upgrading the binary could strip prices from its own default models.** `loadCatalog` preferred any `relay update`-fetched catalog over the embedded one, so a newer release whose default directive routed to a new model lost its receipt ("savings unavailable") until the user ran `relay update`. Between fetched and embedded, relay now takes whichever was reviewed most recently; a hand-written user catalog still always wins
+
 ## [0.7.2] — 2026-07-24
 
 ### Fixed
@@ -298,7 +314,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.7.2...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/yoreai/relay/compare/v0.7.2...v0.8.0
 [0.7.2]: https://github.com/yoreai/relay/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/yoreai/relay/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/yoreai/relay/compare/v0.6.19...v0.7.0

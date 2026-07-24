@@ -33,25 +33,51 @@ describe("catalog", () => {
     }
   });
 
-  test("blended cost favors kimi-k2.7-code over fable at same class", () => {
+  test("the frontier class holds only independently-verified models", () => {
+    // kimi-k2.7-code sat here purely on price and made advise recommend it as a
+    // fable-5 replacement for the deep tier. Its only published numbers are
+    // vendor-proprietary and trail opus-4.8 on Moonshot's own table.
     const kimi = catalog.models["kimi-k2.7-code"]!;
     const fable = catalog.models["fable-5-high"]!;
-    expect(kimi.class).toBe(fable.class);
-    expect(blendedCost(kimi)).toBeLessThan(blendedCost(fable) * 0.2);
+    expect(kimi.class).not.toBe(fable.class);
+  });
+
+  test("opus-5 undercuts fable-5 without leaving the frontier class", () => {
+    const opus5 = catalog.models["opus-5"]!;
+    const fable = catalog.models["fable-5-high"]!;
+    expect(opus5.class).toBe(fable.class);
+    expect(blendedCost(opus5)).toBeLessThan(blendedCost(fable) * 0.6);
   });
 });
 
 describe("advise", () => {
-  test("suggests kimi-k2.7-code for deep and composer for work when cursor present", () => {
+  test("suggests composer for work, and nothing for an already-optimal deep", () => {
     const suggestions = adviseTiers(
       directive,
       catalog,
       new Set(["cursor", "claude"]),
     );
     const byTier = Object.fromEntries(suggestions.map((s) => [s.tier, s]));
-    expect(byTier.deep?.model).toBe("kimi-k2.7-code");
-    expect(byTier.deep?.savingsPct).toBeGreaterThan(80);
     expect(byTier.work?.model).toBe("composer-2.5");
+    // the shipped deep tier already leads with the cheapest frontier model
+    expect(byTier.deep).toBeUndefined();
+  });
+
+  test("a directive still on fable-5 is pointed at opus-5, not down a class", () => {
+    const stale = loadDirectiveFromText(`version: 1
+baseline: fable-5-high
+tiers:
+  deep:
+    - { backend: cursor, model: fable-5-high }
+lanes:
+  - name: quickfix
+    match: { verbs: [fix] }
+    tier: deep
+default_lane: quickfix
+`);
+    const [s] = adviseTiers(stale, catalog, new Set(["cursor"]));
+    expect(s?.model).toBe("opus-5");
+    expect(s?.class).toBe("frontier");
   });
 
   test("never suggests across quality classes", () => {
@@ -89,9 +115,10 @@ describe("advise", () => {
       directive,
       catalog,
       new Set(["cursor", "claude"]),
-      { "kimi-k2.7-code": { runs: 10, ok: 9 } },
+      { "composer-2.5": { runs: 10, ok: 9 } },
     );
-    const deep = suggestions.find((s) => s.tier === "deep");
-    expect(deep?.evidence).toContain("9/10");
+    const work = suggestions.find((s) => s.tier === "work");
+    expect(work?.model).toBe("composer-2.5");
+    expect(work?.evidence).toContain("9/10");
   });
 });

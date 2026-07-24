@@ -22,13 +22,48 @@ export type TierSuggestion = {
   cost: number;
   class: string;
   savingsPct: number;
+  /**
+   * "cheaper" — same quality class, meaningfully less money.
+   * "supersedes" — the current pick was replaced by a strictly better model at
+   * no higher price, so staying put buys nothing.
+   */
+  kind: "cheaper" | "supersedes";
   evidence?: string;
 };
 
 /**
- * Pure suggestion engine: for each tier, find the cheapest catalog model in
- * the SAME quality class, available on an installed backend, that is at
- * least 20% cheaper (blended) than what the tier resolves to today.
+ * The cheapest available model that declares it supersedes `currentId`, at no
+ * more than the current price. Costing no more is the guard that keeps
+ * `supersedes` a fact about replacement rather than a licence to upsell.
+ */
+function findSuccessor(
+  currentId: string,
+  currentEntry: { class: string; fast?: boolean; in: number; out: number },
+  catalog: Catalog,
+  available: Set<string>,
+): { id: string; backend: string; cost: number } | null {
+  const currentCost = blendedCost(currentEntry);
+  let best: { id: string; backend: string; cost: number } | null = null;
+
+  for (const [id, m] of Object.entries(catalog.models)) {
+    if (id === currentId) continue;
+    if (!m.supersedes?.includes(currentId)) continue;
+    if (currentEntry.fast && !m.fast) continue;
+    const backend = m.backends.find((b) => available.has(b));
+    if (!backend) continue;
+    const cost = blendedCost(m);
+    if (cost > currentCost) continue;
+    if (!best || cost < best.cost) best = { id, backend, cost };
+  }
+
+  return best;
+}
+
+/**
+ * Pure suggestion engine: for each tier, propose either the successor to a
+ * superseded pick (free upgrade) or the cheapest catalog model in the SAME
+ * quality class, available on an installed backend, that is at least 20%
+ * cheaper (blended) than what the tier resolves to today.
  * Facts propose; the user's directive stays untouched unless --apply.
  */
 export function adviseTiers(
@@ -50,6 +85,40 @@ export function adviseTiers(
     const currentEntry = catalog.models[current.model];
     if (!currentEntry) continue; // unknown model — nothing to compare against
     const currentCost = blendedCost(currentEntry);
+
+    // A successor at no extra cost wins outright: price-only advice would stay
+    // silent here (nothing is saved), yet running the superseded model is
+    // simply worse. Applying it re-resolves the tier, so a later `advise` can
+    // still propose a cheaper same-class pick on top.
+    const successor = findSuccessor(
+      current.model,
+      currentEntry,
+      catalog,
+      available,
+    );
+    if (successor) {
+      const s = stats[successor.id];
+      suggestions.push({
+        tier: tierName,
+        currentBackend: current.backend,
+        currentModel: current.model,
+        currentCost,
+        backend: successor.backend,
+        model: successor.id,
+        cost: successor.cost,
+        class: catalog.models[successor.id]!.class,
+        savingsPct: Math.max(
+          0,
+          Math.round((1 - successor.cost / currentCost) * 100),
+        ),
+        kind: "supersedes",
+        evidence:
+          s && s.runs >= 3
+            ? `local evidence: verified ${s.ok}/${s.runs} runs`
+            : undefined,
+      });
+      continue;
+    }
 
     let best: {
       id: string;
@@ -82,6 +151,7 @@ export function adviseTiers(
       cost: best.cost,
       class: currentEntry.class,
       savingsPct: Math.round((1 - best.cost / currentCost) * 100),
+      kind: "cheaper",
       evidence:
         s && s.runs >= 3
           ? `local evidence: verified ${s.ok}/${s.runs} runs`
@@ -96,11 +166,17 @@ export function formatSuggestions(suggestions: TierSuggestion[]): string {
   if (suggestions.length === 0) {
     return "relay advise: your tiers already use the cheapest same-class models available here";
   }
-  const lines = ["relay advise — same quality class, lower price:", ""];
+  const lines = ["relay advise — better model, same or lower price:", ""];
   for (const s of suggestions) {
+    const why =
+      s.kind === "supersedes"
+        ? s.savingsPct > 0
+          ? `superseded: strictly better and ~${s.savingsPct}% cheaper`
+          : `superseded: strictly better at the same price`
+        : `~${s.savingsPct}% cheaper, same ${s.class} class`;
     lines.push(
       `  ${s.tier.padEnd(7)} ${s.currentModel} → ${s.model} (${s.backend}) — ` +
-        `~${s.savingsPct}% cheaper, same ${s.class} class` +
+        why +
         (s.evidence ? ` · ${s.evidence}` : ""),
     );
   }
