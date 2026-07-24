@@ -86,6 +86,17 @@ describe("recallDigest", () => {
     expect(d).not.toContain("note number 1 ");
   });
 
+  test("parked relay/* branches are listed without git's marker prefixes", async () => {
+    const repo = makeRepo();
+    const g = (args: string[]) => execFileSync("git", ["-C", repo, ...args]);
+    g(["branch", "relay/build-abc"]);
+    // a worktree checkout makes git prefix the branch with "+", not "*"
+    g(["worktree", "add", "-q", join(repo, ".relay", "wt"), "relay/build-abc"]);
+    const d = await recallDigest(repo, { sessions: false });
+    expect(d).toContain("- relay/build-abc");
+    expect(d).not.toContain("+ relay/build-abc");
+  });
+
   test("non-repo dir degrades gracefully", async () => {
     const dir = mkdtempSync(join(tmpdir(), "relay-mem-norepo-"));
     const d = await recallDigest(dir, { sessions: false });

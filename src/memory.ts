@@ -148,9 +148,11 @@ export async function recallDigest(cwd: string, opts: RecallOptions = {}): Promi
     for (const l of log.split("\n")) lines.push(`- ${oneLine(l)}`);
   }
 
+  // `git branch` marks the current branch with "*" and worktree-checked-out
+  // ones with "+" — relay branches are usually the latter, so strip both.
   const relayBranches = (await runGit(repoKey, ["branch", "--list", "relay/*"]))
     .split("\n")
-    .map((b) => b.replace(/^[* ]+/, "").trim())
+    .map((b) => b.replace(/^[*+ ]+/, "").trim())
     .filter(Boolean);
   if (relayBranches.length) {
     lines.push("", "## unreconciled relay branches (work parked, not merged)");
