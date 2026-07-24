@@ -21,6 +21,11 @@ Hand relay a task in plain English — from your terminal, or from any agent tha
 cheapest-and-fastest capable backend + model, relay runs it headless in your repo, verifies
 the result, escalates only when verification fails, and prints a receipt for what it saved you.
 
+**And it remembers.** Memory is keyed to the repo, not the tool — so you can ask in Cursor
+about work you did in Claude Code. Say *"where were we?"* in a brand-new thread and relay
+catches the agent up from local files, so you never pay for a thousand-turn session just to
+avoid re-explaining. See [cross-agent memory](#cross-agent-memory).
+
 **Local harness.** No relay cloud, no accounts, no telemetry, no stored credentials.
 `relay update` only *pulls* the public model catalog (and a release tag check) from
 GitHub — it never uploads your tasks, code, or usage.
@@ -114,11 +119,16 @@ agent's own edits, nothing staged or committed for you. Walkaway lanes work in a
 isolated worktree instead — committed on a `relay/*` branch (draft PR when a remote
 exists), never auto-merged. Your branch and uncommitted work are never touched.
 
-## relay remembers
+## Cross-agent memory
 
 Long chats are the expensive habit relay exists to break: every extra turn re-sends
-the whole bloated context at frontier prices. So relay gives agents a reason to
-start fresh — **new sessions catch up in one call.**
+the whole bloated context at frontier prices. But people keep sessions alive because
+starting fresh means re-explaining — so relay removes that reason. **New sessions
+catch up in one call.**
+
+Memory is keyed to your **git root, not the agent** — every tool on the machine reads
+and writes the same store. Ask Cursor about a decision you made in Claude Code, or
+pick up in Codex what a Cursor session left half-finished.
 
 `relay_recall` (or `relay recall`) returns a compact per-repo digest built from
 local files only:
@@ -131,8 +141,10 @@ local files only:
    best-effort from the hosts' own local session files
 
 Say *"where were we?"* in a brand-new thread and the agent recalls instead of
-re-reading history — or asking you. Nothing leaves your machine; `relay
-uninstall --purge` deletes it all.
+re-reading history — or asking you. Layer 1 means this works on day one, even if you
+never route a single task through relay. Nothing leaves your machine; `relay
+uninstall --purge` deletes it all. It's an honest digest of what matters, not a
+transcript of everything.
 
 ## The directive
 

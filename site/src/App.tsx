@@ -3,6 +3,7 @@ import Hero from "./components/Hero";
 import BranchFlow from "./components/BranchFlow";
 import Terminal from "./components/Terminal";
 import Why from "./components/Why";
+import Memory from "./components/Memory";
 import Trust from "./components/Trust";
 import How from "./components/How";
 import Matrix from "./components/Matrix";
@@ -26,6 +27,7 @@ export default function App() {
       </header>
 
       <Why />
+      <Memory />
       <Trust />
       <How />
       <Matrix />

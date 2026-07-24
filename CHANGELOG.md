@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- Site: dedicated **cross-agent memory** section (real `relay recall` digest shape, the
+  repo-not-tool keying, the day-one git layer), memory in the hero lede and nav, and the origin
+  story plus motivation in `about`
+- `README.md`: memory promoted into the opening pitch; "relay remembers" → "Cross-agent memory",
+  spelling out that the store is keyed to the git root so Cursor / Claude Code / Codex share it
+- `AGENTS.md`: memory + catalog + activation modules in the architecture reference, an
+  "invariants that cost us a bug once" section (pinned model ids, catalog date precedence,
+  read-only lane flags, worker recursion), and `supersedes:` added to the catalog ritual
+- `PLAN.md`: refreshed the stale parts — cursor usage is measured now (not byte-estimated), the
+  receipt example matches current output, the rejected `bd`/beads context source is marked as
+  such, and the model-id pinning rule plus the "tiers are the latest-model abstraction" decision
+  are recorded
+
 ## [0.8.0] — 2026-07-24
 
 ### Added

@@ -45,10 +45,10 @@ export default function Why() {
           <p>
             Long chats re-send their whole bloated context at frontier prices, every turn. relay
             gives you a way out: say <em>"where were we?"</em> in a brand-new thread and{" "}
-            <code>relay_recall</code> catches the agent up from local residue — recent git
-            activity, delegated runs, notes past sessions banked with{" "}
-            <code>relay_remember</code>, even your recent asks across Cursor / Claude / Codex.
-            All local files, nothing uploaded. No re-explaining, no thousand-turn sessions.
+            <code>relay_recall</code> catches the agent up from local residue. Memory is keyed to
+            the <b>repo, not the tool</b> — so you can ask in Cursor about work you did in Claude
+            Code. No re-explaining, no thousand-turn sessions.{" "}
+            <a href="#memory">how memory works →</a>
           </p>
         </div>
       </div>

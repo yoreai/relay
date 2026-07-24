@@ -213,6 +213,8 @@ section h2 {
   font-size: 20px; margin-bottom: 30px; letter-spacing: -0.3px;
 }
 .prompt { color: var(--green); margin-right: 8px; }
+/* a lede used inside a section, not the hero: keep the measure readable */
+.section-lede { max-width: 800px; font-size: 14.5px; margin-top: -8px; }
 
 .cols { display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px 40px; }
 @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }

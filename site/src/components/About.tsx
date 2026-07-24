@@ -14,11 +14,27 @@ export default function About() {
             <em>build tools that help other people succeed.</em>
           </p>
           <p>
-            relay exists because I got tired of watching agents — mine and everyone else's — pay
-            frontier prices for mechanical work, and equally tired of the false trade where
-            "cheap" means "wrong." The cheapest pathway and the best result are usually the same
-            pathway, if something is checking the work. relay is that something. Open source,
-            local-first, honest receipts.
+            <b>Where this came from:</b> at a hackathon someone mentioned the $500 of model
+            credits everyone had been handed, and the room joked they'd burn through it by
+            lunch. My honest reaction was <em>"I'd burn $500 before I finish my morning
+            coffee."</em> That was the moment — not because the credits mattered, but because
+            nobody in that room could tell you which of those dollars bought better code and
+            which just bought a frontier model doing a rename.
+          </p>
+          <p>
+            Three things bothered me enough to build: there's no reason to run a frontier model
+            on <em>everything</em>, but cheaping out wrecks quality; switching models by hand
+            never actually happens, because half the time you don't know the scope of your own
+            problem yet; and every auto-router I tried quietly picked the cheap model and let
+            quality tank. The fix had to make the <em>right</em> choice the <em>default</em>{" "}
+            choice, and prove it with your own tests.
+          </p>
+          <p>
+            <b>Why I keep working on it:</b> it can help a lot of people save a lot of money
+            without compromising quality — and that's not a trade, it's a measurement problem.
+            The cheapest pathway and the best result are usually the same pathway, if something
+            is checking the work. relay is that something. Open source, local-first, honest
+            receipts.
           </p>
         </div>
         <div className="projects">

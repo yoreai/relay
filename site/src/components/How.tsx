@@ -5,7 +5,7 @@ tiers:
     - { backend: claude, model: sonnet-5 }
     - { backend: codex,  model: gpt-5.6-sol }
   deep:
-    - { backend: cursor, model: fable-5-high }
+    - { backend: cursor, model: opus-5, effort: high }
 lanes:
   - name: quickfix
     match: { verbs: [fix, rename, bump] }

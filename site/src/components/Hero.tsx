@@ -16,7 +16,9 @@ export default function Hero() {
         70% of work a mid-tier model does just as well. <b>relay</b> is the
         routing agent under any surface: it sends each task to the{" "}
         <em>cheapest model that clears its quality bar</em>, verifies the
-        result, escalates only on failure, and hands you a receipt.
+        result, escalates only on failure, and hands you a receipt.{" "}
+        <b>And it remembers</b> — start a fresh thread, ask{" "}
+        <em>"where were we?"</em>, and the context is already there.
       </p>
       <div className="install-line">
         <code id="install-cmd">brew install yoreai/tap/relay</code>

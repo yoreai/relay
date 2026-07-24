@@ -7,6 +7,7 @@ export default function Nav() {
       </span>
       <div className="nav-links">
         <a href="#why">why</a>
+        <a href="#memory">memory</a>
         <a href="#trust">trust</a>
         <a href="#how">how</a>
         <a href="#matrix">matrix</a>

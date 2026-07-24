@@ -1,9 +1,11 @@
 # Relay — Design Record
 
-> **One-line pitch:** an interface-independent task router. You (or your agent) hand Relay a task
-> in plain English; a shareable *directive* decides which headless backend and model is the
-> cheapest-and-fastest that can do it well; Relay runs it, verifies it, escalates only when needed,
-> and prints a receipt for what it saved you.
+> **One-line pitch:** an interface-independent task router *that remembers*. You (or your agent)
+> hand Relay a task in plain English; a shareable *directive* decides which headless backend and
+> model is the cheapest-and-fastest that can do it well; Relay runs it, verifies it, escalates only
+> when needed, and prints a receipt for what it saved you. Per-repo memory (§5b) means a new
+> session catches up in one call instead of re-explaining — which is what makes short sessions
+> practical, and short sessions are half the savings.
 
 > **Status:** built and shipping (see `CHANGELOG.md` for release history, `README.md` for install/use).
 > This file is the **locked design record** — product decisions, architecture intent, and open
@@ -67,6 +69,15 @@ in `defaults/catalog.yaml`, not in this file.
     `tiers:` table maps tiers → concrete models. Tiers accept an ordered fallback list; the first
     candidate whose backend CLI is installed wins, so a single-backend machine routes every tier
     with zero config. Updating for a new model = editing one table (or running `relay advise`).
+    **Tiers are the "latest model" abstraction** — users name a quality bar, not a version, so
+    relay never needs to guess which release is newest (§6). New models arrive as catalog facts;
+    `advise` proposes, the user accepts.
+11. **`advise` reports two distinct things** (2026-07-24): a *cheaper* same-class model, or a
+    *superseded* pick whose declared successor costs no more. The second case exists because a
+    strictly-better model at an identical price saves nothing, so a price-only rule can never
+    mention it — and that is exactly the shape of most flagship refreshes.
+12. **Memory is core, not a plugin** (2026-07-23, owner-driven): two MCP tools + CLI twins, no
+    hooks, no skills, no second database to install. Rationale and layer design in §5b.
 
 ---
 
@@ -108,9 +119,9 @@ type Brief = {
 **Who assembles it — the rule: whoever understands the task pays for the brief.**
 - **MCP callers** (an expensive agent mid-session) pass a curated brief; relay passes it through
   verbatim (it already paid to understand the problem — best possible assembler).
-- **CLI humans** get relay's assembler: `bd` graph (target bead + 1 hop + relevant remembers —
-  ONLY if `bd` exists), `git status`+diff, files named in the task, repo AGENTS.md. Hard token
-  budget (default ~30k chars; configurable).
+- **CLI humans** get relay's assembler: `git status`+diff, files named in the task, repo
+  AGENTS.md. Hard token budget (default ~30k chars; configurable). *(An earlier draft sourced
+  context from a `bd`/beads graph; that dependency was rejected — see §5b.)*
 
 Small-context safety comes from the loop, not from stuffing context: **verify → widen → escalate**
 (§3). Thin briefs self-heal mechanically; fat context is only paid for after thin context
@@ -120,14 +131,19 @@ demonstrably failed.
 
 ## 5. Savings accounting (the receipt)
 
-- Directive has `baseline:` + the price table (ship a `prices.yaml` with the tier table; let the
-  directive override; `defaults/catalog.yaml` fills prices for models missing from `prices.yaml`).
+- Directive has `baseline:` + prices. `defaults/catalog.yaml` is the authoritative price source;
+  a user `prices.yaml` may still override per model. Catalog resolution: user config → whichever
+  of (fetched, embedded) was reviewed most recently — an older fetched copy must never shadow a
+  newer embedded one, or a release loses receipts for its own default models.
   After each run:
   `saved = tokens_in×(P_base_in−P_used_in) + tokens_out×(P_base_out−P_used_out)`.
-- Print one quiet line: `relay: ~$1.84 saved (grok-4.5 vs fable-5-high) [estimated]`.
-- `relay savings` → cumulative, split by lane/model, **measured vs estimated labeled per row**
-  (claude/codex backends = measured; cursor backend = estimated from bytes until its CLI emits
-  usage).
+- Print one quiet line, naming both sides so the counterfactual is auditable:
+  `relay: ~$0.22 saved — glm-5.2 cost $0.02, baseline fable-5-high would've cost ~$0.24 [measured]`.
+- `relay savings` → cumulative, split by lane/model, **measured vs estimated labeled per row.**
+  cursor/claude/codex all report usage in their stream-json result events, so those are
+  *measured* (shared parser: `parseStreamUsage`); byte-estimation is now only the fallback when a
+  backend emits no usage at all. Cache-read tokens are priced separately — ignoring them was
+  once a ~12x savings overstatement.
 - Log every run to `runs.jsonl`: `{ts, lane, backend, model, tokens_in/out (or est),
   verify_result, escalations, saved_usd, task_hash}` — NO task text by default (privacy);
   `--log-tasks` opt-in.
@@ -172,11 +188,19 @@ because starting fresh means re-explaining. Memory removes that reason.
 ## 6. Backends — constraints
 
 - Common interface: `run(brief, model, opts) → {output, filesChanged, usage?, exitCode}`.
-- **cursor** — Cursor CLI does **not** emit token usage in result events (verified: "Tokens:
-  unavailable"). Estimate usage from I/O bytes (§5) until fixed upstream. Binary discovery:
-  `cursor-agent` or `agent` on PATH (users alias it); make it configurable.
+- **Model ids must be pinned, never aliased.** Backends take a canonical catalog id and map it to
+  a concrete CLI id (`opus-5` → `claude-opus-5`). Family aliases like `opus` are forbidden in
+  these maps: they silently re-point when a new family member ships, so the run stops being the
+  model the receipt priced. This is why relay does *not* offer "always use the latest in family"
+  routing — the tier table is the intended abstraction, and `relay advise` is how new models
+  arrive (with a human accepting the diff). Learned the hard way 2026-07-24.
+- **cursor** — emits usage in its stream-json result event (as do claude/codex); parse it rather
+  than estimating. Binary discovery: `cursor-agent` or `agent` on PATH (users alias it); make it
+  configurable. Effort is encoded in the model id itself (`claude-opus-5-high`).
 - **claude / codex** — DO emit usage in their result event. Respect user aliases; never pass
   `--dangerously-skip-permissions` ourselves — permission posture belongs to the user's own config.
+  Codex additionally needs `tool_timeout_sec` + tool-approval keys set at setup time or it
+  cancels MCP calls silently.
 - **gemini / grok / kimi** — spec-driven generic CLI backend; adding a new agent CLI is one table
   entry. Mark `verified: false` until tested against a real install.
 - **frankie adapter (separate package/dir)** — the "walkaway" backend for repos that have Frankie.
@@ -187,12 +211,16 @@ because starting fresh means re-explaining. Memory removes that reason.
 
 ## 7. Risks / honest caveats (tell the user, don't hide)
 
-- **Cursor CLI usage gap** → estimated receipts on that backend (said on the receipt).
-- **Fresh short sessions lose accumulated judgment** — mitigation is brief quality + beads
-  hygiene, not bigger contexts. Relay is only as smart as its briefs.
+- **Fresh short sessions lose accumulated judgment** — mitigated by memory (§5b) plus brief
+  quality, not by bigger contexts. Relay is only as smart as its briefs.
+- **Memory is a digest, not a transcript** — recall can omit something that mattered. The
+  wording never promises total recall, and the host-session layer is explicitly best-effort
+  against undocumented file formats.
 - **Cheap-model wrongness costs review cycles** — the verify/escalate ladder bounds it, but
   `done_means` quality is the real control. Push callers to write verifiable acceptance.
 - **Model IDs/prices drift** — everything lives in directive/catalog data files; nothing hardcoded.
+  Catalog updates reach installed relays via `relay update` with no release, so a new model is a
+  data change. What *cannot* be data is a new backend id mapping — that ships with the binary.
 - **Backend CLI flags drift** — adapters must feature-detect (`--help` probe or version gate),
   fail with actionable messages, never crash relay core.
 
@@ -202,6 +230,14 @@ because starting fresh means re-explaining. Memory removes that reason.
 
 1. Final public name check when open-sourcing widely (bare `relay` is fine for tap; revisit if it
    ever goes registry-global). — *Still open.*
+5. Should the frontier class require independently-verified benchmarks to enter? Vendor-only
+   numbers put `kimi-k2.7-code` in frontier, where `advise` recommended it as a fable-5
+   replacement on price alone (demoted 2026-07-24). — *Convention for now; not enforced by
+   `check-catalog`.*
+6. Should `advise` surface a *newer sibling* a backend CLI offers but the catalog doesn't know
+   about yet (e.g. by diffing `cursor-agent models`)? Would have caught opus-5 locally on day
+   one, but family/version inference from arbitrary model strings is fragile. — *Deferred; the
+   catalog + `supersedes` path covers it with a human in the loop.*
 2. Classifier default: on or off? — *Resolved: on, nano-tier (see `defaults/router.yaml`).*
 3. Should `build`-lane worktree runs auto-open a PR when `gh` is present? — *Resolved: yes, draft
    PR on a `relay/*` branch, never auto-merged.*
