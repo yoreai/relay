@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] — 2026-07-24
+
 ### Added
 
 - `relay savings --json` — the full summary as JSON for scripting, instead of parsing the
@@ -353,7 +355,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/yoreai/relay/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/yoreai/relay/compare/v0.7.2...v0.8.0
 [0.7.2]: https://github.com/yoreai/relay/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/yoreai/relay/compare/v0.7.0...v0.7.1
