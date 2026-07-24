@@ -157,8 +157,8 @@ The model market moves; a routing table nobody looks at silently overpays. Relay
 ## Uninstall
 
 ```bash
-relay uninstall          # deregister MCP + remove the delegation hints from Cursor/Claude/Codex
-relay uninstall --purge  # …also delete ~/.config/relay and ~/.local/share/relay
+relay uninstall          # deregister MCP (Cursor, Claude desktop+CLI, Codex) + strip activation hints
+relay uninstall --purge  # …also delete ~/.config/relay and ~/.local/share/relay (incl. per-repo memory)
 brew uninstall relay     # then remove the binary
 ```
 

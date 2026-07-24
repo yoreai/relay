@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docs
+
+- README Uninstall section: note that `relay uninstall` also deregisters the Claude desktop app (`claude_desktop_config.json`), and `--purge` also deletes the per-repo memory store
+
 ## [0.7.0] — 2026-07-23
 
 ### Added
