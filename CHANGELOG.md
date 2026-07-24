@@ -42,6 +42,14 @@ the OS's most permissive file defaults, and neither was a decision anyone had ac
   `RELAY_BACKEND_TIMEOUT_MS` (default 10 min) now measures **inactivity** — silence since
   the last stdout/stderr chunk — so hung CLIs waiting on auth/network still fail over,
   but a working backend that keeps producing output is not cut off
+- **A flag written after the task was silently swallowed into the task text**, which made
+  `relay "…" --dry-run` spend real money on a real run — the one flag whose whole job is to
+  spend none. The parser consumed the rest of argv as soon as it saw two non-flag tokens in a
+  row, so `--dry-run`, `--lane`, `--tier`, `--walkaway` and `--log-tasks` all became part of the
+  goal the model read. Flags are now recognized wherever they appear, and an unrecognized one
+  fails loudly instead of quietly becoming prompt text. `relay run "…"` also works now: `run`
+  is accepted as the implicit verb rather than prepended to the goal. Guarded by
+  `tests/cli_args.test.ts`, which can exist because the entrypoint is behind `import.meta.main`
 
 ## [0.8.4] — 2026-07-24
 

@@ -67,9 +67,32 @@ type Parsed = {
   rest: string[];
 };
 
-function parseArgs(argv: string[]): Parsed {
+const SUBCOMMANDS = [
+  "status",
+  "savings",
+  "doctor",
+  "init",
+  "mcp",
+  "setup",
+  "login",
+  "update",
+  "advise",
+  "backends",
+  "recall",
+  "remember",
+  "trust",
+  "uninstall",
+  "help",
+  "version",
+];
+
+export function parseArgs(argv: string[]): Parsed {
   const out: Parsed = { rest: [] };
   const args = [...argv];
+  // Task words accumulate as we keep scanning for flags. Consuming the rest of
+  // argv here instead meant a flag written after the task was silently folded
+  // into the task text — `relay "…" --dry-run` then billed a real run.
+  const words: string[] = [];
   while (args.length) {
     const a = args.shift()!;
     if (a === "-h" || a === "--help") {
@@ -90,40 +113,24 @@ function parseArgs(argv: string[]): Parsed {
       out.tier = args.shift();
     } else if (a === "--cwd") {
       out.cwd = args.shift();
-    } else if (
-      [
-        "status",
-        "savings",
-        "doctor",
-        "init",
-        "mcp",
-        "setup",
-        "login",
-        "update",
-        "advise",
-        "backends",
-        "recall",
-        "remember",
-        "trust",
-        "uninstall",
-        "help",
-        "version",
-      ].includes(a)
-    ) {
+    } else if (words.length === 0 && SUBCOMMANDS.includes(a)) {
       out.command = a;
       out.rest = args;
       break;
+    } else if (words.length === 0 && a === "run") {
+      // Delegating is the default verb, but people type it anyway; accepting it
+      // beats prepending "run" to the goal the model reads.
+      continue;
     } else if (a.startsWith("-")) {
-      throw new Error(`unknown flag: ${a}`);
+      throw new Error(
+        `unknown flag: ${a}` +
+          (words.length ? ` — quote the task if it contains "${a}"` : ""),
+      );
     } else {
-      out.task = a;
-      // join remaining as task continuation if any non-flag
-      if (args.length && !args[0]!.startsWith("-")) {
-        out.task = [a, ...args].join(" ");
-        args.length = 0;
-      }
+      words.push(a);
     }
   }
+  if (words.length) out.task = words.join(" ");
   return out;
 }
 
@@ -358,7 +365,10 @@ async function main(): Promise<void> {
   if (!outcome.dryRun && !outcome.verifyOk) process.exit(1);
 }
 
-main().catch((e) => {
-  console.error(`relay: ${(e as Error).message}`);
-  process.exit(1);
-});
+// Guarded so tests can import parseArgs without running the CLI.
+if (import.meta.main) {
+  main().catch((e) => {
+    console.error(`relay: ${(e as Error).message}`);
+    process.exit(1);
+  });
+}
