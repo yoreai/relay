@@ -37,6 +37,13 @@ models:
     cache_read: 0.26
     backends: [cursor]
   composer-2.5:
+    # workhorse on independent evidence (reviewed 2026-07-24): 3rd on Artificial
+    # Analysis's Coding Agent Index (62) behind only opus-4.7-max (66) and
+    # gpt-5.5-xhigh (65), which cost ~10-60x more per task; 79.8 SWE-bench
+    # Multilingual vs opus-4.7's 80.5, and a tie on Terminal-Bench v2 (69.3 vs
+    # 69.4). Cheapest agent scoring above 60 on that index — which is exactly
+    # what the workhorse tier is for. Caveat worth knowing: gpt-5.5 beats it by
+    # ~13pp on Terminal-Bench, so shell-heavy work is not its strength.
     class: workhorse
     fast: true
     in: 0.90

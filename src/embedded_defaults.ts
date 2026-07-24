@@ -1,25 +1,31 @@
 /** Inlined so `bun build --compile` ships working defaults without loose files. */
 
 export const EMBEDDED_ROUTER_YAML = `version: 1
-baseline: fable-5-high
+baseline: opus-5
 tiers:
   nano:
     - { backend: cursor, model: gpt-5.6-luna, effort: low }
     - { backend: claude, model: haiku-4.5 }
     - { backend: codex, model: gpt-5.6-luna }
     - { backend: gemini, model: gemini-3-flash }
+  # composer-2.5 leads the workhorse tiers: 3rd on the independent Artificial
+  # Analysis Coding Agent Index at ~1/10-1/60 the per-task cost of the two above
+  # it, and cheaper than glm-5.2, which stays right behind it.
   cheap:
+    - { backend: cursor, model: composer-2.5 }
     - { backend: cursor, model: glm-5.2 }
     - { backend: claude, model: haiku-4.5 }
     - { backend: gemini, model: gemini-3-flash }
     - { backend: codex, model: gpt-5.6-luna }
   work:
+    - { backend: cursor, model: composer-2.5 }
     - { backend: cursor, model: glm-5.2 }
     - { backend: cursor, model: grok-4.5 }
     - { backend: claude, model: sonnet-5 }
     - { backend: codex, model: gpt-5.6-sol }
     - { backend: gemini, model: gemini-3.1-pro }
   fast:
+    - { backend: cursor, model: composer-2.5 }
     - { backend: cursor, model: grok-4.5-fast }
     - { backend: claude, model: sonnet-5 }
     - { backend: gemini, model: gemini-3-flash }
@@ -109,6 +115,13 @@ models:
     cache_read: 0.26
     backends: [cursor]
   composer-2.5:
+    # workhorse on independent evidence (reviewed 2026-07-24): 3rd on Artificial
+    # Analysis's Coding Agent Index (62) behind only opus-4.7-max (66) and
+    # gpt-5.5-xhigh (65), which cost ~10-60x more per task; 79.8 SWE-bench
+    # Multilingual vs opus-4.7's 80.5, and a tie on Terminal-Bench v2 (69.3 vs
+    # 69.4). Cheapest agent scoring above 60 on that index — which is exactly
+    # what the workhorse tier is for. Caveat worth knowing: gpt-5.5 beats it by
+    # ~13pp on Terminal-Bench, so shell-heavy work is not its strength.
     class: workhorse
     fast: true
     in: 0.90

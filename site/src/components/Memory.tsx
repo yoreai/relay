@@ -6,7 +6,7 @@ on branch feat/webhook-retries · 3 files dirty
 - 4be07d3 · yesterday · add idempotency keys to charge intents
 
 <span class="c">## recent relay work</span>
-- ok · quickfix/glm-5.2 · 2 file(s) (1h ago)
+- ok · quickfix/composer-2.5 · 2 file(s) (1h ago)
 - FAILED · build/sonnet-5 (3h ago)
 - open threads: 1 failed run may need a retry or human look
 

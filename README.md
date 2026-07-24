@@ -32,8 +32,8 @@ GitHub — it never uploads your tasks, code, or usage.
 
 ```
 relay "fix the flaky retry test in src/api"
-# → lane: quickfix · glm-5.2 · verify: ✓ · 1 file(s) changed
-# relay: ~$0.22 saved — glm-5.2 cost $0.02, baseline fable-5-high would've cost ~$0.24 [measured]
+# → lane: quickfix · composer-2.5 · verify: ✓ · 1 file(s) changed
+# relay: ~$0.08 saved — composer-2.5 cost $0.02, baseline opus-5 would've cost ~$0.10 [measured]
 ```
 
 ## 60-second install
@@ -110,9 +110,11 @@ org hasn't approved (change anytime: `relay backends enable|disable <tool>`).
    (experimental adapters: `gemini`, `grok`, `kimi`)
 4. **Verify → widen → escalate** — thin briefs that self-heal before spending frontier tokens
 5. **Receipt** — savings as a named counterfactual: what the same tokens would have cost on
-   your `baseline` model (default `fable-5-high` — the quality bar relay routes within; set it
-   in `router.yaml` to whatever you'd otherwise run). Measured from backend-reported tokens
-   for cursor/claude, byte-estimated `[estimated]` otherwise
+   your `baseline` model. The default is `opus-5`, deliberately the same model relay's own
+   `deep` tier escalates to — comparing against a pricier model relay would never choose
+   would inflate the number. Set it in `router.yaml` to whatever you'd otherwise run.
+   Measured from backend-reported tokens for cursor/claude, byte-estimated `[estimated]`
+   otherwise
 
 Edits land in your working tree as ordinary uncommitted changes — exactly like your
 agent's own edits, nothing staged or committed for you. Walkaway lanes work in an
@@ -205,8 +207,10 @@ Things worth knowing before you rely on it:
 ## Status
 
 Stable core: setup/uninstall, backend opt-in, tree-edit lanes, pollable run
-progress, recursion guard, open bench (6/6 quality parity, ~5.2× median
-savings). An end-to-end eval suite (`bun run evals --hosts`,
+progress, recursion guard, open bench ([2026-07-24](./bench/results/latest.json):
+6/6 quality parity against the `deep` tier, 5.1× median cost ratio, all 12 runs
+priced from measured tokens, pinned to the shipped starter policy so you can
+reproduce it). An end-to-end eval suite (`bun run evals --hosts`,
 [latest report](./evals/report.md)) exercises the MCP surface and live
 cursor/claude/codex delegation on every preset scenario. Young:
 walkaway/worktree lane, memory (recall/remember — the transcript layer is

@@ -1,5 +1,5 @@
 version: 1
-baseline: fable-5-high
+baseline: opus-5
 # Each tier is an ordered fallback list: the first candidate whose backend
 # CLI is installed on this machine wins. Quality bar first, price second.
 tiers:
@@ -8,18 +8,24 @@ tiers:
     - { backend: claude, model: haiku-4.5 }
     - { backend: codex, model: gpt-5.6-luna }
     - { backend: gemini, model: gemini-3-flash }
+  # composer-2.5 leads the workhorse tiers: 3rd on the independent Artificial
+  # Analysis Coding Agent Index at ~1/10-1/60 the per-task cost of the two above
+  # it, and cheaper than glm-5.2, which stays right behind it.
   cheap:
+    - { backend: cursor, model: composer-2.5 }
     - { backend: cursor, model: glm-5.2 }
     - { backend: claude, model: haiku-4.5 }
     - { backend: gemini, model: gemini-3-flash }
     - { backend: codex, model: gpt-5.6-luna }
   work:
+    - { backend: cursor, model: composer-2.5 }
     - { backend: cursor, model: glm-5.2 }
     - { backend: cursor, model: grok-4.5 }
     - { backend: claude, model: sonnet-5 }
     - { backend: codex, model: gpt-5.6-sol }
     - { backend: gemini, model: gemini-3.1-pro }
   fast:
+    - { backend: cursor, model: composer-2.5 }
     - { backend: cursor, model: grok-4.5-fast }
     - { backend: claude, model: sonnet-5 }
     - { backend: gemini, model: gemini-3-flash }

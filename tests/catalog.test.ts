@@ -6,6 +6,8 @@ import { blendedCost, parseCatalog } from "../src/catalog.ts";
 import { loadDirectiveFromText } from "../src/directive.ts";
 import { EMBEDDED_CATALOG_YAML } from "../src/embedded_defaults.ts";
 
+const ROOT = join(import.meta.dir, "..");
+
 const root = join(import.meta.dir, "..");
 const catalog = parseCatalog(
   readFileSync(join(root, "defaults", "catalog.yaml"), "utf8"),
@@ -51,15 +53,32 @@ describe("catalog", () => {
 });
 
 describe("advise", () => {
-  test("suggests composer for work, and nothing for an already-optimal deep", () => {
+  // A directive that has fallen behind the catalog — which is what advise is
+  // FOR. The shipped defaults deliberately produce no suggestions (see "the
+  // shipped defaults are advise-clean"), so they can't exercise this.
+  const staleWork = loadDirectiveFromText(`version: 1
+baseline: fable-5-high
+tiers:
+  work:
+    - { backend: cursor, model: glm-5.2 }
+  deep:
+    - { backend: cursor, model: opus-5 }
+lanes:
+  - name: quickfix
+    match: { verbs: [fix] }
+    tier: work
+default_lane: quickfix
+`);
+
+  test("suggests composer for a stale work tier, nothing for an optimal deep", () => {
     const suggestions = adviseTiers(
-      directive,
+      staleWork,
       catalog,
       new Set(["cursor", "claude"]),
     );
     const byTier = Object.fromEntries(suggestions.map((s) => [s.tier, s]));
     expect(byTier.work?.model).toBe("composer-2.5");
-    // the shipped deep tier already leads with the cheapest frontier model
+    // deep already leads with the cheapest frontier model
     expect(byTier.deep).toBeUndefined();
   });
 
@@ -112,7 +131,7 @@ default_lane: quickfix
 
   test("includes local verify evidence when enough runs exist", () => {
     const suggestions = adviseTiers(
-      directive,
+      staleWork,
       catalog,
       new Set(["cursor", "claude"]),
       { "composer-2.5": { runs: 10, ok: 9 } },
@@ -120,5 +139,43 @@ default_lane: quickfix
     const work = suggestions.find((s) => s.tier === "work");
     expect(work?.model).toBe("composer-2.5");
     expect(work?.evidence).toContain("9/10");
+  });
+});
+
+describe("the shipped defaults are advise-clean", () => {
+  // A fresh install told the user their brand-new config was 27% overpriced,
+  // because the defaults led with glm-5.2 while a cheaper same-class model sat
+  // in the catalog. If advise would immediately propose a change, the default
+  // should have BEEN that change.
+  test("a new user on any single backend gets no suggestions", () => {
+    const directive = loadDirectiveFromText(
+      readFileSync(join(ROOT, "defaults", "router.yaml"), "utf8"),
+    );
+    const catalog = parseCatalog(
+      readFileSync(join(ROOT, "defaults", "catalog.yaml"), "utf8"),
+    );
+    for (const backend of ["cursor", "claude", "codex"]) {
+      const suggestions = adviseTiers(
+        directive,
+        catalog,
+        new Set([backend]),
+      );
+      expect(
+        suggestions.map(
+          (s) => `${backend}/${s.tier}: ${s.currentModel} → ${s.model}`,
+        ),
+      ).toEqual([]);
+    }
+  });
+
+  test("and none with every backend installed", () => {
+    const directive = loadDirectiveFromText(
+      readFileSync(join(ROOT, "defaults", "router.yaml"), "utf8"),
+    );
+    const catalog = parseCatalog(
+      readFileSync(join(ROOT, "defaults", "catalog.yaml"), "utf8"),
+    );
+    const all = new Set(["cursor", "claude", "codex", "gemini", "grok", "kimi"]);
+    expect(adviseTiers(directive, catalog, all)).toEqual([]);
   });
 });

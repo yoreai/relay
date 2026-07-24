@@ -17,8 +17,8 @@ describe("directive", () => {
   test("loads starter router.yaml", () => {
     const d = loadDirectiveFromText(starter);
     expect(d.version).toBe(1);
-    expect(d.baseline).toBe("fable-5-high");
-    expect(d.tiers.work?.[0]?.model).toBe("glm-5.2");
+    expect(d.baseline).toBe("opus-5");
+    expect(d.tiers.work?.[0]?.model).toBe("composer-2.5");
     expect(d.default_lane).toBe("quickfix");
   });
 

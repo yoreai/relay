@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **composer-2.5 now leads the `cheap`, `work` and `fast` tiers**, with glm-5.2 one line below it
+  as the fallback. A fresh install used to greet the user with three `relay advise` suggestions
+  telling them their brand-new config was ~27% overpriced — if advise would immediately propose a
+  swap, the default should have been the swap. The evidence is independent rather than vendor-only:
+  composer-2.5 is third on Artificial Analysis's Coding Agent Index (62) behind only opus-4.7-max
+  and gpt-5.5-xhigh, which cost ~10–60× more per task, and it ties opus-4.7 on Terminal-Bench v2.
+  Recorded in the catalog with the caveat that gpt-5.5 still beats it by ~13pp on shell-heavy work
+- **The default `baseline` is opus-5, not fable-5-high.** Savings were being measured against a
+  model relay itself would never choose — its own `deep` tier escalates to opus-5, at half
+  fable-5's price. Comparing against the pricier model inflated every receipt by roughly 2×.
+  Reported savings drop accordingly and are now defensible
+
+### Added
+
+- A test that the **shipped defaults are advise-clean** — on any single backend and on all of
+  them — so a default can never again ship in a state advise would immediately argue with
+- Re-ran the bench on the current defaults: **6/6 quality parity, 5.1× median cost ratio**
+  (4.9–8.8×), all 12 runs priced from measured tokens. The headline barely moved from the old
+  5.2× despite the comparison arm getting ~2× cheaper. Speed is now stated honestly at 1.7×
+  median rather than "3–6×", which was an artifact of frontier runs stalling in the old run
+
+### Fixed
+
+- **The bench measured whoever ran it.** It read the local `router.yaml`, so published numbers
+  silently described one machine's policy — and a `relay advise --apply` midway through a run
+  genuinely produced results that were half one model and half another. Each fixture now pins the
+  shipped starter policy, and the summary records which directive it used
+- The bench's stored note still claimed cursor costs were byte-estimated, which stopped being true
+  when measured token reporting landed. It now counts measured vs estimated runs from the results
+- **Backend timeout was wall-clock, killing legitimately long tasks mid-work.** A beta
+  tester's run died at exactly 10 minutes while the CLI was still streaming progress.
+  `RELAY_BACKEND_TIMEOUT_MS` (default 10 min) now measures **inactivity** — silence since
+  the last stdout/stderr chunk — so hung CLIs waiting on auth/network still fail over,
+  but a working backend that keeps producing output is not cut off
+
 ## [0.8.3] — 2026-07-24
 
 ### Added

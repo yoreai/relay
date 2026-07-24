@@ -7,8 +7,8 @@
  *   arm "routed"   — relay's normal routing (quickfix lane, work tier)
  *   arm "frontier" — same lane forced to the deep tier (frontier model)
  * Grading is the repo's own tests (objective pass/fail, no LLM judge).
- * Costs use list prices; cursor-backend token counts are byte-estimates,
- * but the SAME estimator runs in both arms, so the ratio is meaningful.
+ * Costs use list prices against the usage each backend reports; each result
+ * carries an `estimated` flag, so a run is auditable rather than assumed.
  *
  * Usage: bun run scripts/bench.ts [--tasks slugify,clamp] [--arms routed,frontier]
  */
@@ -42,9 +42,19 @@ async function shell(cwd: string, cmd: string[]): Promise<number> {
   return await proc.exited;
 }
 
+/**
+ * The shipped starter policy, copied into each fixture so it wins over whatever
+ * router.yaml the person running the bench happens to have. Without this the
+ * published numbers silently describe one machine's config — and a mid-run
+ * `relay advise --apply` can change models between tasks, which is exactly how
+ * the 2026-07-24 re-run first came out half on one model and half on another.
+ */
+const starterDirective = readFileSync(join(root, "defaults", "router.yaml"), "utf8");
+
 async function prepareRepo(taskName: string): Promise<string> {
   const dir = mkdtempSync(join(tmpdir(), `relay-bench-${taskName}-`));
   cpSync(join(tasksDir, taskName), dir, { recursive: true });
+  writeFileSync(join(dir, "router.yaml"), starterDirective);
   await shell(dir, ["git", "init", "-q"]);
   await shell(dir, ["git", "config", "user.email", "bench@relay"]);
   await shell(dir, ["git", "config", "user.name", "bench"]);
@@ -129,11 +139,15 @@ const medianRatio = ratios.length
 
 const summary = {
   date: new Date().toISOString().slice(0, 10),
+  directive: "defaults/router.yaml (shipped starter, pinned into each fixture)",
   tasks: byTask.size,
   routed_pass: routedPass,
   frontier_pass: frontierPass,
   median_cost_ratio: medianRatio ? Math.round(medianRatio * 10) / 10 : null,
-  note: "cursor-backend costs are byte-estimated; identical estimator in both arms, so ratios are comparable. grading = each repo's own tests.",
+  note:
+    `grading = each repo's own tests (no LLM judge). costs priced from each backend's ` +
+    `reported usage where available — see the per-result "estimated" flag; ` +
+    `${results.filter((r) => r.estimated === false).length}/${results.length} measured.`,
   results,
 };
 

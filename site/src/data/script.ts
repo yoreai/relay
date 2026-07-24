@@ -28,9 +28,9 @@ export const SCRIPT: ScriptStep[] = [
         card: {
           lane: "quickfix",
           rows: [
-            { c: "sub", t: "▸ Cursor sub-agent · glm-5.2" },
+            { c: "sub", t: "▸ Cursor sub-agent · composer-2.5" },
             { c: "ok", t: "✓ lint  ✓ your tests  · edits in your tree" },
-            { c: "money", t: "~$0.48 saved vs fable-5-high baseline  [measured]" },
+            { c: "money", t: "~$0.08 saved vs opus-5 baseline  [measured]" },
           ],
         },
       },

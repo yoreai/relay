@@ -1,7 +1,7 @@
 type Cell = { model: string; inP: number; outP: number; hot?: boolean };
 
 // Starter directive resolved per single-CLI machine (defaults/router.yaml,
-// catalog 2026-07-23). With several CLIs installed the first candidate in
+// catalog 2026-07-24). With several CLIs installed the first candidate in
 // router.yaml wins — the starter policy lists cursor first in every tier.
 const ROWS: { tier: string; lanes: string; cursor: Cell; claude: Cell; codex: Cell }[] = [
   {
@@ -14,21 +14,21 @@ const ROWS: { tier: string; lanes: string; cursor: Cell; claude: Cell; codex: Ce
   {
     tier: "cheap",
     lanes: "bulk mechanical edits",
-    cursor: { model: "glm-5.2", inP: 1.4, outP: 4.4 },
+    cursor: { model: "composer-2.5", inP: 0.9, outP: 3.6 },
     claude: { model: "haiku-4.5", inP: 0.8, outP: 4.0 },
     codex: { model: "gpt-5.6-luna", inP: 1.0, outP: 6.0 },
   },
   {
     tier: "work",
     lanes: "quickfix · build — the default",
-    cursor: { model: "glm-5.2", inP: 1.4, outP: 4.4, hot: true },
+    cursor: { model: "composer-2.5", inP: 0.9, outP: 3.6, hot: true },
     claude: { model: "sonnet-5", inP: 3.0, outP: 15.0 },
     codex: { model: "gpt-5.6-sol", inP: 5.0, outP: 30.0 },
   },
   {
     tier: "fast",
     lanes: "latency-sensitive",
-    cursor: { model: "grok-4.5-fast", inP: 4.0, outP: 18.0 },
+    cursor: { model: "composer-2.5", inP: 0.9, outP: 3.6 },
     claude: { model: "sonnet-5", inP: 3.0, outP: 15.0 },
     codex: { model: "gpt-5.6-luna", inP: 1.0, outP: 6.0 },
   },
@@ -102,11 +102,13 @@ export default function Matrix() {
         ))}
       </div>
       <p className="sub">
-        <span className="pass">opus-5</span> took the review and deep tiers 2026-07-24 — within
-        0.5pp of fable-5 on CursorBench 3.2 at half the cost per task, on opus-4.8's unchanged
-        rate card. Already on a directive of your own? <code>relay advise</code> flags the swap;
-        it never edits your policy for you. Quality floor unchanged: your own lint &amp; tests,
-        with escalation to review/deep on failure.
+        Both defaults changed 2026-07-24. <span className="pass">opus-5</span> took review and deep
+        at half fable-5's cost per task, and <span className="pass">composer-2.5</span> took the
+        workhorse tiers: third on Artificial Analysis's independent Coding Agent Index — behind only
+        two models costing roughly 10–60× more per task — and cheaper than the glm-5.2 it replaced,
+        which stays one line below it as the fallback. Already on a directive of your own?{" "}
+        <code>relay advise</code> flags both swaps; it never edits your policy for you. Quality
+        floor unchanged: your own lint &amp; tests, with escalation to review/deep on failure.
       </p>
     </section>
   );
