@@ -186,6 +186,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `SECURITY.md` scope section deliberately names the *non*-vulnerabilities too — a worker
   reading a repo's AGENTS.md, an approved verify command running, `autonomy: full` doing what
   it says — so a reporter isn't guessing where the design boundary is
+- **OpenCode backend (verified adapter).** An opencode-only machine routed nothing before;
+  relay now drives it — live-tested 2026-07-25 against opencode 1.18.5: headless
+  `opencode run --model provider/model`, login `opencode providers login`. The CLI requires
+  provider/model ids, so a pinned map translates relay's canonical catalog ids to the built-in
+  zen provider's ids (`opencode/glm-5.2`, `opencode/claude-opus-5`); unknown ids pass through,
+  so users can pin their own provider/model (e.g. `openai/gpt-5.6-sol`). opencode is now a
+  fallback in every default tier, and the 11 catalog models zen serves list it as a backend.
+  Zen's free models (big-pickle, `*-free`) are deliberately not cataloged — no independent
+  benchmarks (the evidence rule), and $0 would poison advise's cheaper-in-class rule; pin them
+  manually if wanted. Receipts price at catalog rates, while zen's own rate card can differ
+  slightly from direct API prices. Permission posture stays with the user's opencode config —
+  relay never passes `--auto`
 
 ### Fixed
 
