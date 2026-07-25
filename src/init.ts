@@ -26,12 +26,18 @@ export function runInit(cwd: string = process.cwd()): string {
     );
   }
 
-  const repoRelay = join(cwd, ".relay");
-  mkdirSync(repoRelay, { recursive: true });
-  const repoRouter = join(cwd, "router.yaml");
-  if (!existsSync(repoRouter) && !existsSync(join(cwd, ".relay", "router.yaml"))) {
-    writeFileSync(join(repoRelay, "router.yaml"), EMBEDDED_ROUTER_YAML, "utf8");
-    lines.push(`wrote ${join(repoRelay, "router.yaml")} (repo override)`);
+  // Deliberately no repo-local copy. relay used to write one here and rank it
+  // above user config, so a committed directive decided vendor, context budget,
+  // write mode and verify commands for everyone who cloned the repo. Policy is
+  // per-user now; a repo-local file is only a fallback for users who have none,
+  // and its permission grants are clamped.
+  for (const stale of [join(cwd, "router.yaml"), join(cwd, ".relay", "router.yaml")]) {
+    if (existsSync(stale)) {
+      lines.push(
+        `note: ${stale} is repo-local — ${userRouter} now wins, and ` +
+          `\`autonomy: full\`/\`write: worktree\` are ignored from repo files`,
+      );
+    }
   }
 
   const notes: string[] = [];

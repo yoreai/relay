@@ -55,7 +55,12 @@ export function routeTask(
 
   const tokens = new Set(tokenize(task));
   const fileCount = opts.brief?.files?.length ?? 0;
-  const walkaway = opts.walkaway === true || /\bwalkaway\b/i.test(task);
+  // Only an explicit request counts. Reading the word "walkaway" out of the
+  // task text made the branch/commit/push/PR path reachable from prose that
+  // relay does not control — an MCP caller's task string is written by another
+  // agent, so a lane that spends the user's git credentials must be asked for
+  // through the flag or the MCP field, not mentioned in passing.
+  const walkaway = opts.walkaway === true;
 
   let best: { lane: Lane; verb: string; score: number } | null = null;
 
@@ -89,6 +94,21 @@ export function routeTask(
   }
 
   const lane = findLane(directive, directive.default_lane);
+  // The opt-in check above guards the matching loop only, so a default_lane
+  // pointing at a walkaway lane used to reach the worktree machinery with no
+  // opt-in at all — every unmatched task branching, committing and opening a PR
+  // with the user's credentials. Unrequested walkaway keeps the lane's routing
+  // but lands the edits in the working tree, where they're reviewable.
+  if (lane.match.walkaway && !walkaway && lane.write === "worktree") {
+    return {
+      lane: { ...lane, write: "tree" },
+      tier: opts.tier ?? lane.tier,
+      reason:
+        `no confident match → default_lane ${lane.name} ` +
+        `(walkaway not requested → edits stay in the working tree)`,
+      confidence: "low",
+    };
+  }
   return {
     lane,
     tier: opts.tier ?? lane.tier,

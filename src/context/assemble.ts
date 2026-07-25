@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 import type { Brief } from "../brief.ts";
 import { pullBeadsContext } from "./beads.ts";
 
@@ -29,8 +29,8 @@ export async function assembleContext(
 
   const files = opts.namedFiles ?? brief.files ?? [];
   for (const f of files.slice(0, opts.widen ? 20 : 8)) {
-    const abs = join(opts.cwd, f);
-    if (!existsSync(abs)) continue;
+    const abs = containedPath(opts.cwd, f);
+    if (!abs || !existsSync(abs)) continue;
     try {
       const text = readFileSync(abs, "utf8");
       const slice = text.slice(0, opts.widen ? 6_000 : 2_500);
@@ -46,6 +46,22 @@ export async function assembleContext(
   if (brief.context) chunks.unshift(`## caller context\n${brief.context}`);
 
   return trimToBudget(chunks.join("\n\n"), opts.budgetChars);
+}
+
+/**
+ * Resolve `rel` under `cwd`, or null if it escapes.
+ *
+ * `join` neutralizes a leading "/" but not "../", and every named file's
+ * contents get embedded in the prompt and shipped to a third-party model. The
+ * file list arrives from an MCP caller — another agent, which may itself be
+ * prompt-injected — so an unchecked path turns "add context" into "read any
+ * file this user can read, then exfiltrate it as prompt tokens."
+ */
+function containedPath(cwd: string, rel: string): string | null {
+  const root = resolve(cwd);
+  const abs = resolve(root, rel);
+  if (abs !== root && !abs.startsWith(root + sep)) return null;
+  return abs;
 }
 
 function readAgentsMd(cwd: string): string | null {

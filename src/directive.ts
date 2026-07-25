@@ -91,25 +91,45 @@ export function loadDirectiveFromText(text: string): Directive {
 }
 
 /**
- * `autonomy: full` is the user's opt-in to unattended command execution, and a
- * cloned repo can ship its own router.yaml — so honoring it from repo-local
- * config would hand `--force` to whoever committed the file, re-enabling by
- * config exactly the posture the safe default removed. Repo directives are
- * clamped back to "safe"; opting in means writing it in your own config.
+ * Two lane settings are grants of permission, not routing preferences, and a
+ * cloned repo can ship its own router.yaml — so honoring either one from
+ * repo-local config would let whoever committed the file decide it for the
+ * person running relay:
+ *
+ * - `autonomy: full` is the opt-in to unattended command execution (`--force`),
+ *   re-enabling by config exactly the posture the safe default removed.
+ * - `write: worktree` reaches the branch/commit/push/PR path, which spends the
+ *   user's ambient git and `gh` credentials against a real remote. git.ts calls
+ *   that push "consent-implied by choosing a walkaway lane" — consent only the
+ *   user can give.
+ *
+ * Both are clamped for repo-sourced directives; opting into either means
+ * writing it in your own config, where relay already trusts you.
  */
-function clampRepoAutonomy(directive: Directive): {
+function clampRepoDirective(directive: Directive): {
   directive: Directive;
   clampedLanes: string[];
+  clampedWrites: string[];
 } {
   const clampedLanes: string[] = [];
+  const clampedWrites: string[] = [];
   const lanes = directive.lanes.map((lane) => {
-    if (lane.autonomy !== "full") return lane;
-    clampedLanes.push(lane.name);
-    return { ...lane, autonomy: "safe" as const };
+    let next = lane;
+    if (next.autonomy === "full") {
+      clampedLanes.push(next.name);
+      next = { ...next, autonomy: "safe" as const };
+    }
+    if (next.write === "worktree") {
+      clampedWrites.push(next.name);
+      next = { ...next, write: "tree" as const };
+    }
+    return next;
   });
+  const changed = clampedLanes.length > 0 || clampedWrites.length > 0;
   return {
-    directive: clampedLanes.length ? { ...directive, lanes } : directive,
+    directive: changed ? { ...directive, lanes } : directive,
     clampedLanes,
+    clampedWrites,
   };
 }
 
@@ -119,6 +139,8 @@ export type LoadedDirective = {
   repoLocal: boolean;
   /** lanes whose `autonomy: full` was refused because the repo asked, not the user */
   clampedLanes: string[];
+  /** lanes whose `write: worktree` was downgraded for the same reason */
+  clampedWrites: string[];
 };
 
 export function loadDirectiveWithSource(cwd: string = process.cwd()): LoadedDirective {
@@ -128,10 +150,10 @@ export function loadDirectiveWithSource(cwd: string = process.cwd()): LoadedDire
     : EMBEDDED_ROUTER_YAML;
   const parsed = loadDirectiveFromText(text);
   if (!directiveIsRepoLocal(cwd)) {
-    return { directive: parsed, repoLocal: false, clampedLanes: [] };
+    return { directive: parsed, repoLocal: false, clampedLanes: [], clampedWrites: [] };
   }
-  const { directive, clampedLanes } = clampRepoAutonomy(parsed);
-  return { directive, repoLocal: true, clampedLanes };
+  const { directive, clampedLanes, clampedWrites } = clampRepoDirective(parsed);
+  return { directive, repoLocal: true, clampedLanes, clampedWrites };
 }
 
 export function loadDirective(cwd: string = process.cwd()): Directive {

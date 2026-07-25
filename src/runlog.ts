@@ -10,14 +10,21 @@ export type RunEvent = {
   detail?: string;
 };
 
-function eventsPath(id: string): string {
-  // ids are relay-generated (run_<ts>_<rand>), safe as filenames
+/**
+ * ids are relay-generated (`run_<ts>_<rand>`) on the write path, but the read
+ * path takes whatever the user typed after `relay status`, so `../../…` would
+ * walk straight out of the events dir. Anything that isn't shaped like an id
+ * can't name a file we'd have written.
+ */
+function eventsPath(id: string): string | null {
+  if (!/^[A-Za-z0-9_.-]+$/.test(id) || id.includes("..")) return null;
   return join(relayDataDir(), "events", `${id}.jsonl`);
 }
 
 export function appendEvent(id: string, phase: string, detail?: string): void {
   try {
     const path = eventsPath(id);
+    if (!path) return;
     mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
     const event: RunEvent = {
       ts: new Date().toISOString(),
@@ -32,7 +39,7 @@ export function appendEvent(id: string, phase: string, detail?: string): void {
 
 export function readEvents(id: string): RunEvent[] {
   const path = eventsPath(id);
-  if (!existsSync(path)) return [];
+  if (!path || !existsSync(path)) return [];
   const events: RunEvent[] = [];
   for (const line of readFileSync(path, "utf8").split("\n").filter(Boolean)) {
     try {

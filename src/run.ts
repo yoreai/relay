@@ -6,6 +6,7 @@ import { assembleContext } from "./context/assemble.ts";
 import { availableBackends, getBackend } from "./backends/index.ts";
 import { assertVerifyTrusted, runVerify } from "./verify.ts";
 import { memoryRepoKey } from "./memory.ts";
+import { redactSecrets } from "./redact.ts";
 import { nextEscalation, type EscalationState } from "./escalate.ts";
 import { loadPrices, makeReceipt, type Receipt } from "./savings.ts";
 import {
@@ -158,6 +159,13 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
       "autonomy_clamped",
       `lane ${decision.lane.name} asked for autonomy: full, but this directive is repo-committed — ` +
         `keeping the backend's guardrails on. Opt in from your own config if you meant it.`,
+    );
+  }
+  if (loaded.clampedWrites.includes(decision.lane.name)) {
+    emit(
+      "write_clamped",
+      `lane ${decision.lane.name} asked for write: worktree, but this directive is repo-committed — ` +
+        `edits stay in your working tree instead of a branch pushed with your credentials.`,
     );
   }
 
@@ -362,9 +370,15 @@ function normalizeBrief(opts: RunOpts): Brief {
   return briefFromTask(opts.task);
 }
 
-/** Last meaningful lines of backend output, for failure reporting. */
+/**
+ * Last meaningful lines of backend output, for failure reporting.
+ *
+ * Scrubbed before it goes anywhere: this lands in a persistent event log, and
+ * an auth failure that echoes the key is exactly the kind of line that ends up
+ * in the tail. Trimming to `max` is a length limit, never a filter.
+ */
 export function errorExcerpt(output: string, max = 300): string {
-  const lines = output
+  const lines = redactSecrets(output)
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);

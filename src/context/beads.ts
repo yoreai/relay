@@ -1,3 +1,4 @@
+import { toolEnv } from "../env.ts";
 import { which } from "../which.ts";
 
 /** Optional beads (`bd`) graph pull. Feature-detects `bd` on PATH. */
@@ -10,10 +11,13 @@ export async function pullBeadsContext(
     const args = query
       ? ["bd", "show", query, "--json"]
       : ["bd", "ready", "--json"];
+    // `bd` is a third-party binary found on PATH, not a backend relay
+    // dispatches — it gets a reduced environment, not the user's credentials.
     const proc = Bun.spawn(args, {
       cwd,
       stdout: "pipe",
       stderr: "pipe",
+      env: toolEnv(),
     });
     const [stdout, exitCode] = await Promise.all([
       new Response(proc.stdout).text(),

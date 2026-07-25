@@ -1,7 +1,9 @@
 import {
+  copyFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -84,21 +86,39 @@ export function removeActivationBlock(text: string): { out: string; changed: boo
   };
 }
 
+/**
+ * Rewrite a user-owned instruction file without risking it.
+ *
+ * `~/.claude/CLAUDE.md` can be years of accumulated instructions, and relay
+ * owns only a fenced block inside it. A read-splice-write that dies between
+ * truncate and write leaves the user with nothing, and two concurrent `relay
+ * setup` runs can interleave — so keep one backup and land the new content by
+ * rename, which is atomic within a filesystem. Other tools may manage these
+ * files too; the backup is what makes that recoverable rather than final.
+ */
+function rewriteInPlace(path: string, next: string): void {
+  mkdirSync(dirname(path), { recursive: true });
+  if (existsSync(path)) copyFileSync(path, `${path}.relay-bak`);
+  const tmp = `${path}.relay-tmp-${process.pid}`;
+  writeFileSync(tmp, next, "utf8");
+  renameSync(tmp, path);
+}
+
 function upsertMemoryFile(path: string): string {
   const text = existsSync(path) ? readFileSync(path, "utf8") : "";
   const merged = mergeActivationBlock(text);
   if (!merged.changed) return `· activation hint already in ${path}`;
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, merged.out, "utf8");
-  return `✓ activation hint → ${path}`;
+  const had = existsSync(path);
+  rewriteInPlace(path, merged.out);
+  return `✓ activation hint → ${path}${had ? ` (backup: ${path}.relay-bak)` : ""}`;
 }
 
 function stripMemoryFile(path: string): string {
   if (!existsSync(path)) return `· ${path} not found (nothing to remove)`;
   const removed = removeActivationBlock(readFileSync(path, "utf8"));
   if (!removed.changed) return `· no activation hint in ${path}`;
-  writeFileSync(path, removed.out, "utf8");
-  return `✓ removed activation hint from ${path}`;
+  rewriteInPlace(path, removed.out);
+  return `✓ removed activation hint from ${path} (backup: ${path}.relay-bak)`;
 }
 
 export function cursorRulePath(): string {

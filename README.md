@@ -150,9 +150,16 @@ transcript of everything.
 
 ## The directive
 
-Repo `./router.yaml` or `.relay/router.yaml` overrides `~/.config/relay/router.yaml`.
-People share directives, not tribal knowledge. See [`defaults/router.yaml`](./defaults/router.yaml)
-for the full schema, and [`AGENTS.md`](./AGENTS.md) for the design rules behind it.
+`~/.config/relay/router.yaml` is yours and wins. A repo's `./router.yaml` or
+`.relay/router.yaml` applies only when you have no config of your own — people share
+directives, not tribal knowledge, but a file you cloned doesn't get to outrank you.
+Two settings are permission grants rather than routing preferences, so they're
+ignored from a repo-local file and only honored from your own config: `autonomy: full`
+(unattended command execution) and `write: worktree` (the branch/commit/push/PR path,
+which spends your git credentials). Relay tells you when it clamps one.
+
+See [`defaults/router.yaml`](./defaults/router.yaml) for the full schema, and
+[`AGENTS.md`](./AGENTS.md) for the design rules behind it.
 
 ## Staying current (facts vs policy)
 
@@ -194,6 +201,16 @@ Things worth knowing before you rely on it:
   `relay trust` — but a worker still reads the repo's AGENTS.md/CLAUDE.md like any agent, and
   cursor's sandbox boundaries (including what it allowlists) are Cursor's config, not relay's.
   Treat a repo you wouldn't run `npm test` in as a repo you shouldn't point a worker at.
+- **Verify runs your repo's toolchain, which is repo-authored code.** With `verify: auto`,
+  relay runs whatever `npm test`, `make lint`, `pytest` or `cargo clippy` resolve to in that
+  directory — the same exposure as running those yourself, but triggered by asking relay to
+  fix something. Commands a repo spells out in its own config need a one-time `relay trust`;
+  conventional detected ones don't. This is accepted risk, and the reason the previous bullet
+  says what it says.
+- **`relay doctor`, `relay setup` and `relay login` make real model calls.** Auth can only be
+  confirmed by using it, so relay sends a one-token prompt (`say only: ok`) to the CLIs you
+  have installed and caches the result for 24h. Tiny, but billed to your account, and it's
+  egress relay causes.
 - **Memory is a digest, not a transcript.** `relay recall` can omit something that mattered.
   The host-session layer reads undocumented file formats best-effort and will silently skip a
   host whose format changed.

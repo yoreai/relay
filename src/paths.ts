@@ -42,12 +42,22 @@ function hardenTree(path: string): void {
   }
 }
 
-/** Resolve directive path: repo override → user config → bundled default. */
+/**
+ * Resolve directive path: user config → repo-local → bundled default.
+ *
+ * The user's own config outranks anything found in the working directory.
+ * Routing policy belongs to the user, and a directive controls which vendor
+ * runs, how much of the repo ships to it, whether edits land in the working
+ * tree or an auto-pushed branch, and which verify commands run — none of which
+ * whoever committed a file to a cloned repo gets to decide for the person
+ * running relay. Repo-local candidates remain a fallback for users who have no
+ * config of their own, and are clamped (see clampRepoDirective).
+ */
 export function findDirectivePath(cwd: string): string | null {
   const candidates = [
+    join(relayConfigDir(), "router.yaml"),
     join(cwd, "router.yaml"),
     join(cwd, ".relay", "router.yaml"),
-    join(relayConfigDir(), "router.yaml"),
   ];
   for (const p of candidates) {
     if (existsSync(p)) return p;

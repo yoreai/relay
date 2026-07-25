@@ -7,6 +7,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-07-24
+
+### Security
+
+The external review that produced 0.9.0 also produced a full findings register — 0.9.0 and
+0.9.1 answered the three findings summarized to us, not the register. The reviewer named the
+root cause better than we had: *relay never separates instructions the user gave it from files
+it found in the directory the user happened to be in.* Most of what follows is that one
+boundary, drawn properly, plus the sinks that leak across it.
+
+- **Your own config now outranks a repo's.** `~/.config/relay/router.yaml` resolves before
+  `./router.yaml` and `./.relay/router.yaml`. A directive is not a preference file: it decides
+  which vendor runs, how much of your repo ships to it, whether edits land in your working tree
+  or an auto-pushed branch, and which verify commands execute. Whoever commits to a repo you
+  cloned had all of that, and your own config was the thing being ignored. Repo-local files
+  still govern users who have no config of their own, which is the case they were for.
+  `relay init` no longer writes a repo-local copy at all — it wrote one *and* ranked it above
+  the user copy it wrote in the same breath, so relay's own setup command built the footgun
+- **`write: worktree` joins `autonomy: full` as a grant a repo cannot make.** The worktree path
+  branches, commits, pushes with your ambient git credentials and opens a PR with `gh`.
+  `src/git.ts` calls that push "consent-implied by choosing a walkaway lane" — consent only you
+  can give. Clamped to `tree` for repo-sourced directives, and the run says so (`write_clamped`)
+- **An unmatched task could reach the auto-push path with no opt-in.** Walkaway lanes were
+  strictly opt-in inside the routing loop, but the `default_lane` fallback — the branch every
+  task with no confident verb match takes — skipped the check entirely. A repo-set `default_lane`
+  pointing at a walkaway lane meant *every* relay run in that repo branched, committed, pushed
+  and opened a PR. The fallback now applies the same check and keeps edits in the working tree.
+  Relatedly, the word "walkaway" appearing anywhere in the task text no longer opts in: over MCP
+  that text is written by another agent, so prose could reach a lane that spends your credentials
+- **Named files can't escape the repo.** `brief.files` was joined onto `cwd` with no containment
+  check, and `join` neutralizes a leading `/` but not `../`. File contents go into the prompt and
+  ship to a third-party model, so an MCP caller — another agent, possibly prompt-injected — could
+  turn "add context" into "read any file this user can read, then exfiltrate it as prompt tokens."
+  Reproduced by the reviewer; now resolved and rejected if it leaves `cwd`
+- **Secrets are scrubbed from anything relay persists or hands back.** Backend CLIs print what
+  they print, including auth errors that echo the key. That output was written verbatim into
+  `events/<run_id>.jsonl` on failure and returned as `outputTail` on every MCP run, where the
+  calling agent stores it in its own transcript. Both sinks now go through `redactSecrets`
+  (vendor key formats, PATs, JWTs, bearer tokens, PEM blocks, `*_TOKEN=`-style assignments).
+  Defense in depth, not a guarantee — pattern matching can't recognize every credential, which
+  is why it doesn't license capturing more
+- **Device codes stay in your terminal.** A failed `relay_login` over MCP returned the login
+  command's last lines to the calling agent — where one-time sign-in URLs and device codes live.
+  That tail is now CLI-only; over MCP relay says to run `relay login <tool>` in a terminal
+- **Third-party binaries don't get your credentials.** `bd` (beads) inherited the full
+  environment, `ANTHROPIC_API_KEY` and `GITHUB_TOKEN` included. It gets the same allowlisted
+  environment verify commands got in 0.9.0, now one shared definition (`toolEnv`)
+- **A fetched catalog can no longer pin itself in place.** `relay update` pulls from a branch and
+  the file declares its own freshness, so `updated: 9999-01-01` would outrank every future
+  embedded catalog and survive upgrades — falsifying receipts and steering `relay advise`. A
+  catalog dated in the future is treated as tampering. (Deliberately still pulling from `main`:
+  catalog-as-data is what lets price fixes ship without a release)
+- **`relay status <id>` can't read outside the events dir**, and the release workflow no longer
+  interpolates `workflow_dispatch` inputs into a shell — that ran in the job holding the tap
+  deploy key, and the same string was written verbatim into the formula's Ruby. Inputs arrive via
+  `env` and must match `x.y.z` or the release stops. Releases now publish `SHA256SUMS`
+
+### Fixed
+
+- `relay setup` rewrites `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md` atomically and keeps a
+  `.relay-bak`. It spliced them in place with no backup, so a crash, a full disk or two
+  concurrent setups could truncate years of accumulated instructions — and other tools manage
+  those same files, which is what makes recoverability matter rather than being paranoia
+
+### Documentation
+
+- Honest limits now state two things the register was right to call out as undocumented rather
+  than unsafe: `verify: auto` runs repo-authored code (`npm test`, `make lint`) as a side effect
+  of asking relay to fix something, and `doctor`/`setup`/`login` make real, billed one-token
+  model calls to confirm auth
+
 ## [0.9.1] — 2026-07-24
 
 ### Security
@@ -509,7 +580,8 @@ the OS's most permissive file defaults, and neither was a decision anyone had ac
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/yoreai/relay/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/yoreai/relay/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/yoreai/relay/compare/v0.8.4...v0.9.0
 [0.8.4]: https://github.com/yoreai/relay/compare/v0.8.3...v0.8.4

@@ -19,6 +19,7 @@ import {
 import { briefFromTask, parseBrief } from "./brief.ts";
 import { freshnessHint } from "./freshness.ts";
 import { probeTools, runLogin } from "./probe.ts";
+import { redactSecrets } from "./redact.ts";
 import { listBackendChoices, runBackendsCommand } from "./backends_cmd.ts";
 import { availableBackends } from "./backends/index.ts";
 import { loadCatalog } from "./catalog.ts";
@@ -399,7 +400,7 @@ export async function serveMcp(): Promise<void> {
                           `(\`git merge ${outcome.workBranch}\`, then \`git worktree remove ${outcome.workDir}\` and delete the branch).`,
                       }
                     : {}),
-                  outputTail: outcome.output.slice(-2_000),
+                  outputTail: redactSecrets(outcome.output.slice(-2_000)),
                 },
                 null,
                 2,

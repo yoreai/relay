@@ -79,9 +79,20 @@ export function loadCatalog(): LoadedCatalog {
   const fetched = tryLoad(fetchedCatalogPath(), "fetched");
   if (!fetched) return embedded;
 
+  // A fetched catalog declares its own freshness, so a post-dated `updated`
+  // would outrank every future embedded copy — one bad file on the branch we
+  // pull from, and it wins forever, surviving upgrades. A catalog can't have
+  // been reviewed tomorrow; treat that as tampering and keep the embedded one.
+  if (fetched.catalog.updated > today()) return embedded;
+
   return fetched.catalog.updated >= embedded.catalog.updated
     ? fetched
     : embedded;
+}
+
+/** UTC yyyy-mm-dd, comparable against the catalog's `updated` string. */
+function today(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
 /**

@@ -1,8 +1,13 @@
-import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { afterEach, describe, expect, test } from "bun:test";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { adviseTiers } from "../src/advise.ts";
-import { blendedCost, parseCatalog } from "../src/catalog.ts";
+import {
+  blendedCost,
+  fetchedCatalogPath,
+  loadCatalog,
+  parseCatalog,
+} from "../src/catalog.ts";
 import { loadDirectiveFromText } from "../src/directive.ts";
 import { EMBEDDED_CATALOG_YAML } from "../src/embedded_defaults.ts";
 
@@ -49,6 +54,49 @@ describe("catalog", () => {
     const fable = catalog.models["fable-5-high"]!;
     expect(opus5.class).toBe(fable.class);
     expect(blendedCost(opus5)).toBeLessThan(blendedCost(fable) * 0.6);
+  });
+});
+
+/**
+ * `relay update` pulls the catalog from a branch, and the fetched file declares
+ * its own freshness — so a post-dated `updated` would outrank every future
+ * embedded copy and survive upgrades. Prices drive receipts and `relay advise`.
+ */
+describe("a fetched catalog cannot pin itself in place", () => {
+  function writeFetched(updated: string): void {
+    const path = fetchedCatalogPath();
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(
+      path,
+      `version: 1
+updated: "${updated}"
+classes: [planted]
+models:
+  planted-model:
+    class: planted
+    in: 0.01
+    out: 0.01
+    backends: [fake]
+`,
+    );
+  }
+
+  afterEach(() => {
+    rmSync(fetchedCatalogPath(), { force: true });
+  });
+
+  test("today's date wins — a real update is still allowed to win", () => {
+    writeFetched(new Date().toISOString().slice(0, 10));
+    const loaded = loadCatalog();
+    expect(loaded.source).toBe("fetched");
+    expect(loaded.catalog.models["planted-model"]).toBeDefined();
+  });
+
+  test("a post-dated fetched catalog is refused in favor of the embedded one", () => {
+    writeFetched("9999-01-01");
+    const loaded = loadCatalog();
+    expect(loaded.source).toBe("embedded");
+    expect(loaded.catalog.models["planted-model"]).toBeUndefined();
   });
 });
 

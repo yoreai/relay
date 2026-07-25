@@ -58,7 +58,8 @@ or goes 45 days without review.
 
 - **Entry:** `src/cli.ts` — human CLI + `relay mcp serve`
 - **Core loop:** `src/run.ts` — route → assemble → backend → verify → widen/escalate → receipt
-- **Directive:** `src/directive.ts` (zod) loads repo/`~/.config/relay`/bundled `router.yaml`
+- **Directive:** `src/directive.ts` (zod) loads `~/.config/relay`/repo/bundled `router.yaml`
+  — user config first, and repo-sourced directives get their permission grants clamped
 - **Catalog:** `src/catalog.ts` — model facts; resolution is user config → newer of (fetched, embedded)
 - **Backends:** `src/backends/` — common `Backend` interface. `cursor.ts` and `claude.ts` are
   hand-written; codex/gemini/grok/kimi are spec-driven entries in `cli.ts` (`CLI_SPECS`), so a
@@ -110,6 +111,14 @@ Change these only deliberately — each one is load-bearing.
   forever — `relay update` cannot reach it — so `EMBEDDED_PRICES_YAML` lists no models and
   `relay init` writes no prices file. Guarded by `tests/savings.test.ts`.
 - **Read-only lanes must be read-only in the backend flags too**, not just in the prompt.
+- **A file found in the working directory never grants a permission.** Repo-local config is
+  input, not authority: user config outranks it, `autonomy: full` and `write: worktree` are
+  clamped out of it, and its verify commands need `relay trust`. The recurring bug is treating
+  "relay read it from disk" as "the user asked for it" — whoever cloned the repo didn't.
+- **Nothing reaches a shell or a prompt straight from a caller.** Named files are contained to
+  `cwd` before they're read (an MCP caller may be prompt-injected), non-backend children get
+  `toolEnv()` rather than the user's credentials, and persisted/returned backend output goes
+  through `redactSecrets`. Guarded by `tests/context_containment.test.ts`, `tests/redact.test.ts`.
  cursor-agent's headless print mode auto-runs edits and sandboxed commands even without
  `--force` (verified 2026-07; its docs understate this) — `--mode ask` is the only enforced
  read-only. Guarded by `tests/autonomy.test.ts`.

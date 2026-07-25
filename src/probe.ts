@@ -6,6 +6,7 @@ import { claudeModelId, discoverClaudeBinary } from "./backends/claude.ts";
 import { discoverCursorBinary, probeCursorAuth } from "./backends/cursor.ts";
 import { runCli } from "./backends/spawn.ts";
 import { relayDataDir } from "./paths.ts";
+import { redactSecrets } from "./redact.ts";
 
 /**
  * The probe layer answers three DIFFERENT questions per tool, because they
@@ -280,12 +281,20 @@ export async function runLogin(
   if (after?.authed === true) {
     return { ok: true, message: `${tool.label}: signed in ✓` };
   }
-  const tail = (r.stdout + r.stderr).trim().split("\n").slice(-4).join("\n");
+  // These last lines are where device codes and one-time sign-in URLs live, so
+  // they go to the human at their terminal and nowhere else. `stream` is the CLI
+  // path; over MCP the tail would be handed to the calling agent and persisted
+  // in its transcript, which is a live auth challenge sitting in a log.
+  const tail = opts.stream
+    ? redactSecrets((r.stdout + r.stderr).trim()).split("\n").slice(-4).join("\n")
+    : "";
   return {
     ok: false,
     message:
       `${tool.label}: sign-in did not complete` +
       (r.timedOut ? " (timed out waiting — finish it in the browser and re-run)" : "") +
-      (tail ? `\n${tail}` : ""),
+      (tail
+        ? `\n${tail}`
+        : `\nrun \`relay login ${id}\` in a terminal to see the sign-in prompt`),
   };
 }
