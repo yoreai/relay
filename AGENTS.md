@@ -64,8 +64,11 @@ or goes 45 days without review.
   — user config first, and repo-sourced directives get their permission grants clamped
 - **Catalog:** `src/catalog.ts` — model facts; resolution is user config → newer of (fetched, embedded)
 - **Backends:** `src/backends/` — common `Backend` interface. `cursor.ts` and `claude.ts` are
-  hand-written; codex/gemini/grok/kimi are spec-driven entries in `cli.ts` (`CLI_SPECS`), so a
-  new agent CLI is one table entry, not a new file. `fake.ts` backs the tests
+  hand-written; codex/gemini/grok/kimi/opencode are spec-driven entries in `cli.ts`
+  (`CLI_SPECS`), so a new agent CLI is one table entry, not a new file. opencode's entry
+  additionally carries a pinned id map (`opencodeModelId` — the CLI requires provider/model;
+  relay maps canonical ids to the built-in zen provider's pinned ids, unknown ids pass
+  through). `fake.ts` backs the tests
 - **Memory:** `src/memory.ts` (layered recall + notes, keyed by git root) and
   `src/transcripts.ts` (best-effort host session readers — must degrade to empty, never throw)
 - **MCP:** `src/mcp.ts` — `relay_run`, `relay_status`, `relay_recall`, `relay_remember`,
