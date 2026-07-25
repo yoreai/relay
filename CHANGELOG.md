@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **k2.6, k2.7-code (+ a `fast` highspeed entry), and k3 are in the catalog, k3's effort
+  levels work per tier, and the kimi adapter is flag-verified.** There is no `--effort`
+  flag, so a tier's `effort:` now spawns the CLI with `KIMI_MODEL_THINKING_EFFORT` — k3
+  takes low/high/max (default high); on boolean-thinking models (k2.6, k2.7-code) any
+  value just means thinking on. The default router gains kimi fallbacks in every tier but
+  nano — a kimi-only machine routed nothing before. k3 lands in opus-class provisionally:
+  every published number is vendor-only, the same evidence rule that demoted k2.7-code
+  from frontier. k2.7-code's price was re-verified against models.dev (0.95/4.0, cache
+  0.19 — was 1.0/4.0 flat) and now supersedes k2.6 (same rate card, newer,
+  code-specialized)
+
+### Fixed
+
+- **The kimi backend passed catalog ids verbatim to `kimi --model`, which resolved to
+  nothing under `kimi login`.** The managed OAuth service serves `kimi-code/*` aliases
+  (`kimi-code/k3`, `kimi-code/kimi-for-coding`), not the open-platform ids the catalog
+  names — so every kimi-routed run failed on the default auth path. A pinned `kimiModelId`
+  map now translates catalog ids (verified against kimi-code 0.29.1); k2.6, which the
+  managed service does not serve, still passes through so users pin their own provider
+  alias (e.g. `moonshotai/kimi-k2.6`)
+
 ## [0.12.2] — 2026-07-25
 
 ### Fixed

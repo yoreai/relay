@@ -65,7 +65,10 @@ or goes 45 days without review.
 - **Catalog:** `src/catalog.ts` — model facts; resolution is user config → newer of (fetched, embedded)
 - **Backends:** `src/backends/` — common `Backend` interface. `cursor.ts` and `claude.ts` are
   hand-written; codex/gemini/grok/kimi are spec-driven entries in `cli.ts` (`CLI_SPECS`), so a
-  new agent CLI is one table entry, not a new file. `fake.ts` backs the tests
+  new agent CLI is one table entry, not a new file. kimi's entry additionally carries a pinned
+  id map (`kimiModelId` — the managed OAuth service serves `kimi-code/*` aliases, not
+  open-platform ids) and an effort hook (`buildEnv` → `KIMI_MODEL_THINKING_EFFORT`).
+  `fake.ts` backs the tests
 - **Memory:** `src/memory.ts` (layered recall + notes, keyed by git root) and
   `src/transcripts.ts` (best-effort host session readers — must degrade to empty, never throw)
 - **MCP:** `src/mcp.ts` — `relay_run`, `relay_status`, `relay_recall`, `relay_remember`,

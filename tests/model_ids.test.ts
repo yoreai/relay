@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { adviseTiers } from "../src/advise.ts";
 import { claudeModelId } from "../src/backends/claude.ts";
+import { kimiModelId } from "../src/backends/cli.ts";
 import { cursorModelId } from "../src/backends/cursor.ts";
 import { loadCatalog, parseCatalog } from "../src/catalog.ts";
 import { loadDirectiveFromText } from "../src/directive.ts";
@@ -44,6 +45,29 @@ describe("cursorModelId", () => {
   test("opus-5 carries the requested effort", () => {
     expect(cursorModelId("opus-5", "high")).toBe("claude-opus-5-high");
     expect(cursorModelId("opus-5")).toBe("claude-opus-5-medium");
+  });
+});
+
+describe("kimiModelId", () => {
+  test("maps canonical ids to pinned managed aliases", () => {
+    // The managed kimi-code OAuth service serves `kimi-code/*` aliases, not
+    // the open-platform ids — a verbatim pass-through resolved to nothing.
+    expect(kimiModelId("kimi-k2.7-code")).toBe("kimi-code/kimi-for-coding");
+    expect(kimiModelId("kimi-k2.7-code-highspeed")).toBe(
+      "kimi-code/kimi-for-coding-highspeed",
+    );
+    expect(kimiModelId("kimi-k3")).toBe("kimi-code/k3");
+  });
+
+  test("distinct catalog models never collapse onto one CLI alias", () => {
+    const ids = ["kimi-k2.7-code", "kimi-k2.7-code-highspeed", "kimi-k3"];
+    const mapped = ids.map(kimiModelId);
+    expect(new Set(mapped).size).toBe(ids.length);
+  });
+
+  test("k2.6 (open-platform-only) and unknown ids pass through so users can pin", () => {
+    expect(kimiModelId("kimi-k2.6")).toBe("kimi-k2.6");
+    expect(kimiModelId("moonshotai/kimi-k2.6")).toBe("moonshotai/kimi-k2.6");
   });
 });
 
@@ -144,7 +168,7 @@ default_lane: quickfix
 });
 
 describe("catalog ↔ backend coverage", () => {
-  test("every claude/cursor catalog model has an explicit id mapping", () => {
+  test("every claude/kimi catalog model has an explicit id mapping", () => {
     const catalog = parseCatalog(
       readFileSync(join(ROOT, "defaults", "catalog.yaml"), "utf8"),
     );
@@ -154,6 +178,15 @@ describe("catalog ↔ backend coverage", () => {
       // ones we route to by default are deliberately mapped
       if (m.backends.includes("claude")) {
         expect(claudeModelId(id).startsWith("claude-")).toBe(true);
+      }
+      if (m.backends.includes("kimi")) {
+        // k2.6 is the one deliberate pass-through: the managed OAuth service
+        // doesn't serve it, so users pin their own provider alias.
+        if (id === "kimi-k2.6") {
+          expect(kimiModelId(id)).toBe(id);
+        } else {
+          expect(kimiModelId(id).startsWith("kimi-code/")).toBe(true);
+        }
       }
     }
   });
