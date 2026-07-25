@@ -109,7 +109,13 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
         `lane: ${decision.lane.name}`,
         `tier: ${tierName} → ${tier.backend}/${tier.model}` +
           (tier.fallback ? " (fallback — preferred backend not installed)" : ""),
-        `write: ${decision.lane.write}`,
+        `write: ${decision.lane.write}` +
+          (loaded.clampedWrites.includes(decision.lane.name)
+            ? " (clamped from worktree — repo-committed directive)"
+            : ""),
+        ...(loaded.clampedLanes.includes(decision.lane.name)
+          ? ["autonomy: safe (clamped from full — repo-committed directive)"]
+          : []),
         `reason: ${decision.reason}`,
         `brief.goal: ${brief.goal}`,
         `context_chars: ${context.length}`,

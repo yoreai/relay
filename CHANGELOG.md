@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The site now answers "what can this do to my machine?"** The trust section covered privacy —
+  no telemetry, no stored credentials, pull-only updates — but said nothing about blast radius,
+  which is the question anyone vetting relay for a work machine actually asks. It now also states
+  the permission posture: sandboxed commands with no `--force` unless your own config opts in,
+  repo-supplied permission grants clamped, repo-authored verify commands gated behind
+  `relay trust`, and the honest limit that a worker still reads the repo's AGENTS.md
 - **A real contribution pathway.** The repo was public and Apache-2.0 — so PRs already
   worked — but nothing told anyone that, and there was nothing to pick up. Now: `SECURITY.md`
   with private vulnerability reporting (the first real security report arrived as a DM
@@ -22,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A dry run now names the grants it refused a repo-committed directive.** Real runs emit
+  `autonomy_clamped` / `write_clamped`, but `--dry-run` returns before that and printed only the
+  clamped result — so the one command you'd use to audit what a cloned repo's `router.yaml`
+  actually does showed `write: tree` with no hint the repo had asked for `worktree`
 - **`scripts/check-catalog.ts` now runs on pull requests.** Catalog edits are the
   contribution this project actively advertises as easiest, but the checker that validates
   them only ran nightly and on pushes to `main` — a path no fork PR ever reaches. A

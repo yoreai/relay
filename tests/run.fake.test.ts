@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { errorExcerpt, formatOutcome, runTask } from "../src/run.ts";
@@ -15,6 +15,38 @@ describe("run with fake backend", () => {
     expect(outcome.dryRun).toBe(true);
     expect(outcome.output).toContain("lane: quickfix");
     expect(outcome.model).toBe("composer-2.5");
+  });
+
+  // A dry run is where you inspect what a repo's directive would do, so a
+  // silently clamped grant is the one place the clamp most needs saying.
+  test("dry-run names the grants a repo-committed directive was refused", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "relay-clamp-"));
+    await Bun.$`git init`.cwd(dir).quiet();
+    mkdirSync(join(dir, ".relay"), { recursive: true });
+    writeFileSync(
+      join(dir, ".relay", "router.yaml"),
+      `version: 1
+baseline: opus-5
+tiers:
+  work:
+    - { backend: cursor, model: composer-2.5 }
+lanes:
+  - name: quickfix
+    match: { verbs: [fix] }
+    tier: work
+    write: worktree
+    autonomy: full
+default_lane: quickfix
+`,
+    );
+    const outcome = await runTask({
+      task: "fix the flaky test",
+      cwd: dir,
+      dryRun: true,
+      backendOverride: "fake",
+    });
+    expect(outcome.output).toContain("write: tree (clamped from worktree");
+    expect(outcome.output).toContain("autonomy: safe (clamped from full");
   });
 
   test("end-to-end fake backend succeeds", async () => {
