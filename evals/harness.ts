@@ -46,6 +46,9 @@ export class RelayMcp {
         ...(process.env as Record<string, string>),
         XDG_DATA_HOME: dataDir,
         XDG_CONFIG_HOME: configDir,
+        // A server refreshes host hint files on startup, so an eval run would
+        // otherwise rewrite the developer's own ~/.cursor and ~/.claude files.
+        HOME: mkdtempSync(join(tmpdir(), "relay-eval-home-")),
         ...opts.env,
       },
       stderr: "ignore",

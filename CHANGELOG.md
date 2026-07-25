@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.1] — 2026-07-25
+
+### Fixed
+
+- **Relay honors `$HOME` now, and the suites stop writing to the developer's dotfiles.** Bun's
+  `os.homedir()` reads the passwd entry and ignores `$HOME` outright, which made the new
+  startup hint-refresh rewrite the developer's real `~/.cursor/rules/relay.mdc` from inside
+  `bun test` and `bun run evals` — caught within minutes of shipping v0.12.0, by noticing the
+  file's mtime matched an eval run rather than the upgrade. Same class of leak the test
+  preload's XDG overrides already existed to prevent, so the fix matches: a `userHome()`
+  helper that prefers `$HOME` (which is also what containers and multi-account setups expect),
+  plus `HOME` isolation in the test preload and the eval harness. Config and data dirs resolve
+  through it too, so an isolated `HOME` isolates all of relay
+
 ## [0.12.0] — 2026-07-25
 
 ### Added
@@ -712,7 +726,8 @@ the OS's most permissive file defaults, and neither was a decision anyone had ac
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.12.1...HEAD
+[0.12.1]: https://github.com/yoreai/relay/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/yoreai/relay/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/yoreai/relay/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/yoreai/relay/compare/v0.9.1...v0.10.0

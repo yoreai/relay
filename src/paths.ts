@@ -2,14 +2,27 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { chmodSync, existsSync, readdirSync, statSync } from "node:fs";
 
+/**
+ * The user's home, honoring `$HOME` like every other tool.
+ *
+ * Bun's `os.homedir()` reads the passwd entry and ignores `$HOME` outright,
+ * which is surprising in containers and multi-account setups — and it meant a
+ * relay started by the test/eval suites wrote hint files into the developer's
+ * real dotfiles, the same class of leak the XDG overrides above exist to
+ * prevent (caught live: an eval run rewrote ~/.cursor/rules/relay.mdc).
+ */
+export function userHome(): string {
+  return process.env.HOME || homedir();
+}
+
 export function relayConfigDir(): string {
   const xdg = process.env.XDG_CONFIG_HOME;
-  return xdg ? join(xdg, "relay") : join(homedir(), ".config", "relay");
+  return xdg ? join(xdg, "relay") : join(userHome(), ".config", "relay");
 }
 
 export function relayDataDir(): string {
   const xdg = process.env.XDG_DATA_HOME;
-  return xdg ? join(xdg, "relay") : join(homedir(), ".local", "share", "relay");
+  return xdg ? join(xdg, "relay") : join(userHome(), ".local", "share", "relay");
 }
 
 export function runsLogPath(): string {

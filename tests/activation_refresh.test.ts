@@ -2,7 +2,11 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ACTIVATION_BLOCK, refreshActivationHints } from "../src/activation.ts";
+import {
+  ACTIVATION_BLOCK,
+  cursorRulePath,
+  refreshActivationHints,
+} from "../src/activation.ts";
 
 /**
  * Hint files are the only channel relay controls that every host re-reads
@@ -66,6 +70,12 @@ describe("refreshActivationHints", () => {
     expect(refreshActivationHints(home)).toEqual([]);
     expect(readFileSync(codex, "utf8")).toBe(original);
     expect(existsSync(`${codex}.relay-bak`)).toBe(false);
+  });
+
+  test("resolves home from $HOME, so a test run can't rewrite the developer's real hints", () => {
+    // Bun's os.homedir() ignores $HOME; before this, starting a server from
+    // the suite refreshed the developer's actual ~/.cursor/rules/relay.mdc.
+    expect(cursorRulePath().startsWith(process.env.HOME!)).toBe(true);
   });
 
   test("is a no-op once current — no rewrite, no backup churn", () => {

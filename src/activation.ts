@@ -7,8 +7,8 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { userHome } from "./paths.ts";
 
 /**
  * Activation hints: a tiny per-host instruction so agents reliably CALL the
@@ -145,7 +145,7 @@ function stripMemoryFile(path: string): string {
   return `✓ removed activation hint from ${path} (backup: ${path}.relay-bak)`;
 }
 
-export function cursorRulePath(home: string = homedir()): string {
+export function cursorRulePath(home: string = userHome()): string {
   return join(home, ".cursor", "rules", "relay.mdc");
 }
 
@@ -163,10 +163,10 @@ export function installActivationHints(hosts: {
     lines.push(`  cursor: ✓ activation rule → ${p}`);
   }
   if (hosts.claude) {
-    lines.push(`  claude: ${upsertMemoryFile(join(homedir(), ".claude", "CLAUDE.md"))}`);
+    lines.push(`  claude: ${upsertMemoryFile(join(userHome(), ".claude", "CLAUDE.md"))}`);
   }
   if (hosts.codex) {
-    lines.push(`  codex:  ${upsertMemoryFile(join(homedir(), ".codex", "AGENTS.md"))}`);
+    lines.push(`  codex:  ${upsertMemoryFile(join(userHome(), ".codex", "AGENTS.md"))}`);
   }
   return lines;
 }
@@ -186,10 +186,11 @@ export function installActivationHints(hosts: {
  * didn't set up, or reinstate hints they deliberately removed. Content-based
  * rather than version-stamped, so it self-heals and is a no-op when current.
  *
- * `home` is injectable because Bun's `os.homedir()` ignores $HOME, which would
- * otherwise make this untestable without writing to the developer's own files.
+ * `home` is injectable, and defaults to `$HOME`-aware `userHome()`: Bun's
+ * `os.homedir()` ignores $HOME, so this used to rewrite the developer's real
+ * dotfiles from inside the test and eval suites.
  */
-export function refreshActivationHints(home: string = homedir()): string[] {
+export function refreshActivationHints(home: string = userHome()): string[] {
   const refreshed: string[] = [];
   try {
     const rule = cursorRulePath(home);
@@ -228,7 +229,7 @@ export function removeActivationHints(): string[] {
   } else {
     lines.push("  cursor: · no activation rule (nothing to remove)");
   }
-  lines.push(`  claude: ${stripMemoryFile(join(homedir(), ".claude", "CLAUDE.md"))}`);
-  lines.push(`  codex:  ${stripMemoryFile(join(homedir(), ".codex", "AGENTS.md"))}`);
+  lines.push(`  claude: ${stripMemoryFile(join(userHome(), ".claude", "CLAUDE.md"))}`);
+  lines.push(`  codex:  ${stripMemoryFile(join(userHome(), ".codex", "AGENTS.md"))}`);
   return lines;
 }

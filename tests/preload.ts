@@ -9,3 +9,7 @@ import { join } from "node:path";
 // as part of a task. Point XDG at throwaway dirs before any module loads.
 process.env.XDG_DATA_HOME = mkdtempSync(join(tmpdir(), "relay-test-data-"));
 process.env.XDG_CONFIG_HOME = mkdtempSync(join(tmpdir(), "relay-test-config-"));
+// Same reasoning for HOME: relay refreshes host hint files (~/.cursor/rules,
+// ~/.claude/CLAUDE.md) whenever an MCP server starts, and a suite must never
+// rewrite the developer's real instructions to agents.
+process.env.HOME = mkdtempSync(join(tmpdir(), "relay-test-home-"));
