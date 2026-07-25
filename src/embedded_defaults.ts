@@ -17,6 +17,7 @@ tiers:
     - { backend: claude, model: haiku-4.5 }
     - { backend: gemini, model: gemini-3-flash }
     - { backend: codex, model: gpt-5.6-luna }
+    - { backend: kimi, model: kimi-k2.7-code }
   work:
     - { backend: cursor, model: composer-2.5 }
     - { backend: cursor, model: glm-5.2 }
@@ -24,17 +25,20 @@ tiers:
     - { backend: claude, model: sonnet-5 }
     - { backend: codex, model: gpt-5.6-sol }
     - { backend: gemini, model: gemini-3.1-pro }
+    - { backend: kimi, model: kimi-k2.7-code }
   fast:
     - { backend: cursor, model: composer-2.5 }
     - { backend: cursor, model: grok-4.5-fast }
     - { backend: claude, model: sonnet-5 }
     - { backend: gemini, model: gemini-3-flash }
     - { backend: codex, model: gpt-5.6-luna }
+    - { backend: kimi, model: kimi-k2.7-code-highspeed }
   review:
     - { backend: cursor, model: opus-5, effort: high }
     - { backend: claude, model: opus-5 }
     - { backend: codex, model: gpt-5.6-sol }
     - { backend: gemini, model: gemini-3.1-pro }
+    - { backend: kimi, model: kimi-k3, effort: high }
   # opus-5 leads deep: ~parity with fable-5 on coding benchmarks at half the
   # price. fable-5 stays as the \`baseline\` (the counterfactual you'd otherwise
   # have run) and behind opus-5 here for anyone who wants the top of the card.
@@ -45,6 +49,7 @@ tiers:
     - { backend: claude, model: fable-5-high }
     - { backend: codex, model: gpt-5.6-sol }
     - { backend: gemini, model: gemini-3.1-pro }
+    - { backend: kimi, model: kimi-k3, effort: max }
 lanes:
   - name: status
     match: { verbs: [status, summarize, watch, check, list, read] }
@@ -87,7 +92,7 @@ bytes_per_token: 4
 `;
 
 export const EMBEDDED_CATALOG_YAML = `version: 1
-updated: "2026-07-24"
+updated: "2026-07-25"
 classes: [nano, cheap, workhorse, opus-class, frontier]
 models:
   gpt-5.6-luna:
@@ -183,10 +188,51 @@ models:
     # (62.0 vs 67.4), Program Bench (53.6 vs 63.8) and MCP Atlas (76.0 vs 81.3).
     # Below the opus-class marker means below opus-class. Revisit if audited
     # public-suite numbers land.
+    # 2026-07-25: prices re-verified against models.dev (0.95/4.0, cache 0.19 —
+    # was 1.0/4.0 flat). Thinking is boolean on/off — no effort levels exist
+    # (only k3 ships supportEfforts). The managed kimi-code OAuth service
+    # serves it as alias kimi-code/kimi-for-coding; relay maps the canonical
+    # id (see kimiModelId in src/backends/cli.ts). Supersedes k2.6: same rate
+    # card, newer, code-specialized.
     class: workhorse
-    in: 1.0
+    in: 0.95
     out: 4.0
+    cache_read: 0.19
+    supersedes: [kimi-k2.6]
     backends: [cursor, kimi]
+  kimi-k2.6:
+    # open platform only (verified 2026-07-25): the managed kimi-code OAuth
+    # service does not serve k2.6, so relay passes this id through — pin your
+    # own provider alias (e.g. moonshotai/kimi-k2.6) in router.yaml. Boolean
+    # thinking on/off; no effort levels (models.dev lists no supportEfforts).
+    class: workhorse
+    in: 0.95
+    out: 4.0
+    cache_read: 0.16
+    backends: [kimi]
+  kimi-k2.7-code-highspeed:
+    # the highspeed serving of k2.7-code at 2x the rate card (models.dev,
+    # 2026-07-25). Same boolean thinking; managed alias
+    # kimi-code/kimi-for-coding-highspeed. relay's fast-tier kimi candidate.
+    class: workhorse
+    fast: true
+    in: 1.90
+    out: 8.0
+    cache_read: 0.38
+    backends: [kimi]
+  kimi-k3:
+    # provisional opus-class (2026-07-25): Moonshot's flagship (1M ctx,
+    # released 2026-07-16), but every published number is vendor-only — the
+    # same evidence rule that demoted k2.7-code from frontier keeps this out
+    # of frontier until independent suites land. The only kimi model with
+    # effort levels: low/high/max (default high), chosen per tier via
+    # \`effort:\` (relay passes KIMI_MODEL_THINKING_EFFORT to the CLI).
+    # Managed alias kimi-code/k3.
+    class: opus-class
+    in: 3.0
+    out: 15.0
+    cache_read: 0.30
+    backends: [kimi]
   fable-5-high:
     # note: the claude API gates fable-5 behind data retention being enabled,
     # so \`claude --model claude-fable-5\` 400s on ZDR workspaces. relay pins the
