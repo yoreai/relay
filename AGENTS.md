@@ -107,6 +107,11 @@ Change these only deliberately — each one is load-bearing.
   silently.
 - **No telemetry, no phone-home.** Local `runs.jsonl` only, no task text unless `--log-tasks`.
   The only network calls are pull-only catalog/release checks.
+- **Durable guidance goes where it's read fresh.** MCP clients cache tool descriptions for the
+  life of a session, so anything an agent must know *today* cannot live only in a description.
+  Tool results (never cached) carry per-call warnings; the host hint files in `activation.ts`
+  (re-read each session, and refreshed by `mcp serve`/`relay update`) carry standing behavior.
+  A description is documentation for the next session, not a delivery mechanism for this one.
 
 ## Invariants that cost us a bug once
 
@@ -141,6 +146,10 @@ Change these only deliberately — each one is load-bearing.
 - **Workers must never re-delegate:** `RELAY_WORKER=1` plus a hard refuse in `src/mcp.ts`.
 - **Host transcript readers must degrade to empty, never throw.** They parse undocumented
   formats; a format change must not break `relay recall`.
+- **A long-lived MCP server outlives the binary it came from.** `brew upgrade` swaps the file
+  under a running `relay mcp serve`; hosts never restart it. Detect and report (`staleness.ts`,
+  surfaced in every run/status/doctor result) — never kill the server, which would abort
+  in-flight runs to fix a lag. Guarded by `tests/staleness.test.ts` and eval scenario 17.
 
 ## Identity
 

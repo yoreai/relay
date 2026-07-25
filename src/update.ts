@@ -6,6 +6,7 @@ import {
   parseCatalog,
 } from "./catalog.ts";
 import { compareVersions } from "./freshness.ts";
+import { refreshActivationHints } from "./activation.ts";
 import { RELAY_VERSION } from "./version.ts";
 
 const CATALOG_URL =
@@ -69,6 +70,18 @@ export async function runUpdate(opts: { check?: boolean } = {}): Promise<string>
     }
   } catch {
     lines.push("relay: release check skipped (network)");
+  }
+
+  // 3. host activation hints — the wording ships with the binary, so an
+  // upgraded relay would otherwise keep instructing agents with whatever text
+  // was current at `relay setup`. Only rewrites blocks that already exist.
+  if (!opts.check) {
+    const refreshed = refreshActivationHints();
+    lines.push(
+      refreshed.length
+        ? `hints: refreshed for this version — ${refreshed.join(", ")}`
+        : "hints: host activation files already current",
+    );
   }
 
   return lines.join("\n");

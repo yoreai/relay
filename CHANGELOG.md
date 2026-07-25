@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] — 2026-07-25
+
+### Added
+
+- **Relay notices when it's the stale one.** Hosts spawn `relay mcp serve` once per session and
+  keep the process for hours, so `brew upgrade relay` leaves the agent talking to the old code
+  with nothing in the protocol to say so — found the honest way, by shipping v0.11.0 and then
+  watching this session keep using v0.10.0's behavior. `relay_doctor` had only *advisory prose*
+  telling the reader to compare versions themselves; relay does the comparison now. Every
+  `relay_run`, `relay_status`, and `relay_doctor` result carries a `stale_server` line when the
+  binary on PATH is newer than the process serving the call, telling the agent to have the user
+  reload. Results are the right channel precisely because tool *descriptions* are cached by the
+  client for the life of a session — that caching is what hid the problem. Cost is one `stat`
+  per call: the binary's mtime gates whether relay bothers to probe at all, and only the probe
+  is cached (caching the quiet answer would have hidden an upgrade for the whole TTL — the eval
+  scenario caught that). One-directional on purpose: running ahead of what's installed is
+  development, not staleness
+- **Host activation hints refresh themselves after an upgrade.** `src/activation.ts` has always
+  been able to rewrite its fenced block in place — the code comment says "so wording updates
+  ship with new versions" — but `installActivationHints` was only ever called by `relay setup`,
+  so an upgraded relay kept instructing every host with whatever text was current the last time
+  the user ran setup. `relay mcp serve` (which every host starts, making it the one thing that
+  reliably runs after an upgrade) and `relay update` now bring existing blocks up to date. It
+  only rewrites files that already carry relay's block: an upgrade must never install relay into
+  a host the user didn't set up, or resurrect hints they deliberately removed. Content-based
+  rather than version-stamped, so it self-heals and no-ops when current
+- **The hint files now teach parallel delegation**, which is what makes the refresh worth having
+  today: agents learn to fan out independent tasks from `~/.cursor/rules/relay.mdc`,
+  `~/.claude/CLAUDE.md`, and `~/.codex/AGENTS.md` — read fresh every session, no MCP cache in
+  the way
+
+### Fixed
+
+- **`Bun.which` and `os.homedir()` were quietly untestable.** `Bun.which` answers from the PATH
+  the process launched with and ignores later `process.env.PATH` changes; Bun's `os.homedir()`
+  ignores `$HOME` entirely. Staleness detection walks PATH itself now, and the activation
+  refresh takes the home directory as an argument — otherwise both were only verifiable by
+  writing to the developer's own dotfiles
+
 ## [0.11.0] — 2026-07-25
 
 ### Added
@@ -673,7 +712,8 @@ the OS's most permissive file defaults, and neither was a decision anyone had ac
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/yoreai/relay/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/yoreai/relay/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/yoreai/relay/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/yoreai/relay/compare/v0.9.0...v0.9.1

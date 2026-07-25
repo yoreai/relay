@@ -36,6 +36,13 @@ briefly report new phases or blockers until it finishes; do not leave the user
 staring at one opaque, blocking tool call. Report the final outcome as the
 result. If the request is ambiguous or relay fails, do the task normally.
 
+When the user hands over SEVERAL independent tasks, don't queue them: call
+\`relay_run\` once per task with \`wait: false\` and a worktree lane (the user's
+walkaway lane, usually \`build\`). Each run gets its own isolated worktree and
+\`relay/*\` branch, so they can't collide, and the user reviews one diff per
+task. Relay refuses runs past the repo's \`max_parallel\` and names the ids to
+poll — queue those rather than retrying.
+
 relay also remembers. When the user asks "where were we", "catch me up",
 "what's the status here" — or at the start of a session where prior context
 would clearly help — call the \`relay_recall\` MCP tool with the workspace
@@ -138,8 +145,8 @@ function stripMemoryFile(path: string): string {
   return `✓ removed activation hint from ${path} (backup: ${path}.relay-bak)`;
 }
 
-export function cursorRulePath(): string {
-  return join(homedir(), ".cursor", "rules", "relay.mdc");
+export function cursorRulePath(home: string = homedir()): string {
+  return join(home, ".cursor", "rules", "relay.mdc");
 }
 
 /** Install per-host hints; hosts arg mirrors what setup detected. */
@@ -162,6 +169,54 @@ export function installActivationHints(hosts: {
     lines.push(`  codex:  ${upsertMemoryFile(join(homedir(), ".codex", "AGENTS.md"))}`);
   }
   return lines;
+}
+
+/**
+ * Bring already-installed hint blocks up to this binary's wording.
+ *
+ * These files are the only channel relay controls that every host re-reads
+ * fresh each session — MCP tool descriptions get cached by the client, so
+ * guidance that ships only there can sit stale in a long session. But nothing
+ * refreshed them either: `installActivationHints` runs at `relay setup` and
+ * never again, so an upgraded relay kept whatever wording was current the last
+ * time the user ran setup.
+ *
+ * Only touches files that already carry relay's block (and a cursor rule that
+ * already exists): an upgrade must never install relay into a host the user
+ * didn't set up, or reinstate hints they deliberately removed. Content-based
+ * rather than version-stamped, so it self-heals and is a no-op when current.
+ *
+ * `home` is injectable because Bun's `os.homedir()` ignores $HOME, which would
+ * otherwise make this untestable without writing to the developer's own files.
+ */
+export function refreshActivationHints(home: string = homedir()): string[] {
+  const refreshed: string[] = [];
+  try {
+    const rule = cursorRulePath(home);
+    if (existsSync(rule) && readFileSync(rule, "utf8") !== CURSOR_RULE) {
+      writeFileSync(rule, CURSOR_RULE, "utf8");
+      refreshed.push(rule);
+    }
+  } catch {
+    // a hint file we can't write is not worth failing anything over
+  }
+  for (const path of [
+    join(home, ".claude", "CLAUDE.md"),
+    join(home, ".codex", "AGENTS.md"),
+  ]) {
+    try {
+      if (!existsSync(path)) continue;
+      const text = readFileSync(path, "utf8");
+      if (!text.includes(BEGIN)) continue;
+      const merged = mergeActivationBlock(text);
+      if (!merged.changed) continue;
+      rewriteInPlace(path, merged.out);
+      refreshed.push(path);
+    } catch {
+      // same — never let instruction bookkeeping break a server start
+    }
+  }
+  return refreshed;
 }
 
 export function removeActivationHints(): string[] {

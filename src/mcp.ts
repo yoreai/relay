@@ -26,6 +26,8 @@ import { loadCatalog } from "./catalog.ts";
 import { loadDirective, resolveTier } from "./directive.ts";
 import { pricesShadowWarning } from "./doctor.ts";
 import { findDirectivePath, hardenRelayDataDir } from "./paths.ts";
+import { refreshActivationHints } from "./activation.ts";
+import { staleServerWarning } from "./staleness.ts";
 import { RELAY_VERSION } from "./version.ts";
 
 function resolveRunCwd(raw: string): string {
@@ -111,8 +113,24 @@ export function requireRunCwd(explicit: string | undefined): string {
   return cwd;
 }
 
+/**
+ * Spread into any tool result to carry the "this server predates your
+ * installed relay" warning. Tool *results* are the right channel: clients
+ * cache tool descriptions for the life of a session, but every result is read
+ * fresh, so this reaches the agent even when its copy of relay's tool list is
+ * hours old. Absent when there's nothing wrong.
+ */
+async function staleServerField(): Promise<{ stale_server?: string }> {
+  const warning = await staleServerWarning();
+  return warning ? { stale_server: warning } : {};
+}
+
 export async function serveMcp(): Promise<void> {
   hardenRelayDataDir();
+  // Every host starts this server, which makes it the one place that reliably
+  // runs after an upgrade — so it's where the per-host hint files get brought
+  // up to date. Silent by construction: stdout is the protocol stream here.
+  refreshActivationHints();
   const server = new Server(
     { name: "relay", version: RELAY_VERSION },
     { capabilities: { tools: {} } },
@@ -370,6 +388,7 @@ export async function serveMcp(): Promise<void> {
                     id,
                     status: "running",
                     next: `poll relay_status with id "${id}" (~30s cadence) and recap progress to the user`,
+                    ...(await staleServerField()),
                   },
                   null,
                   2,
@@ -410,6 +429,7 @@ export async function serveMcp(): Promise<void> {
                       }
                     : {}),
                   outputTail: redactSecrets(outcome.output.slice(-2_000)),
+                  ...(await staleServerField()),
                 },
                 null,
                 2,
@@ -437,6 +457,7 @@ export async function serveMcp(): Promise<void> {
                     ...run,
                     ...(current ? { phase: current.phase, phase_detail: current.detail } : {}),
                     progress: events,
+                    ...(await staleServerField()),
                   },
                   null,
                   2,
@@ -451,7 +472,11 @@ export async function serveMcp(): Promise<void> {
             {
               type: "text",
               text: JSON.stringify(
-                { runs: readRuns(20), ...(hint ? { update_hint: hint } : {}) },
+                {
+                  runs: readRuns(20),
+                  ...(hint ? { update_hint: hint } : {}),
+                  ...(await staleServerField()),
+                },
                 null,
                 2,
               ),
@@ -486,10 +511,10 @@ export async function serveMcp(): Promise<void> {
               text: JSON.stringify(
                 {
                   relay_version: RELAY_VERSION,
-                  relay_version_note:
-                    "this is the version of the relay serving this MCP call. If it trails the " +
-                    "installed binary (relay --version), this server is a stale process — the " +
-                    "user should restart their agent session.",
+                  // Was advisory prose telling the reader to compare this
+                  // against `relay --version` themselves; relay does the
+                  // comparison now and only speaks up when it fails.
+                  ...(await staleServerField()),
                   ...routingSnapshot(cwd),
                   tools: tools.map((t) => ({
                     tool: t.id,

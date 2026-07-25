@@ -5,7 +5,7 @@
 // This is NOT the unit test suite (`bun test`): these scenarios spawn real
 // backend workers and spend real (cent-level) money. Not run in CI.
 
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -513,6 +513,48 @@ default_lane: build
       }
     }),
   );
+
+  // ---- S17: a relay upgraded under a running server says so ----------------
+  // Hosts keep one `relay mcp serve` process for a whole session, so `brew
+  // upgrade relay` leaves an agent talking to old code with no signal. The
+  // warning has to ride in tool RESULTS: clients cache tool descriptions for
+  // the life of a session, which is how this went unnoticed in the first place.
+  results.push(
+    await runScenario("stale server: an upgrade under a live server is reported in results", "mcp", async () => {
+      const binDir = mkdtempSync(join(tmpdir(), "relay-eval-fakebin-"));
+      const mcp = await RelayMcp.spawn({
+        env: { PATH: `${binDir}:${process.env.PATH ?? ""}` },
+      });
+      try {
+        const before = await mcp.call("relay_status", {});
+        expect(before.ok, `status failed: ${before.text.slice(0, 200)}`);
+        expect(
+          (before.json as Record<string, unknown>).stale_server === undefined,
+          "warned about staleness before anything was upgraded",
+        );
+
+        // the upgrade: a newer relay appears on PATH after the server started
+        const fake = join(binDir, "relay");
+        writeFileSync(fake, "#!/bin/sh\necho 99.0.0\n");
+        chmodSync(fake, 0o755);
+
+        const after = await mcp.call("relay_status", {});
+        expect(after.ok, `status failed: ${after.text.slice(0, 200)}`);
+        const warning = (after.json as Record<string, unknown>).stale_server;
+        expect(
+          typeof warning === "string" && warning.includes("99.0.0"),
+          `no stale_server warning after the upgrade: ${after.text.slice(0, 300)}`,
+        );
+        expect(
+          typeof warning === "string" && /restart/i.test(warning),
+          "warning doesn't tell the agent what the user should do",
+        );
+        return "silent before the upgrade, warned after — in the tool result";
+      } finally {
+        await mcp.close();
+      }
+    }),
+  );
 }
 
 // ---- Host layer: real CLIs, real delegation decision ------------------------
@@ -725,7 +767,8 @@ function writeReport(): string {
     `Scenario 16 is the parallel contract: three concurrent delegations in one repo produce three ` +
       `\`relay/*\` branches with the right file on each and an untouched main tree. Lock timing ` +
       `(overlap, and verify serializing across worktrees) is unit-tested where it can be observed ` +
-      `directly — \`tests/parallel.test.ts\`.`,
+      `directly — \`tests/parallel.test.ts\`. Scenario 17 upgrades relay underneath a live server ` +
+      `and asserts the warning rides in a tool *result*, the one channel a host can't serve stale.`,
   );
   const out = lines.join("\n") + "\n";
   // A filtered run proves one scenario, not the suite — overwriting the
