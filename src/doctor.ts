@@ -1,6 +1,8 @@
 import { availableBackends } from "./backends/index.ts";
+import { OPENCODE_ID_MAP, opencodeCatalogId } from "./backends/cli.ts";
 import { disabledBackends } from "./settings.ts";
 import { probeTools } from "./probe.ts";
+import { servableModels, servablePredicate } from "./servable.ts";
 import { loadCatalog } from "./catalog.ts";
 import { freshnessHint } from "./freshness.ts";
 import { which } from "./which.ts";
@@ -73,6 +75,32 @@ export async function runDoctor(
   );
   lines.push("");
 
+  // Installed ≠ servable for multi-provider CLIs: opencode can be on PATH
+  // without billing for its built-in zen models. When the probe succeeded,
+  // say what it can actually serve here — and filter tier resolution
+  // through it below. Probe null → no line, no filtering (fail-open).
+  const servable = availableBackends().has("opencode")
+    ? await servableModels("opencode", { fresh })
+    : null;
+  if (servable) {
+    try {
+      loadCatalog(); // an unreadable catalog must not break doctor — skip the line
+      const found = new Set<string>();
+      const providers = new Set<string>();
+      for (const id of servable) {
+        const canonical = opencodeCatalogId(id);
+        if (canonical) found.add(canonical);
+        providers.add(id.split("/")[0]!);
+      }
+      lines.push(
+        `opencode serves ${found.size} of ${Object.keys(OPENCODE_ID_MAP).length} mapped catalog models here (providers: ${[...providers].join(", ")})`,
+      );
+      lines.push("");
+    } catch {
+      // catalog error — skip the line silently
+    }
+  }
+
   const dirPath = findDirectivePath(cwd);
   try {
     const d = loadDirective(cwd);
@@ -100,11 +128,12 @@ export async function runDoctor(
   try {
     const d = loadDirective(cwd);
     const available = availableBackends();
+    const servablePred = servablePredicate(servable); // null probe → allow-all
     lines.push("");
     lines.push("tier resolution (on this machine):");
     for (const tierName of Object.keys(d.tiers)) {
       try {
-        const t = resolveTier(d, tierName, available);
+        const t = resolveTier(d, tierName, available, servablePred);
         lines.push(
           `  ${tierName.padEnd(7)} → ${t.backend}/${t.model}` +
             (t.fallback ? "  (fallback)" : ""),

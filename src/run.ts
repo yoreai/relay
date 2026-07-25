@@ -9,6 +9,7 @@ import { memoryRepoKey } from "./memory.ts";
 import { redactSecrets } from "./redact.ts";
 import { nextEscalation, type EscalationState } from "./escalate.ts";
 import { loadPrices, makeReceipt, type Receipt } from "./savings.ts";
+import { servableModels, servablePredicate } from "./servable.ts";
 import {
   appendEvent,
   appendRun,
@@ -82,9 +83,14 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
   // Mutable during the run: a backend that hard-fails (auth, crash) is
   // dropped so retries re-resolve onto the next fallback candidate.
   const available = opts.backendOverride ? undefined : availableBackends();
+  // Installed ≠ servable for multi-provider CLIs — fetched once per run;
+  // fail-open: a failed probe yields an allow-all predicate, no filtering.
+  const servable = available?.has("opencode")
+    ? servablePredicate(await servableModels("opencode"))
+    : undefined;
 
   let tierName = decision.tier;
-  let tier = resolveTier(directive, tierName, available);
+  let tier = resolveTier(directive, tierName, available, servable);
   if (opts.backendOverride) {
     tier = { ...tier, backend: opts.backendOverride as typeof tier.backend };
   }
@@ -200,7 +206,7 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
   while (true) {
     tierName = state.tier;
     try {
-      tier = resolveTier(directive, tierName, available);
+      tier = resolveTier(directive, tierName, available, servable);
     } catch (e) {
       // escalation landed on a tier with no installed backend — stop here
       lastOutput += `\n\n[relay] ${(e as Error).message}`;
@@ -271,7 +277,7 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
     ) {
       available.delete(tier.backend);
       try {
-        resolveTier(directive, tierName, available);
+        resolveTier(directive, tierName, available, servable);
         lastOutput += `\n\n[relay] backend ${tier.backend} failed (exit ${result.exitCode}) → trying next fallback backend`;
         emit("fallback", `backend ${tier.backend} failed → next candidate`);
         continue;

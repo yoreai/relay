@@ -168,11 +168,14 @@ export type ResolvedTier = TierSpec & {
 /**
  * Pick the first tier candidate whose backend is available.
  * Without an availability set, the first candidate wins (policy order).
+ * `servable` narrows further (installed ≠ servable for multi-provider CLIs);
+ * undefined means every installed candidate is eligible.
  */
 export function resolveTier(
   directive: Directive,
   tierName: string,
   available?: Set<string>,
+  servable?: (backend: string, model: string) => boolean,
 ): ResolvedTier {
   const candidates = directive.tiers[tierName];
   if (!candidates || candidates.length === 0) {
@@ -184,7 +187,7 @@ export function resolveTier(
 
   for (let i = 0; i < candidates.length; i++) {
     const c = candidates[i]!;
-    if (available.has(c.backend)) {
+    if (available.has(c.backend) && (servable?.(c.backend, c.model) ?? true)) {
       return { ...c, fallback: i > 0 };
     }
   }

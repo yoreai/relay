@@ -28,6 +28,21 @@ export type CliBackendSpec = {
   loginHint: string;
 };
 
+/** canonical catalog id → pinned zen provider id (see opencodeModelId) */
+export const OPENCODE_ID_MAP: Record<string, string> = {
+  "gpt-5.6-luna": "opencode/gpt-5.6-luna",
+  "gemini-3-flash": "opencode/gemini-3-flash",
+  "glm-5.2": "opencode/glm-5.2",
+  "grok-4.5": "opencode/grok-4.5",
+  "gemini-3.1-pro": "opencode/gemini-3.1-pro",
+  "gpt-5.6-sol": "opencode/gpt-5.6-sol",
+  "haiku-4.5": "opencode/claude-haiku-4-5",
+  "sonnet-5": "opencode/claude-sonnet-5",
+  "opus-5": "opencode/claude-opus-5",
+  "opus-4.8-high": "opencode/claude-opus-4-8",
+  "fable-5-high": "opencode/claude-fable-5",
+};
+
 /**
  * Headless opencode requires a `provider/model` id, so relay maps its
  * canonical catalog ids to the pinned ids of opencode's built-in `zen`
@@ -40,20 +55,21 @@ export type CliBackendSpec = {
  * relay silently substituting one.
  */
 export function opencodeModelId(canonical: string): string {
-  const map: Record<string, string> = {
-    "gpt-5.6-luna": "opencode/gpt-5.6-luna",
-    "gemini-3-flash": "opencode/gemini-3-flash",
-    "glm-5.2": "opencode/glm-5.2",
-    "grok-4.5": "opencode/grok-4.5",
-    "gemini-3.1-pro": "opencode/gemini-3.1-pro",
-    "gpt-5.6-sol": "opencode/gpt-5.6-sol",
-    "haiku-4.5": "opencode/claude-haiku-4-5",
-    "sonnet-5": "opencode/claude-sonnet-5",
-    "opus-5": "opencode/claude-opus-5",
-    "opus-4.8-high": "opencode/claude-opus-4-8",
-    "fable-5-high": "opencode/claude-fable-5",
-  };
-  return map[canonical] ?? canonical;
+  return OPENCODE_ID_MAP[canonical] ?? canonical;
+}
+
+/**
+ * The inverse of opencodeModelId: any provider's slug resolves through the
+ * zen-naming map (`abacus/claude-opus-5` → `opus-5`, same as
+ * `opencode/claude-opus-5`), so relay can recognize a probed servable model
+ * without maintaining a per-provider matrix. Null when nothing matches.
+ */
+export function opencodeCatalogId(servableId: string): string | null {
+  const slug = servableId.slice(servableId.indexOf("/") + 1);
+  for (const [canonical, mapped] of Object.entries(OPENCODE_ID_MAP)) {
+    if (mapped === `opencode/${slug}`) return canonical;
+  }
+  return null;
 }
 
 export const CLI_SPECS: Record<string, CliBackendSpec> = {
