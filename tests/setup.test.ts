@@ -89,6 +89,35 @@ describe("removeMcpJson", () => {
     const { changed } = removeMcpJson(JSON.stringify({ mcpServers: {} }));
     expect(changed).toBe(false);
   });
+
+  // A project-scoped entry outlives `claude mcp remove -s user` and then outlives
+  // the binary itself, so the project opens with a relay server it can't spawn.
+  test("sweeps Claude Code's project-scoped registrations", () => {
+    const { out, changed } = removeMcpJson(
+      JSON.stringify({
+        mcpServers: {},
+        projects: {
+          "/Users/x/repo": {
+            mcpServers: { relay: { command: "relay" }, other: { command: "other" } },
+            allowedTools: ["Bash"],
+          },
+          "/Users/x/clean": { mcpServers: {} },
+        },
+      }),
+    );
+    expect(changed).toBe(true);
+    const cfg = JSON.parse(out);
+    expect(cfg.projects["/Users/x/repo"].mcpServers.relay).toBeUndefined();
+    expect(cfg.projects["/Users/x/repo"].mcpServers.other.command).toBe("other");
+    expect(cfg.projects["/Users/x/repo"].allowedTools).toEqual(["Bash"]);
+  });
+
+  test("tolerates non-object project entries", () => {
+    const { changed } = removeMcpJson(
+      JSON.stringify({ projects: { "/a": null, "/b": "junk", "/c": {} } }),
+    );
+    expect(changed).toBe(false);
+  });
 });
 
 describe("removeCodexToml", () => {

@@ -5,22 +5,35 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import { removeActivationHints } from "./activation.ts";
 import { claudeDesktopConfigPath } from "./setup.ts";
-import { relayConfigDir, relayDataDir } from "./paths.ts";
+import { relayConfigDir, relayDataDir, userHome } from "./paths.ts";
 import { which } from "./which.ts";
 
 /** Remove relay from an mcpServers-style JSON config. Pure for testability. */
 export function removeMcpJson(text: string): { out: string; changed: boolean } {
   const cfg = (text.trim() ? JSON.parse(text) : {}) as {
     mcpServers?: Record<string, unknown>;
+    projects?: Record<string, { mcpServers?: Record<string, unknown> } | unknown>;
   };
-  if (!cfg.mcpServers || !("relay" in cfg.mcpServers)) {
-    return { out: text, changed: false };
+  let changed = false;
+  if (cfg.mcpServers && "relay" in cfg.mcpServers) {
+    delete cfg.mcpServers.relay;
+    changed = true;
   }
-  delete cfg.mcpServers.relay;
+  // Claude Code also keeps per-project servers under projects[path].mcpServers,
+  // and `claude mcp remove -s user` never touches those. Leaving one behind is
+  // worse than leaving nothing: the entry outlives the binary, so that project
+  // opens with a relay server it can no longer spawn.
+  for (const project of Object.values(cfg.projects ?? {})) {
+    const servers = (project as { mcpServers?: Record<string, unknown> })?.mcpServers;
+    if (servers && "relay" in servers) {
+      delete servers.relay;
+      changed = true;
+    }
+  }
+  if (!changed) return { out: text, changed: false };
   return { out: JSON.stringify(cfg, null, 2) + "\n", changed: true };
 }
 
@@ -72,16 +85,22 @@ export async function runUninstall(opts: { purge?: boolean } = {}): Promise<stri
   };
 
   say("relay uninstall — deregistering MCP…");
-  say(`  cursor: ${deregisterJson(join(homedir(), ".cursor", "mcp.json"))}`);
+  say(`  cursor: ${deregisterJson(join(userHome(), ".cursor", "mcp.json"))}`);
   say(`  claude app: ${deregisterJson(claudeDesktopConfigPath())}`);
 
+  const claudeJson = join(userHome(), ".claude.json");
   if (await runToolMcpRemove(["claude", "mcp", "remove", "-s", "user", "relay"])) {
     say("  claude: ✓ removed via `claude mcp remove`");
+    // The CLI removed user scope; project-scoped entries in the same file are
+    // invisible to it, so sweep them too rather than reporting a clean uninstall
+    // over a registration that survived.
+    const swept = deregisterJson(claudeJson);
+    if (swept.startsWith("✓")) say(`  claude: ${swept} (project-scoped)`);
   } else {
-    say(`  claude: ${deregisterJson(join(homedir(), ".claude.json"))}`);
+    say(`  claude: ${deregisterJson(claudeJson)}`);
   }
 
-  const codexToml = join(homedir(), ".codex", "config.toml");
+  const codexToml = join(userHome(), ".codex", "config.toml");
   if (await runToolMcpRemove(["codex", "mcp", "remove", "relay"])) {
     say("  codex:  ✓ removed via `codex mcp remove`");
   } else if (existsSync(codexToml)) {

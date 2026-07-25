@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.2] — 2026-07-25
+
+### Fixed
+
+- **`relay uninstall` no longer leaves a registration behind in Claude Code.** Found by doing a
+  full wipe-and-reinstall on a real machine and then checking the result rather than trusting
+  the command's own ✓s: uninstall reported a clean sweep while
+  `~/.claude.json` still carried `projects["…/relay"].mcpServers.relay`. Two gaps lined up —
+  `claude mcp remove -s user` only knows user scope, and relay's own JSON fallback only looked
+  at the top-level `mcpServers` *and* was skipped entirely whenever the CLI call succeeded. A
+  surviving entry is worse than an untouched one, because it outlives the binary: that project
+  then opens with a relay server it can no longer spawn. Relay now sweeps project scope in the
+  same file, and does it even when the CLI path reports success
+- **`src/uninstall.ts` was still reading `os.homedir()`**, the same untestable call v0.12.1
+  removed everywhere else — so uninstall ignored `$HOME` and couldn't be exercised against a
+  temp home
+
 ## [0.12.1] — 2026-07-25
 
 ### Fixed
@@ -726,7 +743,8 @@ the OS's most permissive file defaults, and neither was a decision anyone had ac
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.12.1...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.12.2...HEAD
+[0.12.2]: https://github.com/yoreai/relay/compare/v0.12.1...v0.12.2
 [0.12.1]: https://github.com/yoreai/relay/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/yoreai/relay/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/yoreai/relay/compare/v0.10.0...v0.11.0
