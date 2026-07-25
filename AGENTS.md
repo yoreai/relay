@@ -22,7 +22,9 @@ GitHub issue, not a file, so it can be discussed and closed.
 1. Update `CHANGELOG.md` under `[Unreleased]` — say *why*, not just what
 2. Add/update tests for changed behavior
 3. Run `bun test` and `bun run typecheck`
-4. Keep employer/other-project references out of this repo — it's independent personal OSS
+4. Keep employer/other-project *entanglement* out of this repo — no internal links, tickets,
+   code, or anything implying a company sponsors this. The author's own bio naming their day
+   job is fine; that's who they are, not a claim about who owns relay
 
 ## Catalog maintenance (every few weeks — the "always looked at" table)
 
