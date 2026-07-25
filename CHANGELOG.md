@@ -198,6 +198,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   manually if wanted. Receipts price at catalog rates, while zen's own rate card can differ
   slightly from direct API prices. Permission posture stays with the user's opencode config —
   relay never passes `--auto`
+- **Servable-model awareness for opencode: installed ≠ servable.** A machine can have the
+  opencode CLI present with only foreign provider logins (OpenAI, Abacus, …) and no zen
+  billing — in which case every shipped opencode fallback would fail at runtime, because
+  `which opencode` says nothing about what the CLI can actually serve. Relay now probes
+  `opencode models` (24h cache, fail-open — a broken probe changes nothing), skips unservable
+  opencode candidates when routing and doctoring, and `relay advise` can suggest pinnable
+  provider ids for models your own logins do serve (`via your OpenAI login`). It never applies
+  them — routing policy stays the user's
 
 ### Fixed
 

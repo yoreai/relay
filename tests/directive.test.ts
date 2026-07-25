@@ -80,3 +80,52 @@ default_lane: quickfix
     expect(bumpTier(d, "deep")).toBeNull();
   });
 });
+
+describe("resolveTier servable predicate", () => {
+  const opencodeFirst = loadDirectiveFromText(`
+version: 1
+baseline: opus-5
+tiers:
+  work:
+    - { backend: opencode, model: glm-5.2 }
+    - { backend: claude, model: sonnet-5 }
+lanes:
+  - name: quickfix
+    match: { verbs: [fix] }
+    tier: work
+default_lane: quickfix
+`);
+
+  test("a rejected candidate falls through to the next one", () => {
+    // opencode installed but can't serve glm-5.2 here → claude wins
+    const servable = (backend: string, model: string) =>
+      !(backend === "opencode" && model === "glm-5.2");
+    const t = resolveTier(
+      opencodeFirst,
+      "work",
+      new Set(["opencode", "claude"]),
+      servable,
+    );
+    expect(t.backend).toBe("claude");
+    expect(t.model).toBe("sonnet-5");
+    expect(t.fallback).toBe(true);
+  });
+
+  test("predicate undefined → legacy behavior (first available wins)", () => {
+    const t = resolveTier(opencodeFirst, "work", new Set(["opencode", "claude"]));
+    expect(t.backend).toBe("opencode");
+    expect(t.fallback).toBe(false);
+  });
+
+  test("a predicate rejecting other backends leaves matching ones alone", () => {
+    // rejects opencode only; with just claude installed nothing changes
+    const t = resolveTier(
+      opencodeFirst,
+      "work",
+      new Set(["claude"]),
+      (backend) => backend !== "opencode",
+    );
+    expect(t.backend).toBe("claude");
+    expect(t.fallback).toBe(true);
+  });
+});

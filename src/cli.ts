@@ -219,7 +219,7 @@ async function main(): Promise<void> {
     return;
   }
   if (parsed.command === "advise") {
-    console.log(runAdvise(cwd, parsed.rest.includes("--apply")));
+    console.log(await runAdvise(cwd, parsed.rest.includes("--apply")));
     return;
   }
   if (parsed.command === "backends") {

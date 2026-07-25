@@ -20,6 +20,7 @@ import { briefFromTask, parseBrief } from "./brief.ts";
 import { freshnessHint } from "./freshness.ts";
 import { probeTools, runLogin } from "./probe.ts";
 import { redactSecrets } from "./redact.ts";
+import { servableModels, servablePredicate } from "./servable.ts";
 import { listBackendChoices, runBackendsCommand } from "./backends_cmd.ts";
 import { availableBackends } from "./backends/index.ts";
 import { loadCatalog } from "./catalog.ts";
@@ -54,7 +55,10 @@ function resolveRunCwd(raw: string): string {
  * only tool auth, so an agent-driven `relay doctor` — how most people run it —
  * could not see that a tier was routing to a superseded model.
  */
-export function routingSnapshot(cwd: string): Record<string, unknown> {
+export function routingSnapshot(
+  cwd: string,
+  servable?: (backend: string, model: string) => boolean,
+): Record<string, unknown> {
   const snapshot: Record<string, unknown> = {};
   try {
     const d = loadDirective(cwd);
@@ -62,7 +66,7 @@ export function routingSnapshot(cwd: string): Record<string, unknown> {
     const tiers: Record<string, string> = {};
     for (const tierName of Object.keys(d.tiers)) {
       try {
-        const t = resolveTier(d, tierName, available);
+        const t = resolveTier(d, tierName, available, servable);
         tiers[tierName] = `${t.backend}/${t.model}${t.fallback ? " (fallback)" : ""}`;
       } catch {
         tiers[tierName] = "no installed backend";
@@ -504,6 +508,10 @@ export async function serveMcp(): Promise<void> {
         // could previously only see auth state — not that the user's tiers were
         // stale, or that a local prices.yaml was freezing their receipts.
         const cwd = typeof args.cwd === "string" ? args.cwd : process.cwd();
+        // installed ≠ servable for multi-provider CLIs (fail-open probe)
+        const servable = availableBackends().has("opencode")
+          ? servablePredicate(await servableModels("opencode"))
+          : undefined;
         return {
           content: [
             {
@@ -515,7 +523,7 @@ export async function serveMcp(): Promise<void> {
                   // against `relay --version` themselves; relay does the
                   // comparison now and only speaks up when it fails.
                   ...(await staleServerField()),
-                  ...routingSnapshot(cwd),
+                  ...routingSnapshot(cwd, servable),
                   tools: tools.map((t) => ({
                     tool: t.id,
                     label: t.label,
