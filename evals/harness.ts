@@ -26,14 +26,18 @@ export class RelayMcp {
     this.transport = transport;
   }
 
-  /** Spawn a fresh `relay mcp serve` (from source) with isolated XDG dirs. */
+  /** Spawn a fresh `relay mcp serve` (from source) with isolated XDG dirs.
+   * Pass `configDir` to stand in for the user's own ~/.config/relay — the only
+   * way to test that a grant relay refuses from a repo is still honored when
+   * the user wrote it themselves. */
   static async spawn(opts: {
     cwd?: string;
     env?: Record<string, string>;
     dataDir?: string;
+    configDir?: string;
   } = {}): Promise<RelayMcp> {
     const dataDir = opts.dataDir ?? mkdtempSync(join(tmpdir(), "relay-eval-data-"));
-    const configDir = mkdtempSync(join(tmpdir(), "relay-eval-config-"));
+    const configDir = opts.configDir ?? mkdtempSync(join(tmpdir(), "relay-eval-config-"));
     const transport = new StdioClientTransport({
       command: "bun",
       args: ["run", join(ROOT, "src/cli.ts"), "mcp", "serve"],
@@ -113,6 +117,15 @@ export function git(dir: string, args: string[]): string {
 export function makeBareDir(name: string): string {
   const dir = mkdtempSync(join(tmpdir(), `relay-eval-${name}-`));
   mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+/** A user-owned config dir holding one router.yaml — the "I wrote this myself"
+ * side of the repo-vs-user precedence rule. */
+export function makeConfigDir(name: string, routerYaml: string): string {
+  const dir = mkdtempSync(join(tmpdir(), `relay-eval-cfg-${name}-`));
+  mkdirSync(join(dir, "relay"), { recursive: true });
+  writeFileSync(join(dir, "relay", "router.yaml"), routerYaml);
   return dir;
 }
 

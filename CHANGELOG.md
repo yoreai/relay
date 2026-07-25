@@ -9,6 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The eval suite now covers the permission posture — 18/18 (was 14/14).** The suite that
+  exercises the real MCP surface and live host delegation hadn't run since before v0.9.0, so
+  the whole safe-by-default effort was verified only by unit tests. Four scenarios close that:
+  a repo-committed directive is refused `worktree` and `autonomy: full`; the identical
+  directive placed in the *user's* config is honored (the security fix must not quietly become
+  a functional regression, and this is the test that would catch it); a repo-authored verify
+  command is refused before any tokens are spent, with the command shown; and a read-only lane
+  declines an explicit instruction to create a file — flag enforcement, not prompt compliance.
+  `RelayMcp.spawn` takes a `configDir` now, which is what makes the repo-vs-user contrast
+  testable at all
+
+### Fixed
+
+- **Host eval scenarios reported a successful delegation as "host never called relay."** Two
+  latent bugs in the harness, both found by hitting them: the run-record lookup consulted only
+  the ambient `XDG_DATA_HOME`, so a runner with one set never checked the default location
+  where env-scrubbing hosts (cursor, codex) actually write; and `XDG_CONFIG_HOME` leaked from
+  the runner's shell into the host CLIs that *do* propagate env (claude), silently rewriting
+  their routing and verify commands. A leftover sandbox config in a developer's shell
+  therefore produced three failures that looked like product regressions and weren't. The
+  harness now checks both record locations and drops `XDG_CONFIG_HOME` for host children;
+  verified by re-running the suite under the exact polluted environment that broke it
+
+### Added
+
 - **The site now answers "what can this do to my machine?"** The trust section covered privacy —
   no telemetry, no stored credentials, pull-only updates — but said nothing about blast radius,
   which is the question anyone vetting relay for a work machine actually asks. It now also states
