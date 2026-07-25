@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Directive } from "./directive.ts";
-import { findDirectivePath } from "./paths.ts";
+import { directiveIsRepoLocal } from "./paths.ts";
 import { isVerifyCommandTrusted } from "./settings.ts";
 
 export type VerifyResult = {
@@ -63,14 +63,11 @@ export function resolveVerifyCommands(
   names: string[] | undefined,
 ): VerifyCommand[] {
   if (!names || names.length === 0) return [];
-  const directivePath = findDirectivePath(cwd);
-  const directiveIsRepoLocal =
-    directivePath === join(cwd, "router.yaml") ||
-    directivePath === join(cwd, ".relay", "router.yaml");
+  const repoLocal = directiveIsRepoLocal(cwd);
   return names.map((name) => {
     const configured = directive.verify_commands[name];
     if (configured && configured !== "auto") {
-      return { name, command: configured, repoSourced: directiveIsRepoLocal };
+      return { name, command: configured, repoSourced: repoLocal };
     }
     const fromRelayYaml = relayYamlCommand(cwd, name);
     if (fromRelayYaml) return { name, command: fromRelayYaml, repoSourced: true };

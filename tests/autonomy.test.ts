@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { cursorPostureArgs } from "../src/backends/cursor.ts";
-import { loadDirectiveFromText } from "../src/directive.ts";
+import { loadDirectiveFromText, loadDirectiveWithSource } from "../src/directive.ts";
 
 const FULL_SUPPORT = { mode: true, sandbox: true };
 const NO_SUPPORT = { mode: false, sandbox: false };
@@ -63,5 +66,64 @@ default_lane: build
 
   test("rejects unknown autonomy values", () => {
     expect(() => directive("    autonomy: yolo")).toThrow(/autonomy/);
+  });
+});
+
+describe("who is allowed to grant autonomy", () => {
+  const DIRECTIVE = `version: 1
+baseline: opus-5
+tiers:
+  work: { backend: cursor, model: composer-2.5 }
+lanes:
+  - name: quickfix
+    match: { verbs: [fix] }
+    tier: work
+    write: tree
+    autonomy: full
+default_lane: quickfix
+`;
+
+  function repoWithDirective(at: "router.yaml" | ".relay/router.yaml"): string {
+    const cwd = mkdtempSync(join(tmpdir(), "relay-autonomy-src-"));
+    const path = join(cwd, at);
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, DIRECTIVE);
+    return cwd;
+  }
+
+  // A cloned repo chooses its own committed files, so honoring `autonomy: full`
+  // from one would hand --force to whoever committed it.
+  for (const at of ["router.yaml", ".relay/router.yaml"] as const) {
+    test(`a repo-committed ${at} cannot grant --force`, () => {
+      const cwd = repoWithDirective(at);
+      const loaded = loadDirectiveWithSource(cwd);
+      expect(loaded.repoLocal).toBe(true);
+      expect(loaded.clampedLanes).toEqual(["quickfix"]);
+      const lane = loaded.directive.lanes[0]!;
+      expect(lane.autonomy).toBe("safe");
+      expect(cursorPostureArgs(lane.write, lane.autonomy, FULL_SUPPORT)).not.toContain(
+        "--force",
+      );
+    });
+  }
+
+  test("the user's own config still grants --force when it asks for it", () => {
+    const configHome = mkdtempSync(join(tmpdir(), "relay-autonomy-cfg-"));
+    mkdirSync(join(configHome, "relay"), { recursive: true });
+    writeFileSync(join(configHome, "relay", "router.yaml"), DIRECTIVE);
+    // a repo with no directive of its own, so the user's config governs
+    const cwd = mkdtempSync(join(tmpdir(), "relay-autonomy-repo-"));
+    const previous = process.env.XDG_CONFIG_HOME;
+    process.env.XDG_CONFIG_HOME = configHome;
+    try {
+      const loaded = loadDirectiveWithSource(cwd);
+      expect(loaded.repoLocal).toBe(false);
+      expect(loaded.clampedLanes).toEqual([]);
+      const lane = loaded.directive.lanes[0]!;
+      expect(lane.autonomy).toBe("full");
+      expect(cursorPostureArgs(lane.write, lane.autonomy, FULL_SUPPORT)).toEqual(["--force"]);
+    } finally {
+      process.env.XDG_CONFIG_HOME = previous;
+    }
   });
 });

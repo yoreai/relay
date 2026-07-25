@@ -55,6 +55,18 @@ export function findDirectivePath(cwd: string): string | null {
   return null;
 }
 
+/**
+ * true when the directive governing `cwd` comes from a file the REPO controls
+ * rather than the user's own config. Anyone who can commit to a repo chooses
+ * that file, so it must never be trusted to grant permissions. One definition,
+ * used by both the verify-command gate and the autonomy clamp — two copies of a
+ * security predicate is how one of them silently drifts.
+ */
+export function directiveIsRepoLocal(cwd: string): boolean {
+  const path = findDirectivePath(cwd);
+  return path === join(cwd, "router.yaml") || path === join(cwd, ".relay", "router.yaml");
+}
+
 /** Path to an on-disk prices file, or null to use embedded defaults. */
 export function findPricesPath(cwd: string): string | null {
   const candidates = [

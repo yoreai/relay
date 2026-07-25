@@ -1,6 +1,6 @@
 import { briefFromTask, parseBrief, type Brief } from "./brief.ts";
 import { acquireRunLock, noLock } from "./runlock.ts";
-import { loadDirective, resolveTier, type Directive } from "./directive.ts";
+import { loadDirectiveWithSource, resolveTier, type Directive } from "./directive.ts";
 import { routeTask } from "./route.ts";
 import { assembleContext } from "./context/assemble.ts";
 import { availableBackends, getBackend } from "./backends/index.ts";
@@ -67,7 +67,8 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
     );
   }
   const cwd = opts.cwd ?? process.cwd();
-  const directive = loadDirective(cwd);
+  const loaded = loadDirectiveWithSource(cwd);
+  const directive = loaded.directive;
   const brief = normalizeBrief(opts);
   const decision = routeTask(directive, opts.task, {
     lane: opts.lane,
@@ -152,6 +153,13 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
     opts.onEvent?.(phase, detail);
   };
   emit("routed", `lane ${decision.lane.name} → ${tier.backend}/${tier.model} (${decision.reason})`);
+  if (loaded.clampedLanes.includes(decision.lane.name)) {
+    emit(
+      "autonomy_clamped",
+      `lane ${decision.lane.name} asked for autonomy: full, but this directive is repo-committed — ` +
+        `keeping the backend's guardrails on. Opt in from your own config if you meant it.`,
+    );
+  }
 
   let workCwd = cwd;
   let prUrl: string | null = null;

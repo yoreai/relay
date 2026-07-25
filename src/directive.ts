@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
 import { EMBEDDED_ROUTER_YAML } from "./embedded_defaults.ts";
-import { findDirectivePath } from "./paths.ts";
+import { directiveIsRepoLocal, findDirectivePath } from "./paths.ts";
 
 const TierSpecSchema = z.object({
   backend: z.enum(["cursor", "claude", "codex", "gemini", "grok", "kimi", "fake"]),
@@ -90,12 +90,52 @@ export function loadDirectiveFromText(text: string): Directive {
   return parseDirective(raw);
 }
 
-export function loadDirective(cwd: string = process.cwd()): Directive {
+/**
+ * `autonomy: full` is the user's opt-in to unattended command execution, and a
+ * cloned repo can ship its own router.yaml — so honoring it from repo-local
+ * config would hand `--force` to whoever committed the file, re-enabling by
+ * config exactly the posture the safe default removed. Repo directives are
+ * clamped back to "safe"; opting in means writing it in your own config.
+ */
+function clampRepoAutonomy(directive: Directive): {
+  directive: Directive;
+  clampedLanes: string[];
+} {
+  const clampedLanes: string[] = [];
+  const lanes = directive.lanes.map((lane) => {
+    if (lane.autonomy !== "full") return lane;
+    clampedLanes.push(lane.name);
+    return { ...lane, autonomy: "safe" as const };
+  });
+  return {
+    directive: clampedLanes.length ? { ...directive, lanes } : directive,
+    clampedLanes,
+  };
+}
+
+export type LoadedDirective = {
+  directive: Directive;
+  /** the directive came from a file inside the repo, so the repo chose it */
+  repoLocal: boolean;
+  /** lanes whose `autonomy: full` was refused because the repo asked, not the user */
+  clampedLanes: string[];
+};
+
+export function loadDirectiveWithSource(cwd: string = process.cwd()): LoadedDirective {
   const path = findDirectivePath(cwd);
   const text = path && existsSync(path)
     ? readFileSync(path, "utf8")
     : EMBEDDED_ROUTER_YAML;
-  return loadDirectiveFromText(text);
+  const parsed = loadDirectiveFromText(text);
+  if (!directiveIsRepoLocal(cwd)) {
+    return { directive: parsed, repoLocal: false, clampedLanes: [] };
+  }
+  const { directive, clampedLanes } = clampRepoAutonomy(parsed);
+  return { directive, repoLocal: true, clampedLanes };
+}
+
+export function loadDirective(cwd: string = process.cwd()): Directive {
+  return loadDirectiveWithSource(cwd).directive;
 }
 
 export type ResolvedTier = TierSpec & {

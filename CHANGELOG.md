@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] — 2026-07-24
+
+### Security
+
+- **A cloned repo could re-enable `--force` on itself.** 0.9.0 made unattended command
+  execution an explicit opt-in (`autonomy: full`), but read the value from whichever directive
+  won resolution — and a repo-local `router.yaml` / `.relay/router.yaml` outranks the user's
+  config. So a repo could ship a lane with `autonomy: full` and get exactly the
+  skip-all-permissions posture the release had just removed, with no consent from the person
+  running relay. The trust gate shipped alongside it guarded repo-supplied *verify commands*
+  against the same trick, which is what makes this an oversight rather than a judgement call.
+  Repo-local directives are now clamped to `autonomy: safe`, the run says so when it happens,
+  and opting in means writing it in your own config where nobody else can commit to it.
+  Repo-locality is now one shared predicate (`directiveIsRepoLocal`) used by both the verify
+  gate and the clamp, because a security check that exists in two copies is one that drifts
+
 ## [0.9.0] — 2026-07-24
 
 ### Security
@@ -493,7 +509,8 @@ the OS's most permissive file defaults, and neither was a decision anyone had ac
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/yoreai/relay/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/yoreai/relay/compare/v0.8.4...v0.9.0
 [0.8.4]: https://github.com/yoreai/relay/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/yoreai/relay/compare/v0.8.2...v0.8.3
