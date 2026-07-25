@@ -37,6 +37,13 @@ export default function Clis() {
           <span className="pass">verified</span>
         </div>
         <div className="cli-row">
+          <span>OpenCode</span>
+          <span>
+            <code>opencode</code>
+          </span>
+          <span className="pass">verified</span>
+        </div>
+        <div className="cli-row">
           <span>Gemini CLI</span>
           <span>
             <code>gemini</code>

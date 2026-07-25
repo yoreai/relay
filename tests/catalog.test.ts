@@ -154,7 +154,7 @@ describe("the shipped defaults are advise-clean", () => {
     const catalog = parseCatalog(
       readFileSync(join(ROOT, "defaults", "catalog.yaml"), "utf8"),
     );
-    for (const backend of ["cursor", "claude", "codex"]) {
+    for (const backend of ["cursor", "claude", "codex", "opencode"]) {
       const suggestions = adviseTiers(
         directive,
         catalog,
@@ -175,7 +175,15 @@ describe("the shipped defaults are advise-clean", () => {
     const catalog = parseCatalog(
       readFileSync(join(ROOT, "defaults", "catalog.yaml"), "utf8"),
     );
-    const all = new Set(["cursor", "claude", "codex", "gemini", "grok", "kimi"]);
+    const all = new Set([
+      "cursor",
+      "claude",
+      "codex",
+      "gemini",
+      "grok",
+      "kimi",
+      "opencode",
+    ]);
     expect(adviseTiers(directive, catalog, all)).toEqual([]);
   });
 });

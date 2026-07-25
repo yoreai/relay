@@ -8,6 +8,7 @@ tiers:
     - { backend: claude, model: haiku-4.5 }
     - { backend: codex, model: gpt-5.6-luna }
     - { backend: gemini, model: gemini-3-flash }
+    - { backend: opencode, model: gpt-5.6-luna }
   # composer-2.5 leads the workhorse tiers: 3rd on the independent Artificial
   # Analysis Coding Agent Index at ~1/10-1/60 the per-task cost of the two above
   # it, and cheaper than glm-5.2, which stays right behind it.
@@ -17,6 +18,7 @@ tiers:
     - { backend: claude, model: haiku-4.5 }
     - { backend: gemini, model: gemini-3-flash }
     - { backend: codex, model: gpt-5.6-luna }
+    - { backend: opencode, model: gemini-3-flash }
   work:
     - { backend: cursor, model: composer-2.5 }
     - { backend: cursor, model: glm-5.2 }
@@ -24,17 +26,20 @@ tiers:
     - { backend: claude, model: sonnet-5 }
     - { backend: codex, model: gpt-5.6-sol }
     - { backend: gemini, model: gemini-3.1-pro }
+    - { backend: opencode, model: glm-5.2 }
   fast:
     - { backend: cursor, model: composer-2.5 }
     - { backend: cursor, model: grok-4.5-fast }
     - { backend: claude, model: sonnet-5 }
     - { backend: gemini, model: gemini-3-flash }
     - { backend: codex, model: gpt-5.6-luna }
+    - { backend: opencode, model: gemini-3-flash }
   review:
     - { backend: cursor, model: opus-5, effort: high }
     - { backend: claude, model: opus-5 }
     - { backend: codex, model: gpt-5.6-sol }
     - { backend: gemini, model: gemini-3.1-pro }
+    - { backend: opencode, model: opus-5 }
   # opus-5 leads deep: ~parity with fable-5 on coding benchmarks at half the
   # price. fable-5 stays as the \`baseline\` (the counterfactual you'd otherwise
   # have run) and behind opus-5 here for anyone who wants the top of the card.
@@ -45,6 +50,7 @@ tiers:
     - { backend: claude, model: fable-5-high }
     - { backend: codex, model: gpt-5.6-sol }
     - { backend: gemini, model: gemini-3.1-pro }
+    - { backend: opencode, model: opus-5 }
 lanes:
   - name: status
     match: { verbs: [status, summarize, watch, check, list, read] }
@@ -87,7 +93,7 @@ bytes_per_token: 4
 `;
 
 export const EMBEDDED_CATALOG_YAML = `version: 1
-updated: "2026-07-24"
+updated: "2026-07-25"
 classes: [nano, cheap, workhorse, opus-class, frontier]
 models:
   gpt-5.6-luna:
@@ -95,25 +101,25 @@ models:
     in: 1.0
     out: 6.0
     cache_read: 0.10
-    backends: [cursor, codex]
+    backends: [cursor, codex, opencode]
   gemini-3-flash:
     class: cheap
     fast: true
     in: 0.30
     out: 2.50
-    backends: [gemini, cursor]
+    backends: [gemini, cursor, opencode]
   haiku-4.5:
     class: cheap
     in: 0.80
     out: 4.0
     cache_read: 0.08
-    backends: [claude]
+    backends: [claude, opencode]
   glm-5.2:
     class: workhorse
     in: 1.40
     out: 4.40
     cache_read: 0.26
-    backends: [cursor]
+    backends: [cursor, opencode]
   composer-2.5:
     # workhorse on independent evidence (reviewed 2026-07-24): 3rd on Artificial
     # Analysis's Coding Agent Index (62) behind only opus-4.7-max (66) and
@@ -132,7 +138,7 @@ models:
     in: 2.0
     out: 6.0
     cache_read: 0.50
-    backends: [cursor, grok]
+    backends: [cursor, grok, opencode]
   grok-4.5-fast:
     class: workhorse
     fast: true
@@ -144,23 +150,23 @@ models:
     in: 3.0
     out: 15.0
     cache_read: 0.30
-    backends: [claude, cursor]
+    backends: [claude, cursor, opencode]
   gemini-3.1-pro:
     class: opus-class
     in: 2.50
     out: 15.0
-    backends: [gemini, cursor]
+    backends: [gemini, cursor, opencode]
   opus-4.8-high:
     class: opus-class
     in: 5.0
     out: 25.0
     cache_read: 0.50
-    backends: [cursor, claude]
+    backends: [cursor, claude, opencode]
   gpt-5.6-sol:
     class: opus-class
     in: 5.0
     out: 30.0
-    backends: [cursor, codex]
+    backends: [cursor, codex, opencode]
   opus-5:
     # frontier on evidence, not vibes (2026-07-24): within 0.5pp of fable-5 on
     # CursorBench 3.2 at max effort for ~half the cost per task, 3x the
@@ -172,7 +178,7 @@ models:
     out: 25.0
     cache_read: 0.50
     supersedes: [opus-4.8-high]
-    backends: [cursor, claude]
+    backends: [cursor, claude, opencode]
   kimi-k2.7-code:
     # demoted frontier → workhorse 2026-07-24. It was the cheapest thing in the
     # frontier class, so advise kept proposing it as a fable-5 replacement for
@@ -196,5 +202,5 @@ models:
     in: 10.0
     out: 50.0
     cache_read: 1.0
-    backends: [cursor, claude]
+    backends: [cursor, claude, opencode]
 `;

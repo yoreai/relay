@@ -106,8 +106,10 @@ org hasn't approved (change anytime: `relay backends enable|disable <tool>`).
    installed wins, so a claude-only (or cursor-only) machine routes every tier with
    zero config. `relay doctor` shows exactly where each tier lands on your machine.
 2. **Route** — rules-first (verbs, file hints, walkaway); default lane if unsure
-3. **Run** — headless `cursor-agent`, `claude`, or `codex` in your working tree
-   (experimental adapters: `gemini`, `grok`, `kimi`)
+3. **Run** — headless `cursor-agent`, `claude`, `codex`, or `opencode` in your working tree
+   (experimental adapters: `gemini`, `grok`, `kimi`). opencode routes through its built-in zen
+   provider (`opencode/<model>`); to use another provider, pin its `provider/model` id in
+   router.yaml
 4. **Verify → widen → escalate** — thin briefs that self-heal before spending frontier tokens
 5. **Receipt** — savings as a named counterfactual: what the same tokens would have cost on
    your `baseline` model. The default is `opus-5`, deliberately the same model relay's own

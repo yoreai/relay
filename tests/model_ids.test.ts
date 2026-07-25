@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { adviseTiers } from "../src/advise.ts";
 import { claudeModelId } from "../src/backends/claude.ts";
 import { cursorModelId } from "../src/backends/cursor.ts";
+import { opencodeModelId } from "../src/backends/cli.ts";
 import { loadCatalog, parseCatalog } from "../src/catalog.ts";
 import { loadDirectiveFromText } from "../src/directive.ts";
 
@@ -44,6 +45,37 @@ describe("cursorModelId", () => {
   test("opus-5 carries the requested effort", () => {
     expect(cursorModelId("opus-5", "high")).toBe("claude-opus-5-high");
     expect(cursorModelId("opus-5")).toBe("claude-opus-5-medium");
+  });
+});
+
+describe("opencodeModelId", () => {
+  test("maps canonical ids to pinned zen provider ids", () => {
+    // claude-family zen ids carry a claude- prefix; other models keep the
+    // catalog id verbatim under the opencode/ provider.
+    expect(opencodeModelId("opus-5")).toBe("opencode/claude-opus-5");
+    expect(opencodeModelId("glm-5.2")).toBe("opencode/glm-5.2");
+  });
+
+  test("distinct catalog models never collapse onto one CLI id", () => {
+    const ids = [
+      "gpt-5.6-luna",
+      "gemini-3-flash",
+      "haiku-4.5",
+      "glm-5.2",
+      "grok-4.5",
+      "sonnet-5",
+      "gemini-3.1-pro",
+      "opus-4.8-high",
+      "gpt-5.6-sol",
+      "opus-5",
+      "fable-5-high",
+    ];
+    const mapped = ids.map(opencodeModelId);
+    expect(new Set(mapped).size).toBe(ids.length);
+  });
+
+  test("unknown ids pass through so users can pin their own provider/model", () => {
+    expect(opencodeModelId("openai/gpt-5.6-sol")).toBe("openai/gpt-5.6-sol");
   });
 });
 
@@ -144,7 +176,7 @@ default_lane: quickfix
 });
 
 describe("catalog ↔ backend coverage", () => {
-  test("every claude/cursor catalog model has an explicit id mapping", () => {
+  test("every claude/opencode catalog model has an explicit id mapping", () => {
     const catalog = parseCatalog(
       readFileSync(join(ROOT, "defaults", "catalog.yaml"), "utf8"),
     );
@@ -154,6 +186,9 @@ describe("catalog ↔ backend coverage", () => {
       // ones we route to by default are deliberately mapped
       if (m.backends.includes("claude")) {
         expect(claudeModelId(id).startsWith("claude-")).toBe(true);
+      }
+      if (m.backends.includes("opencode")) {
+        expect(opencodeModelId(id).startsWith("opencode/")).toBe(true);
       }
     }
   });
