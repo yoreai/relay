@@ -37,6 +37,13 @@ export default function Clis() {
           <span className="pass">verified</span>
         </div>
         <div className="cli-row">
+          <span>Kimi CLI</span>
+          <span>
+            <code>kimi</code>
+          </span>
+          <span className="pass">verified</span>
+        </div>
+        <div className="cli-row">
           <span>Gemini CLI</span>
           <span>
             <code>gemini</code>
@@ -47,13 +54,6 @@ export default function Clis() {
           <span>Grok CLI</span>
           <span>
             <code>grok</code>
-          </span>
-          <span className="exp">experimental</span>
-        </div>
-        <div className="cli-row">
-          <span>Kimi CLI</span>
-          <span>
-            <code>kimi</code>
           </span>
           <span className="exp">experimental</span>
         </div>
