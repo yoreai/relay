@@ -1,0 +1,30 @@
+name: Feature or change proposal
+description: Something relay should do that it doesn't
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do that relay makes hard or impossible?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you'd like it to do
+    validations:
+      required: true
+  - type: checkboxes
+    id: design-rules
+    attributes:
+      label: Fits relay's design rules?
+      description: >
+        From [AGENTS.md](https://github.com/yoreai/relay/blob/main/AGENTS.md). A proposal
+        can still be right and cross one of these — just say so and why, rather than
+        having it discovered in review.
+      options:
+        - label: Routing policy stays the user's (relay proposes, a human accepts)
+        - label: Edits stay unstaged in the caller's tree (only walkaway lanes branch/commit)
+        - label: Receipts stay honest (measured vs estimated, never fabricated precision)
+        - label: No telemetry or phone-home; network calls stay pull-only

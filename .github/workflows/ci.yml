@@ -17,3 +17,7 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun test
       - run: bun run typecheck
+      # The catalog is the advertised easiest contribution, so its own checker has
+      # to gate pull requests — the nightly "Catalog freshness" job only runs on a
+      # schedule and on pushes to main, which a fork PR never reaches.
+      - run: bun run scripts/check-catalog.ts

@@ -227,6 +227,22 @@ Things worth knowing before you rely on it:
 - Success-rate-aware advise (already logs verify results per model)
 - Windows, npm SDK
 
+Anything unbuilt lives in [issues](https://github.com/yoreai/relay/issues), not in a file, so
+it can be discussed and closed.
+
+## Contributing
+
+Contributions are welcome — fork, branch, open a PR. No access request, no CLA.
+
+- [**CONTRIBUTING.md**](./CONTRIBUTING.md) — setup, the ground rules, and what makes a PR
+  easy to merge
+- [**good first issue**](https://github.com/yoreai/relay/labels/good%20first%20issue) — start here
+- **Model catalog updates** are the easiest high-value contribution: prices and quality
+  classes are data, and they reach installed relays via `relay update` with no release
+- **Verifying an experimental backend adapter** (`gemini`, `grok`, `kimi`) needs something a
+  maintainer can't provide alone — those CLIs installed on a real machine
+- Found a security problem? Please [report it privately](./SECURITY.md) rather than in an issue
+
 ## Status
 
 Stable core: setup/uninstall, backend opt-in, tree-edit lanes, pollable run

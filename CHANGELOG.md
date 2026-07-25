@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A real contribution pathway.** The repo was public and Apache-2.0 — so PRs already
+  worked — but nothing told anyone that, and there was nothing to pick up. Now: `SECURITY.md`
+  with private vulnerability reporting (the first real security report arrived as a DM
+  because there was no documented channel), a `CODE_OF_CONDUCT.md`, issue templates
+  (bug/feature/catalog) and a PR template whose checklist is just this project's existing
+  ground rules made visible, a fork-and-PR walkthrough plus a "good first contributions"
+  section in `CONTRIBUTING.md`, and five open issues labelled for newcomers. The
+  `SECURITY.md` scope section deliberately names the *non*-vulnerabilities too — a worker
+  reading a repo's AGENTS.md, an approved verify command running, `autonomy: full` doing what
+  it says — so a reporter isn't guessing where the design boundary is
+
+### Fixed
+
+- **`scripts/check-catalog.ts` now runs on pull requests.** Catalog edits are the
+  contribution this project actively advertises as easiest, but the checker that validates
+  them only ran nightly and on pushes to `main` — a path no fork PR ever reaches. A
+  contributor's catalog PR could go green while the embedded mirror or the `updated:` date
+  was out of sync
+
 ## [0.10.0] — 2026-07-24
 
 ### Security

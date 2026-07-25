@@ -1,0 +1,60 @@
+name: Model catalog update
+description: A new model shipped, prices changed, or a model should be dropped
+labels: [catalog]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The catalog is relay's fact table and the **only** price source. It ships as data
+        on `main`, so catalog changes reach installed relays via `relay update` with no
+        release — which makes this the easiest high-value contribution here.
+
+        Happy to take a PR directly instead of an issue: see
+        [CONTRIBUTING.md](https://github.com/yoreai/relay/blob/main/CONTRIBUTING.md).
+  - type: input
+    id: model
+    attributes:
+      label: Model id
+      placeholder: composer-2.5
+    validations:
+      required: true
+  - type: dropdown
+    id: change
+    attributes:
+      label: What kind of change
+      options:
+        - New model
+        - Price change
+        - Quality class change
+        - Model is dead / should be dropped
+        - Replaced by a newer model (supersedes)
+    validations:
+      required: true
+  - type: textarea
+    id: prices
+    attributes:
+      label: Prices
+      description: Input / output / cache-read per million tokens, and where you got them.
+      placeholder: |
+        in: $X.XX / Mtok
+        out: $X.XX / Mtok
+        cache read: $X.XX / Mtok
+        source: https://provider.example/pricing
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence for the quality class
+      description: >
+        A class is a quality bar, not marketing. Independently-verified benchmarks
+        (Artificial Analysis, Terminal-Bench, SWE-bench Verified) count; vendor-only
+        numbers are not a class promotion. When in doubt, one class lower.
+    validations:
+      required: true
+  - type: input
+    id: backends
+    attributes:
+      label: Which CLIs actually serve it
+      description: Check with `cursor-agent models`, `claude --help`, etc. Pinned ids only, never aliases.
+      placeholder: cursor (composer-2.5), claude (…)
