@@ -121,6 +121,13 @@ agent's own edits, nothing staged or committed for you. Walkaway lanes work in a
 isolated worktree instead — committed on a `relay/*` branch (draft PR when a remote
 exists), never auto-merged. Your branch and uncommitted work are never touched.
 
+Because a walkaway lane owns its own tree, independent tasks can run at the same
+time: hand your agent a list, it fires one delegation per item, and each lands on its
+own branch for you to review. `max_parallel` in your directive caps the fan-out
+(default 2), and verify still runs one at a time per repo — isolated worktrees don't
+isolate a test suite that binds a port or a dev database. Lanes that edit your
+working tree directly stay strictly one-at-a-time.
+
 ## Cross-agent memory
 
 Long chats are the expensive habit relay exists to break: every extra turn re-sends

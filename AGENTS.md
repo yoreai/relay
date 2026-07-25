@@ -86,6 +86,13 @@ Change these only deliberately — each one is load-bearing.
   changes, indistinguishable from the host agent's own. Relay never stages or commits on the
   user's branch — auto-staging polluted their next commit. Walkaway lanes opt into `worktree`,
   which is the only path that may branch and commit.
+- **Lock the resource, not the run.** There are three shared things and three guards
+  (`src/runlock.ts`): the *working tree* is exclusive (two runs in one tree fail each other's
+  verify — the bug that started this), the *repo* is capped at `max_parallel` for spend and
+  load, and the repo's *verify commands* are serialized because isolated worktrees don't
+  isolate a port or a dev database. One coarse lock over all three is what silently made
+  parallel delegation impossible, so keep them separate and keyed distinctly: tree guards key
+  on the tree path, repo guards on the shared git dir (`repoScope`).
 - **Whoever understands the task pays for the brief.** MCP callers pass a curated brief and relay
   forwards it verbatim (a mid-session agent is the best available assembler); CLI users get
   relay's own assembler under a hard char budget. Thin briefs are safe because of

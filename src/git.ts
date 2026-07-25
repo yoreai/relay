@@ -6,7 +6,7 @@ import {
   readFileSync,
   rmdirSync,
 } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 /** Keep relay's worktree scratch space out of `git status` noise — local
  * exclude, so nothing lands in the user's tracked .gitignore. */
@@ -31,6 +31,26 @@ function excludeRelayDir(root: string): void {
 export async function gitRoot(cwd: string): Promise<string | null> {
   const out = await runGit(cwd, ["rev-parse", "--show-toplevel"]);
   return out || null;
+}
+
+/**
+ * Identifies the *repo* a working tree belongs to, as opposed to the tree
+ * itself: the shared git dir, which every linked worktree of a repo agrees on
+ * and no two clones share. Guards over repo-wide resources (concurrent spend,
+ * the one test suite, one dev database) key on this; guards over a single
+ * working tree key on its path.
+ */
+export async function repoScope(cwd: string): Promise<string> {
+  const absolute = await runGit(cwd, [
+    "rev-parse",
+    "--path-format=absolute",
+    "--git-common-dir",
+  ]);
+  if (absolute) return absolute;
+  // --path-format landed in git 2.31; older git answers relative to cwd
+  const relative = await runGit(cwd, ["rev-parse", "--git-common-dir"]);
+  if (relative) return resolve(cwd, relative);
+  return (await gitRoot(cwd)) ?? cwd;
 }
 
 export async function stagePaths(cwd: string, paths: string[]): Promise<void> {

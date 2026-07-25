@@ -132,10 +132,25 @@ export function makeConfigDir(name: string, routerYaml: string): string {
 export type ScenarioResult = {
   name: string;
   layer: "mcp" | "host";
-  status: "pass" | "fail" | "blocked";
+  status: "pass" | "fail" | "blocked" | "skipped";
   ms: number;
   detail: string;
 };
+
+/**
+ * `--only <substring>` narrows the run to matching scenarios. These spend real
+ * money, so iterating on one new scenario shouldn't cost a full suite — but a
+ * filtered run is not a suite result, so the report is left alone (see
+ * writeReport).
+ */
+const ONLY = (() => {
+  const at = process.argv.indexOf("--only");
+  return at >= 0 ? process.argv[at + 1]?.toLowerCase() : undefined;
+})();
+
+export function filteringScenarios(): boolean {
+  return ONLY !== undefined;
+}
 
 /** Environment problems (expired CLI auth, missing tools) aren't product
  * failures — report them as blocked so the suite stays honest about what it
@@ -147,6 +162,9 @@ export async function runScenario(
   layer: "mcp" | "host",
   fn: () => Promise<string>,
 ): Promise<ScenarioResult> {
+  if (ONLY !== undefined && !name.toLowerCase().includes(ONLY)) {
+    return { name, layer, status: "skipped", ms: 0, detail: "not selected by --only" };
+  }
   const t0 = Date.now();
   try {
     const detail = await fn();

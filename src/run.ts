@@ -1,5 +1,5 @@
 import { briefFromTask, parseBrief, type Brief } from "./brief.ts";
-import { acquireRunLock, noLock } from "./runlock.ts";
+import { acquireRepoSlot, acquireRunLock, acquireSerialLock, noLock } from "./runlock.ts";
 import { loadDirectiveWithSource, resolveTier, type Directive } from "./directive.ts";
 import { routeTask } from "./route.ts";
 import { assembleContext } from "./context/assemble.ts";
@@ -21,6 +21,7 @@ import {
   createWorktree,
   listChangedFiles,
   maybeOpenDraftPr,
+  repoScope,
   stagePaths,
 } from "./git.ts";
 
@@ -131,10 +132,21 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
 
   const id = newRunId();
 
-  // One writing run per repo: overlapping write runs share a working tree
-  // and fail each other's verify. Acquired before the "running" record so a
-  // refused run never shows up in the log; auto-released on every exit path.
-  using _lock = decision.lane.write === "none" ? noLock() : acquireRunLock(cwd, id);
+  // Two guards, because there are two different shared things (see runlock.ts).
+  // The working tree is exclusive: overlapping runs in one tree fail each
+  // other's verify. The repo is merely capped: worktree lanes get isolated
+  // trees, so they may run in parallel up to max_parallel. Both are acquired
+  // before the "running" record, so a refused run never shows up in the log,
+  // and both auto-release on every exit path.
+  const scope = await repoScope(cwd);
+  using _lock =
+    decision.lane.write === "none" || decision.lane.write === "worktree"
+      ? noLock()
+      : acquireRunLock(cwd, id);
+  using _slot =
+    decision.lane.write === "none"
+      ? noLock()
+      : acquireRepoSlot(scope, id, directive.max_parallel);
 
   const taskHash = hashTask(opts.task);
   const baseRecord = (): Omit<RunRecord, "status"> => ({
@@ -180,7 +192,15 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
   let workBranch: string | undefined;
   if (decision.lane.write === "worktree") {
     workBranch = `relay/${decision.lane.name}-${id.slice(-6)}`;
-    workCwd = await createWorktree(cwd, workBranch);
+    // Creating a worktree writes shared git state (refs, .git/worktrees) and
+    // sweeps empty scaffolding, so parallel runs take turns for the few ms it
+    // costs rather than racing each other's bookkeeping.
+    const admin = await acquireSerialLock("gitadmin", scope, id, 60_000);
+    try {
+      workCwd = await createWorktree(cwd, workBranch);
+    } finally {
+      admin.lock.release();
+    }
     emit("worktree", `isolated worktree on branch ${workBranch}`);
   }
 
@@ -254,7 +274,32 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
     }
 
     emit("verifying");
-    const verify = await runVerify(workCwd, directive, decision.lane.verify);
+    // Isolated trees do not isolate the repo's test suite — a suite that binds
+    // a port or touches a dev database fails for reasons this run didn't
+    // cause, and relay would read that as the model's fault and pay to
+    // escalate. One verify at a time per repo; runs generate in parallel and
+    // queue here, which is where the win is anyway (generation is the slow
+    // phase). Long suites are normal, hence the generous wait.
+    const gate = await acquireSerialLock("verify", scope, id, 20 * 60_000);
+    if (gate.waitedMs >= 1_000) {
+      emit(
+        "verify_queued",
+        `waited ${Math.round(gate.waitedMs / 1000)}s for another run's verify in this repo`,
+      );
+    }
+    if (gate.timedOut) {
+      emit(
+        "verify_unguarded",
+        `another run has held the verify gate for 20m — verifying anyway, ` +
+          `so a failure here may be contention rather than this run's edits`,
+      );
+    }
+    let verify: Awaited<ReturnType<typeof runVerify>>;
+    try {
+      verify = await runVerify(workCwd, directive, decision.lane.verify);
+    } finally {
+      gate.lock.release();
+    }
     verifyOk = verify.ok && result.exitCode === 0;
     emit("verify_done", verifyOk ? "passed" : "failed");
 

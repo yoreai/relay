@@ -131,7 +131,12 @@ export async function serveMcp(): Promise<void> {
           "receipt. Pass a curated brief (goal, files, constraints, done_means, " +
           "context) — you already understand the problem, so a good brief makes the cheap run succeed first try. " +
           "ALWAYS pass cwd (absolute path to the repo/workspace root the task concerns) — the server may have been " +
-          "launched from a different directory.",
+          "launched from a different directory. " +
+          "INDEPENDENT TASKS CAN RUN IN PARALLEL: fire several relay_run calls with wait:false on a worktree lane " +
+          "(the user's walkaway lane, usually `build`) and each gets its own isolated worktree and `relay/*` branch, " +
+          "so they never trample each other's files or verify. Lanes that edit the working tree directly stay " +
+          "strictly one-at-a-time, and the repo's max_parallel caps the fan-out — over it, relay refuses the extra " +
+          "run and names the ids to poll, so queue those rather than retrying blind.",
         inputSchema: {
           type: "object",
           properties: {
@@ -154,7 +159,11 @@ export async function serveMcp(): Promise<void> {
                 context: { type: "string" },
               },
             },
-            lane: { type: "string" },
+            lane: {
+              type: "string",
+              description:
+                "Force a lane from the user's directive instead of letting relay route. Worktree lanes are the parallel-safe ones.",
+            },
             wait: {
               type: "boolean",
               description:

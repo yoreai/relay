@@ -65,6 +65,16 @@ export const DirectiveSchema = z.object({
     })
     .default({ tier: "nano", enabled: true }),
   context_budget_chars: z.number().int().positive().default(30_000),
+  // How many writing runs one repo may host at once. Only `write: worktree`
+  // lanes can actually reach more than one: a tree-editing lane still holds
+  // its working tree exclusively, because two runs in one tree corrupt each
+  // other's verify. Default 2 is deliberately timid — the ceiling that hurts
+  // is your test suite, not your CPU.
+  //
+  // Not clamped for repo-committed directives (unlike autonomy/write): it's a
+  // ceiling, not a trigger. Only the caller starts runs, so a repo raising
+  // this can't spend anything on its own.
+  max_parallel: z.number().int().min(1).max(8).default(2),
 });
 
 export type Directive = z.infer<typeof DirectiveSchema>;

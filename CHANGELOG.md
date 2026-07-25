@@ -7,8 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-07-25
+
 ### Added
 
+- **Independent tasks can now run in parallel in one repo.** A host agent with a list of
+  unrelated tickets could only feed them to relay one at a time: the write lock was taken on
+  the *repo*, and taken before the worktree was created, so a second walkaway run was refused
+  even though it was about to work in a tree of its own. The lock was protecting the right
+  thing (two runs in one working tree really do fail each other's verify — that's why it
+  exists) but keyed too coarsely, and it turned "fan out four briefs, review four branches"
+  into a serial queue. Now the working tree stays exclusive while the repo is merely capped:
+  `max_parallel` in the directive (default 2) bounds how many writing runs a repo hosts at
+  once, worktree lanes overlap up to it, and tree-editing lanes are unchanged. Deliberately
+  three separate guards rather than one lock, because there are three shared things:
+  - the working tree — exclusive, keyed by the tree's own path, so linked worktrees of one
+    repo don't block each other while two runs in *one* tree still can't happen
+  - the repo — a counted cap, keyed by the shared git dir (every worktree of a repo agrees on
+    it, no two clones share it). Over the cap, a run is refused before spending anything, and
+    the refusal names the run ids to poll and the knob that raises it
+  - the repo's verify commands — serialized, because isolated trees do **not** isolate a test
+    suite that binds a port, touches a dev database, or shares fixtures. A verify that fails
+    for contention reads as the model's fault and buys a real escalation to a frontier model,
+    so parallelism buys you concurrent *generation* (the slow phase) and an orderly queue at
+    verify. Runs report a `verify_queued` phase while they wait
+  Creating a worktree also takes a brief repo-wide turn now, since it writes shared git state.
+  No new API: N `relay_run` calls with `wait: false` on a worktree lane is the whole interface,
+  and the tool description says so — an agent reading it shouldn't have to infer that isolated
+  worktrees imply parallelism, which is exactly the inference that was wrong before. Covered by
+  `tests/parallel.test.ts` and eval scenario 16 (three concurrent live delegations → three
+  branches). `bun run evals --only <substring>` runs a single scenario now, since iterating on
+  one scenario shouldn't cost a whole suite; a filtered run deliberately leaves `report.md` alone
 - **The eval suite now covers the permission posture — 18/18 (was 14/14).** The suite that
   exercises the real MCP surface and live host delegation hadn't run since before v0.9.0, so
   the whole safe-by-default effort was verified only by unit tests. Four scenarios close that:
@@ -644,7 +673,8 @@ the OS's most permissive file defaults, and neither was a decision anyone had ac
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/yoreai/relay/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/yoreai/relay/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/yoreai/relay/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/yoreai/relay/compare/v0.8.4...v0.9.0

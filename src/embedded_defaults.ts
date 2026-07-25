@@ -73,6 +73,12 @@ verify_commands:
 classifier:
   tier: nano
   enabled: true
+# How many writing runs this repo may host at once. Only \`write: worktree\`
+# lanes can reach more than one — a tree-editing lane still holds your working
+# tree exclusively, because two runs in one tree corrupt each other's verify.
+# Parallel runs are serialized at verify (one test suite at a time per repo),
+# so raise this for independent tasks, not to make one task finish sooner.
+max_parallel: 2
 `;
 
 // Prices are catalog facts (see EMBEDDED_CATALOG_YAML / defaults/catalog.yaml),

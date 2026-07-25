@@ -13,6 +13,7 @@ import {
   RelayMcp,
   ROOT,
   expect,
+  filteringScenarios,
   git,
   makeBareDir,
   makeConfigDir,
@@ -444,6 +445,74 @@ default_lane: quickfix
       }
     }),
   );
+
+  // ---- S16: a batch of independent tasks fans out instead of queueing ------
+  // The user-visible contract for parallelism: N delegations, N reviewable
+  // branches, untouched main tree. (Timing — that they genuinely overlap and
+  // that verify serializes — is unit-tested in tests/parallel.test.ts, which
+  // can observe the locks directly.)
+  results.push(
+    await runScenario("parallel fan-out: three concurrent worktree runs, three branches", "mcp", async () => {
+      const repo = makeRepo("fanout");
+      const configDir = makeConfigDir(
+        "fanout",
+        `version: 1
+baseline: opus-5
+max_parallel: 3
+tiers:
+  work: { backend: cursor, model: composer-2.5 }
+lanes:
+  - name: build
+    match: { verbs: [build, add, create] }
+    tier: work
+    write: worktree
+default_lane: build
+`,
+      );
+      const mcp = await RelayMcp.spawn({ configDir });
+      try {
+        const tasks = ["one", "two", "three"];
+        const runs = await Promise.all(
+          tasks.map((word) =>
+            mcp.call(
+              "relay_run",
+              {
+                task: `create a file called NOTE_${word}.md whose only content is the word ${word}`,
+                cwd: repo,
+              },
+              420_000,
+            ),
+          ),
+        );
+        runs.forEach((r, i) =>
+          expect(r.ok, `run ${tasks[i]} failed: ${r.text.slice(0, 200)}`),
+        );
+        const branches = runs.map((r) => (r.json as RunJson).work_branch);
+        branches.forEach((b, i) =>
+          expect(!!b, `run ${tasks[i]} produced no branch — it was not isolated`),
+        );
+        expect(
+          new Set(branches).size === 3,
+          `runs shared a branch: ${branches.join(", ")}`,
+        );
+        expect(
+          git(repo, ["status", "--porcelain"]) === "",
+          "parallel worktree runs leaked into the main working tree",
+        );
+        for (const [i, branch] of branches.entries()) {
+          expect(
+            git(repo, ["show", "--stat", "--oneline", branch!]).includes(
+              `NOTE_${tasks[i]}.md`,
+            ),
+            `${branch} does not contain NOTE_${tasks[i]}.md — briefs crossed worktrees`,
+          );
+        }
+        return `3 concurrent runs → ${branches.join(", ")}`;
+      } finally {
+        await mcp.close();
+      }
+    }),
+  );
 }
 
 // ---- Host layer: real CLIs, real delegation decision ------------------------
@@ -613,17 +682,23 @@ function writeReport(): string {
   const ts = new Date().toISOString();
   const pass = results.filter((r) => r.status === "pass").length;
   const blocked = results.filter((r) => r.status === "blocked").length;
+  const ran = results.filter((r) => r.status !== "skipped");
   lines.push(`# relay eval report`);
   lines.push("");
   lines.push(
-    `Run: ${ts} · **${pass}/${results.length} passed**` +
+    `Run: ${ts} · **${pass}/${ran.length} passed**` +
       (blocked ? ` · ${blocked} blocked on environment (not product failures)` : ""),
   );
   lines.push("");
   lines.push(`| # | scenario | layer | result | time | detail |`);
   lines.push(`|---|----------|-------|--------|------|--------|`);
-  const icon = { pass: "✅ pass", fail: "❌ FAIL", blocked: "⚠️ blocked" } as const;
-  results.forEach((r, i) => {
+  const icon = {
+    pass: "✅ pass",
+    fail: "❌ FAIL",
+    blocked: "⚠️ blocked",
+    skipped: "· skipped",
+  } as const;
+  ran.forEach((r, i) => {
     const detail = r.detail.replace(/\|/g, "\\|").replace(/\n/g, " ");
     lines.push(
       `| ${i + 1} | ${r.name} | ${r.layer} | ${icon[r.status]} | ${(r.ms / 1000).toFixed(0)}s | ${detail} |`,
@@ -645,8 +720,19 @@ function writeReport(): string {
       `these prove the posture survives a real delegated run, which is the only place the whole ` +
       `chain — directive → lane → backend flags → worker — actually runs.`,
   );
+  lines.push("");
+  lines.push(
+    `Scenario 16 is the parallel contract: three concurrent delegations in one repo produce three ` +
+      `\`relay/*\` branches with the right file on each and an untouched main tree. Lock timing ` +
+      `(overlap, and verify serializing across worktrees) is unit-tested where it can be observed ` +
+      `directly — \`tests/parallel.test.ts\`.`,
+  );
   const out = lines.join("\n") + "\n";
-  writeFileSync(join(ROOT, "evals", "report.md"), out);
+  // A filtered run proves one scenario, not the suite — overwriting the
+  // committed report with it would claim less coverage than relay has.
+  if (!filteringScenarios()) {
+    writeFileSync(join(ROOT, "evals", "report.md"), out);
+  }
   return out;
 }
 
