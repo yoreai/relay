@@ -91,6 +91,34 @@ export function kimiFloatingHandle(canonical: string): string | null {
   return KIMI_FLOATING_IDS[canonical] ?? null;
 }
 
+/**
+ * Headless opencode requires a `provider/model` id, so relay maps its
+ * canonical catalog ids to the pinned ids of opencode's built-in `zen`
+ * provider (verified 2026-07-25 against opencode 1.18.5). Zen names the
+ * claude family with a `claude-` prefix (`opencode/claude-opus-5`) while
+ * other models match the catalog ids verbatim (`opencode/glm-5.2`). `-high`
+ * effort suffixes are dropped — relay does not wire effort for opencode, so
+ * the provider's own default applies. Unknown ids pass through so users can
+ * pin their own provider/model (e.g. `openai/gpt-5.6-sol`) rather than
+ * relay silently substituting one.
+ */
+export function opencodeModelId(canonical: string): string {
+  const map: Record<string, string> = {
+    "gpt-5.6-luna": "opencode/gpt-5.6-luna",
+    "gemini-3-flash": "opencode/gemini-3-flash",
+    "glm-5.2": "opencode/glm-5.2",
+    "grok-4.5": "opencode/grok-4.5",
+    "gemini-3.1-pro": "opencode/gemini-3.1-pro",
+    "gpt-5.6-sol": "opencode/gpt-5.6-sol",
+    "haiku-4.5": "opencode/claude-haiku-4-5",
+    "sonnet-5": "opencode/claude-sonnet-5",
+    "opus-5": "opencode/claude-opus-5",
+    "opus-4.8-high": "opencode/claude-opus-4-8",
+    "fable-5-high": "opencode/claude-fable-5",
+  };
+  return map[canonical] ?? canonical;
+}
+
 export const CLI_SPECS: Record<string, CliBackendSpec> = {
   codex: {
     name: "codex",
@@ -126,6 +154,23 @@ export const CLI_SPECS: Record<string, CliBackendSpec> = {
     buildArgs: (prompt, model) => ["-p", prompt, "--model", model],
     verified: false,
     loginHint: "grok auth login",
+  },
+  opencode: {
+    name: "opencode",
+    binaries: ["opencode"],
+    binEnv: "RELAY_OPENCODE_BIN",
+    // Verified 2026-07-25 against opencode 1.18.5:
+    // `opencode run --model opencode/big-pickle …` answered on stdout, exit 0.
+    // Permission posture stays with the user's own opencode config — relay
+    // never passes `--auto` or any other permission/sandbox flag.
+    buildArgs: (prompt, model) => [
+      "run",
+      "--model",
+      opencodeModelId(model),
+      prompt,
+    ],
+    verified: true,
+    loginHint: "opencode providers login",
   },
   kimi: {
     name: "kimi",
