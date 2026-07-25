@@ -6,6 +6,7 @@ import { claudeModelId, discoverClaudeBinary } from "./backends/claude.ts";
 import { discoverCursorBinary, probeCursorAuth } from "./backends/cursor.ts";
 import { runCli } from "./backends/spawn.ts";
 import { relayDataDir } from "./paths.ts";
+import { invalidateServableCache } from "./servable.ts";
 
 /**
  * The probe layer answers three DIFFERENT questions per tool, because they
@@ -270,6 +271,8 @@ export async function runLogin(
     onStderr: onChunk,
   });
   invalidateAuthCache(id);
+  // a login changes what a multi-provider CLI can serve, not just its auth
+  invalidateServableCache(id);
   // `only: id` — re-check just this tool. Without it, a fresh probe pulls
   // every other installed tool into a live (sometimes model-calling) auth
   // check too, turning `relay login codex` into a multi-tool sign-in audit.

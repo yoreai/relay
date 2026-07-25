@@ -82,6 +82,9 @@ Change these only deliberately — each one is load-bearing.
   is installed wins, so a single-backend machine routes everything with zero config. Tiers are
   also how relay avoids guessing which model is newest: users name a quality bar, not a version.
   `relay advise` proposes changes; a human accepts them. Relay never edits policy itself.
+  Installed ≠ servable for multi-provider CLIs: opencode candidates are filtered through a
+  cached `opencode models` probe (fail-open on probe error), and advise's availability nudges
+  suggest pinnable candidates but are never auto-applied.
 - **Git is the review surface.** Edits land in the caller's working tree as ordinary **unstaged**
   changes, indistinguishable from the host agent's own. Relay never stages or commits on the
   user's branch — auto-staging polluted their next commit. Walkaway lanes opt into `worktree`,
