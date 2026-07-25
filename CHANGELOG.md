@@ -27,6 +27,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   them only ran nightly and on pushes to `main` — a path no fork PR ever reaches. A
   contributor's catalog PR could go green while the embedded mirror or the `updated:` date
   was out of sync
+- **`relay uninstall` no longer reflows the rest of `~/.claude/CLAUDE.md`.** Removing the
+  activation block collapsed every blank-line run in the whole file, silently reformatting
+  content relay doesn't own. That file is shared ground — lean-ctx maintains a `<!-- lean-ctx -->`
+  block in it, and other context tools do the same — so whitespace is now normalized only at
+  the seam where relay's own block was. Guarded by a coexistence test using lean-ctx's real
+  markers: installing leaves a neighbor's block byte-for-byte, uninstalling restores the file
+  exactly. Prompted by a beta tester asking whether the two conflict; they don't, but this is
+  the one place they would have
 
 ## [0.10.0] — 2026-07-24
 

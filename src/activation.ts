@@ -63,9 +63,7 @@ ${ACTIVATION_BLOCK}`;
 export function mergeActivationBlock(text: string): { out: string; changed: boolean } {
   if (text.includes(BEGIN)) {
     // refresh in place so wording updates ship with new versions
-    const re = new RegExp(
-      `${BEGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s\\S]*?${END.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\n?`,
-    );
+    const re = new RegExp(`${escapeRe(BEGIN)}[\\s\\S]*?${escapeRe(END)}\\n?`);
     const out = text.replace(re, ACTIVATION_BLOCK);
     return { out, changed: out !== text };
   }
@@ -77,13 +75,32 @@ export function mergeActivationBlock(text: string): { out: string; changed: bool
 /** Strip the fenced block. Pure for testability. */
 export function removeActivationBlock(text: string): { out: string; changed: boolean } {
   if (!text.includes(BEGIN)) return { out: text, changed: false };
-  const re = new RegExp(
-    `\\n?${BEGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s\\S]*?${END.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\n?`,
-  );
+  const re = new RegExp(`\\n*${escapeRe(BEGIN)}[\\s\\S]*?${escapeRe(END)}[ \\t]*\\n?`);
+  const match = re.exec(text);
+  if (!match) return { out: text, changed: false };
   return {
-    out: text.replace(re, "\n").replace(/\n{3,}/g, "\n\n").replace(/^\n+/, ""),
+    out: joinSeam(text.slice(0, match.index), text.slice(match.index + match[0].length)),
     changed: true,
   };
+}
+
+/**
+ * Rejoin the two sides of a removed block, normalizing whitespace ONLY at the
+ * seam. This used to collapse every blank-line run in the whole file, which
+ * silently reflowed content relay doesn't own — `~/.claude/CLAUDE.md` is shared
+ * ground, and other context tools maintain their own fenced blocks in it.
+ * Removing relay must be invisible to them.
+ */
+function joinSeam(before: string, after: string): string {
+  const head = before.replace(/\s+$/, "");
+  const tail = after.replace(/^\n+/, "");
+  if (!head) return tail;
+  if (!tail) return `${head}\n`;
+  return `${head}\n\n${tail}`;
+}
+
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /**

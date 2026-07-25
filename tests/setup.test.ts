@@ -267,11 +267,56 @@ describe("activation hints", () => {
     const merged = mergeActivationBlock(original);
     const removed = removeActivationBlock(merged.out);
     expect(removed.changed).toBe(true);
-    expect(removed.out).not.toContain("RELAY ACTIVATION");
-    expect(removed.out).toContain("keep me");
+    expect(removed.out).toBe(original);
   });
 
   test("remove is a no-op without the block", () => {
     expect(removeActivationBlock("plain file\n").changed).toBe(false);
+  });
+});
+
+/**
+ * `~/.claude/CLAUDE.md` is shared ground: lean-ctx maintains a `<!-- lean-ctx -->`
+ * block there, and any number of other tools may too. Relay owns exactly its own
+ * fence — installing must not disturb a neighbor's block, and uninstalling must
+ * be invisible to it. Relay used to collapse every blank-line run in the file on
+ * removal, reflowing content it doesn't own.
+ */
+describe("sharing CLAUDE.md with another context tool", () => {
+  // markers and shape as lean-ctx actually writes them (docs/guides/claude-code.md)
+  const FOREIGN = `<!-- lean-ctx -->
+<!-- lean-ctx-claude-v6 -->
+## lean-ctx — Context Runtime
+
+When the \`ctx_*\` MCP tools are listed in this session, prefer them over native equivalents:
+- \`ctx_read\` instead of \`Read\` / \`cat\` for exploration
+
+
+Read modes: anchored (edit), full (verbatim), map (overview).
+<!-- /lean-ctx -->`;
+
+  const doc = `# My CLAUDE.md\n\nmy own prefs\n\n${FOREIGN}\n`;
+
+  test("installing leaves the other tool's block byte-for-byte", () => {
+    const merged = mergeActivationBlock(doc);
+    expect(merged.changed).toBe(true);
+    expect(merged.out).toContain(FOREIGN);
+    expect(merged.out).toContain("BEGIN RELAY ACTIVATION");
+  });
+
+  test("uninstalling restores the file exactly, blank lines included", () => {
+    const merged = mergeActivationBlock(doc);
+    const removed = removeActivationBlock(merged.out);
+    expect(removed.out).toBe(doc);
+    // the double blank line inside the neighbor's block is theirs to keep
+    expect(removed.out).toContain("for exploration\n\n\nRead modes:");
+  });
+
+  test("refreshing relay's block doesn't touch the neighbor's", () => {
+    const stale = ACTIVATION_BLOCK.replace("returns a receipt", "old wording");
+    const merged = mergeActivationBlock(`${doc}\n${stale}`);
+    expect(merged.out).toContain(FOREIGN);
+    expect(merged.out).toContain("returns a receipt");
+    expect(merged.out).not.toContain("old wording");
   });
 });
