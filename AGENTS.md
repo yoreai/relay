@@ -107,7 +107,10 @@ Change these only deliberately — each one is load-bearing.
   verify → widen → escalate, not because of stuffed context.
 - **Receipts never fabricate precision.** Price both sides, name the baseline, label measured vs
   estimated, and say "unavailable" rather than guess. Cache-read tokens are priced separately —
-  ignoring them once overstated savings ~12x.
+  ignoring them once overstated savings ~12x. A gateway that resells a model at its own card
+  gets a `backend_prices` entry, because "the model's price" is otherwise ambiguous: zen serves
+  four of its models off the vendor rate by up to ~40% in both directions. The baseline is
+  never backend-priced — nobody ran the counterfactual.
 - **Auth is delegated; relay stores no credentials.** Never pass
   `--dangerously-skip-permissions` on the user's behalf — permission posture is theirs.
 - **Backend CLI flags drift.** Feature-detect, fail with an actionable message, never crash core.

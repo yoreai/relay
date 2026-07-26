@@ -21,6 +21,29 @@ const CatalogModelSchema = z.object({
    */
   supersedes: z.array(z.string()).optional(),
   backends: z.array(z.string()).min(1),
+  /**
+   * Rates for backends that resell this model at their own price rather than
+   * the vendor's. A model has one identity but not always one rate card:
+   * OpenCode's zen gateway serves claude-sonnet-5 at 2/10 where Anthropic
+   * lists 3/15, and gemini-3-flash at 0.5/3 where Google lists 0.30/2.50.
+   * Pricing every zen run off the vendor card put receipts off by up to ~40%
+   * in both directions, which is the one thing a receipt may never do.
+   *
+   * Only list a backend that actually differs — an absent entry means "same
+   * as the vendor rate above", so a normal model stays two lines long. This
+   * lives in the catalog on purpose: it's still one price table that
+   * `relay update` can correct, not a second copy shipped elsewhere.
+   */
+  backend_prices: z
+    .record(
+      z.string(),
+      z.object({
+        in: z.number().nonnegative(),
+        out: z.number().nonnegative(),
+        cache_read: z.number().nonnegative().optional(),
+      }),
+    )
+    .optional(),
 });
 
 export const CatalogSchema = z.object({
@@ -38,6 +61,15 @@ export function parseCatalog(text: string): Catalog {
   for (const [id, m] of Object.entries(catalog.models)) {
     if (!catalog.classes.includes(m.class)) {
       throw new Error(`catalog: model "${id}" has unknown class "${m.class}"`);
+    }
+    // A rate for a backend that can't serve the model would never be read —
+    // silently dead data in the one table receipts depend on.
+    for (const backend of Object.keys(m.backend_prices ?? {})) {
+      if (!m.backends.includes(backend)) {
+        throw new Error(
+          `catalog: model "${id}" prices backend "${backend}", which is not in its backends list`,
+        );
+      }
     }
   }
   return catalog;
@@ -101,4 +133,14 @@ function today(): string {
  */
 export function blendedCost(m: { in: number; out: number }): number {
   return m.in * 0.75 + m.out * 0.25;
+}
+
+/**
+ * `blendedCost` for a model as a given backend serves it. Advise compares
+ * candidates across backends, so quoting a gateway-served pick at the vendor
+ * card would promise a saving the user doesn't get — and in zen's case
+ * overstate it, since two of its cheap models cost more than the vendor's.
+ */
+export function blendedCostVia(m: CatalogModel, backend?: string): number {
+  return blendedCost((backend && m.backend_prices?.[backend]) || m);
 }

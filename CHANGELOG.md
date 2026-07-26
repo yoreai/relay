@@ -195,9 +195,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fallback in every default tier, and the 11 catalog models zen serves list it as a backend.
   Zen's free models (big-pickle, `*-free`) are deliberately not cataloged — no independent
   benchmarks (the evidence rule), and $0 would poison advise's cheaper-in-class rule; pin them
-  manually if wanted. Receipts price at catalog rates, while zen's own rate card can differ
-  slightly from direct API prices. Permission posture stays with the user's opencode config —
-  relay never passes `--auto`
+  manually if wanted. Permission posture stays with the user's opencode config — relay never
+  passes `--auto`
+- **The catalog can price a model by who served it.** Reviewing the opencode adapter turned up
+  a receipt bug hiding inside a reasonable-sounding sentence — "zen's rate card can differ
+  slightly from direct API prices". Checked against models.dev, four of the eleven models zen
+  serves differ, and not slightly: gemini-3-flash is 0.5/3 against Google's 0.30/2.50 and
+  haiku-4.5 is 1/5 against Anthropic's 0.80/4 (relay understated those by ~40% and ~25%),
+  while sonnet-5 and gemini-3.1-pro are *cheaper* through zen (overstated by ~33% and ~20%).
+  Two of the four are candidates in the shipped default tiers, so this was not hypothetical.
+  A model has one identity but not always one rate card, so `backend_prices` in the catalog
+  names the exceptions and a receipt prices whoever actually served the run. Deliberately in
+  the catalog rather than a new file — still one price table that `relay update` can correct,
+  which is the whole reason `prices.yaml` ships empty. The baseline stays at vendor rates
+  because nobody served the counterfactual, and `relay advise` costs candidates the same way,
+  since quoting a zen-served pick at the vendor card would promise a saving the user never
+  gets (and for two of these models, overstate it)
 - **Servable-model awareness for opencode: installed ≠ servable.** A machine can have the
   opencode CLI present with only foreign provider logins (OpenAI, Abacus, …) and no zen
   billing — in which case every shipped opencode fallback would fail at runtime, because

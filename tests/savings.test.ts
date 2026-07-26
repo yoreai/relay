@@ -60,6 +60,76 @@ describe("savings", () => {
     expect(withCache!.savedUsd).toBeGreaterThan(without!.savedUsd);
   });
 
+  // A gateway that resells a model at its own card makes "the model's price"
+  // ambiguous, and receipts may not guess: zen serves sonnet-5 at 2/10 where
+  // Anthropic lists 3/15, so pricing a zen run off the vendor card overstated
+  // it by a third.
+  test("a reselling backend is priced at its own rate, not the vendor's", () => {
+    const prices = loadPrices(joinRoot());
+    const usage = { tokensIn: 1_000_000, tokensOut: 1_000_000, estimated: false };
+    const viaZen = makeReceipt({
+      prices,
+      usedModel: "sonnet-5",
+      usedBackend: "opencode",
+      baselineModel: "fable-5-high",
+      usage,
+    });
+    const viaVendor = makeReceipt({
+      prices,
+      usedModel: "sonnet-5",
+      usedBackend: "claude",
+      baselineModel: "fable-5-high",
+      usage,
+    });
+    expect(viaZen!.costUsedUsd).toBeCloseTo(12, 5); // 2 + 10
+    expect(viaVendor!.costUsedUsd).toBeCloseTo(18, 5); // 3 + 15
+    // …and the cheaper serving therefore shows the larger saving
+    expect(viaZen!.savedUsd).toBeGreaterThan(viaVendor!.savedUsd);
+  });
+
+  test("a backend with no override falls back to the vendor rate", () => {
+    const prices = loadPrices(joinRoot());
+    const usage = { tokensIn: 1_000_000, tokensOut: 0, estimated: false };
+    const opencode = makeReceipt({
+      prices,
+      usedModel: "opus-5",
+      usedBackend: "opencode",
+      baselineModel: "fable-5-high",
+      usage,
+    });
+    const cursor = makeReceipt({
+      prices,
+      usedModel: "opus-5",
+      usedBackend: "cursor",
+      baselineModel: "fable-5-high",
+      usage,
+    });
+    expect(opencode!.costUsedUsd).toBe(cursor!.costUsedUsd);
+  });
+
+  test("the baseline stays at vendor rates — nobody served the counterfactual", () => {
+    const prices = loadPrices(joinRoot());
+    // sonnet-5 as baseline must cost the same whether or not the *used* model
+    // happened to run through a reselling backend
+    const usage = { tokensIn: 1_000_000, tokensOut: 1_000_000, estimated: false };
+    const a = makeReceipt({
+      prices,
+      usedModel: "gpt-5.6-luna",
+      usedBackend: "opencode",
+      baselineModel: "sonnet-5",
+      usage,
+    });
+    const b = makeReceipt({
+      prices,
+      usedModel: "gpt-5.6-luna",
+      usedBackend: "codex",
+      baselineModel: "sonnet-5",
+      usage,
+    });
+    expect(a!.costBaselineUsd).toBeCloseTo(18, 5);
+    expect(b!.costBaselineUsd).toBeCloseTo(18, 5);
+  });
+
   test("cheaper baseline is reported honestly, not as $0.00 saved", () => {
     const prices = loadPrices(joinRoot());
     const r = makeReceipt({
