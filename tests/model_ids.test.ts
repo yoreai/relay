@@ -4,7 +4,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { adviseTiers } from "../src/advise.ts";
 import { claudeModelId } from "../src/backends/claude.ts";
-import { kimiModelId } from "../src/backends/cli.ts";
+import {
+  kimiFloatingHandle,
+  kimiIdMappings,
+  kimiModelId,
+} from "../src/backends/cli.ts";
 import { cursorModelId } from "../src/backends/cursor.ts";
 import { loadCatalog, parseCatalog } from "../src/catalog.ts";
 import { loadDirectiveFromText } from "../src/directive.ts";
@@ -49,14 +53,39 @@ describe("cursorModelId", () => {
 });
 
 describe("kimiModelId", () => {
-  test("maps canonical ids to pinned managed aliases", () => {
-    // The managed kimi-code OAuth service serves `kimi-code/*` aliases, not
+  test("maps canonical ids to the managed service's handles", () => {
+    // The managed kimi-code OAuth service serves `kimi-code/*` handles, not
     // the open-platform ids — a verbatim pass-through resolved to nothing.
     expect(kimiModelId("kimi-k2.7-code")).toBe("kimi-code/kimi-for-coding");
     expect(kimiModelId("kimi-k2.7-code-highspeed")).toBe(
       "kimi-code/kimi-for-coding-highspeed",
     );
     expect(kimiModelId("kimi-k3")).toBe("kimi-code/k3");
+  });
+
+  // The invariant is that a receipt prices the model that ran, so a handle
+  // that re-points is only tolerable when it is DECLARED — a prefix check
+  // (`kimi-code/…`) passes happily for a moving alias, which is the exact
+  // thing it was meant to catch.
+  test("every mapping is declared either pinned or floating, never both", () => {
+    const { pinned, floating } = kimiIdMappings();
+    const ids = [...Object.keys(pinned), ...Object.keys(floating)];
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const id of ids) {
+      expect(kimiModelId(id)).not.toBe(id); // a declared mapping must map
+    }
+  });
+
+  test("a pinned handle names a version; a floating one is reported as floating", () => {
+    const { pinned, floating } = kimiIdMappings();
+    for (const [id, handle] of Object.entries(pinned)) {
+      // "k3" carries the version; "kimi-for-coding" names a role instead
+      expect(handle, id).toMatch(/k\d/);
+      expect(kimiFloatingHandle(id)).toBeNull();
+    }
+    for (const [id, handle] of Object.entries(floating)) {
+      expect(kimiFloatingHandle(id)).toBe(handle);
+    }
   });
 
   test("distinct catalog models never collapse onto one CLI alias", () => {
@@ -185,7 +214,10 @@ describe("catalog ↔ backend coverage", () => {
         if (id === "kimi-k2.6") {
           expect(kimiModelId(id)).toBe(id);
         } else {
-          expect(kimiModelId(id).startsWith("kimi-code/")).toBe(true);
+          // mapped AND declared — a `kimi-code/` prefix alone would let a new
+          // moving handle in without anyone noticing
+          const { pinned, floating } = kimiIdMappings();
+          expect(id in pinned || id in floating, id).toBe(true);
         }
       }
     }

@@ -106,8 +106,9 @@ models:
     # Below the opus-class marker means below opus-class. Revisit if audited
     # public-suite numbers land.
     # 2026-07-25: prices re-verified against models.dev (0.95/4.0, cache 0.19 —
-    # was 1.0/4.0 flat). Thinking is boolean on/off — no effort levels exist
-    # (only k3 ships supportEfforts). The managed kimi-code OAuth service
+    # was 1.0/4.0 flat). Reasoning is always on with nothing to tune: k3 is the
+    # only kimi model with effort levels, and k2.6 the only one with a thinking
+    # toggle (models.dev reasoning_options, 2026-07-26). The managed kimi-code service
     # serves it as alias kimi-code/kimi-for-coding; relay maps the canonical
     # id (see kimiModelId in src/backends/cli.ts). Supersedes k2.6: same rate
     # card, newer, code-specialized.
@@ -121,7 +122,7 @@ models:
     # open platform only (verified 2026-07-25): the managed kimi-code OAuth
     # service does not serve k2.6, so relay passes this id through — pin your
     # own provider alias (e.g. moonshotai/kimi-k2.6) in router.yaml. Boolean
-    # thinking on/off; no effort levels (models.dev lists no supportEfforts).
+    # thinking on/off, no effort levels (models.dev reasoning_options, 2026-07-26).
     class: workhorse
     in: 0.95
     out: 4.0

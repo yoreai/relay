@@ -121,7 +121,12 @@ Change these only deliberately — each one is load-bearing.
 - **Never map a catalog id to a floating model alias.** Backend id maps must resolve to pinned
   full names (`claude-opus-5`, not `opus`). A receipt prices a specific model, so the run has to
   BE that model — an alias silently re-points the day a new family member ships. Guarded by
-  `tests/model_ids.test.ts`.
+  `tests/model_ids.test.ts`. One service leaves no choice: kimi's managed plan publishes its
+  coding models only under role handles (`kimi-for-coding`), so those two mappings are
+  *declared* floating (`KIMI_FLOATING_IDS`), marked in `relay doctor`'s tier resolution, and
+  re-checked at catalog review. Declared is the whole point — the guard now demands every
+  mapping be listed as pinned or floating, because a `kimi-code/` prefix check happily passed a
+  moving handle.
 - **Never let a fetched catalog shadow a newer embedded one.** A release can ship a default
   directive routing to models only its embedded catalog knows; date-compare the two.
 - **Never ship a second copy of the price table.** A `prices.yaml` entry overrides the catalog

@@ -20,6 +20,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   0.19 — was 1.0/4.0 flat) and now supersedes k2.6 (same rate card, newer,
   code-specialized)
 
+- **A handle that re-points is declared, marked, and guarded — not assumed harmless.** Relay's
+  rule is that a backend id map resolves to a pinned name, because a receipt prices a specific
+  model and must therefore price the one that ran. Kimi's managed plan leaves no pinned option
+  for its coding models: they're published as role handles, and `kimi-for-coding` resolves to
+  K2.7 Code today (models.dev, 2026-07-26) but will resolve to its successor without changing
+  name. So relay routes them and pays for it in the open — the two moving mappings are declared
+  separately from the pinned one, `relay doctor` marks any tier that resolves through one, and
+  the guard test now requires every kimi mapping to be listed as pinned or floating. The
+  previous check accepted any `kimi-code/` prefix, which a moving handle satisfies, so the guard
+  would have blessed the exact thing it exists to catch. Also corrected two model facts against
+  models.dev: k2.7-code has no thinking toggle (k2.6 does), and k3 alone has effort levels
+
 ### Fixed
 
 - **The kimi backend passed catalog ids verbatim to `kimi --model`, which resolved to

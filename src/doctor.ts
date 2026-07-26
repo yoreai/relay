@@ -1,4 +1,5 @@
 import { availableBackends } from "./backends/index.ts";
+import { kimiFloatingHandle } from "./backends/cli.ts";
 import { disabledBackends } from "./settings.ts";
 import { probeTools } from "./probe.ts";
 import { loadCatalog } from "./catalog.ts";
@@ -40,6 +41,18 @@ export function pricesShadowWarning(cwd: string): string[] {
   } catch {
     return [`prices:     ⚠ ${path} could not be parsed`];
   }
+}
+
+/**
+ * What to append to a tier's routing line when the backend reaches the model
+ * through a handle that re-points on release (the managed kimi service
+ * publishes its coding models that way). Empty for every pinned route, so
+ * normal routing reads exactly as before — the marker exists because a
+ * re-pointing handle means the receipt can name a model that didn't run.
+ */
+export function floatingHandleSuffix(backend: string, model: string): string {
+  const handle = backend === "kimi" ? kimiFloatingHandle(model) : null;
+  return handle ? `  (via ${handle} — handle re-points on release)` : "";
 }
 
 export async function runDoctor(
@@ -102,16 +115,29 @@ export async function runDoctor(
     const available = availableBackends();
     lines.push("");
     lines.push("tier resolution (on this machine):");
+    let sawFloating = false;
     for (const tierName of Object.keys(d.tiers)) {
       try {
         const t = resolveTier(d, tierName, available);
+        const floating = floatingHandleSuffix(t.backend, t.model);
+        if (floating) sawFloating = true;
         lines.push(
           `  ${tierName.padEnd(7)} → ${t.backend}/${t.model}` +
-            (t.fallback ? "  (fallback)" : ""),
+            (t.fallback ? "  (fallback)" : "") +
+            floating,
         );
       } catch {
         lines.push(`  ${tierName.padEnd(7)} → ✗ no installed backend`);
       }
+    }
+    if (sawFloating) {
+      lines.push("");
+      lines.push(
+        "  note: a re-pointing handle means a receipt can name the model relay asked for",
+      );
+      lines.push(
+        "        rather than the one served. Pin an exact id in router.yaml to avoid it.",
+      );
     }
   } catch {
     // directive already reported above
