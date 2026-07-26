@@ -5,6 +5,7 @@ import { availableBackends } from "./backends/index.ts";
 import { opencodeCatalogId } from "./backends/cli.ts";
 import {
   blendedCost,
+  blendedCostVia,
   loadCatalog,
   type Catalog,
   type CatalogModel,
@@ -52,11 +53,12 @@ export type TierSuggestion = {
  */
 function findSuccessor(
   currentId: string,
-  currentEntry: { class: string; fast?: boolean; in: number; out: number },
+  currentEntry: CatalogModel,
+  currentBackend: string,
   catalog: Catalog,
   available: Set<string>,
 ): { id: string; backend: string; cost: number } | null {
-  const currentCost = blendedCost(currentEntry);
+  const currentCost = blendedCostVia(currentEntry, currentBackend);
   let best: { id: string; backend: string; cost: number } | null = null;
 
   for (const [id, m] of Object.entries(catalog.models)) {
@@ -65,7 +67,7 @@ function findSuccessor(
     if (currentEntry.fast && !m.fast) continue;
     const backend = m.backends.find((b) => available.has(b));
     if (!backend) continue;
-    const cost = blendedCost(m);
+    const cost = blendedCostVia(m, backend);
     if (cost > currentCost) continue;
     if (!best || cost < best.cost) best = { id, backend, cost };
   }
@@ -116,7 +118,7 @@ function availabilityNudge(
     // cheaper-rule uses, or the fast tier would get nudged toward grok-4.5
     if (currentEntry.fast && !m.fast) continue;
     if (pinned.has(id)) continue;
-    const cost = blendedCost(m);
+    const cost = blendedCostVia(m, "opencode");
     if (!best || cost < best.cost) best = { id, probedId, cost };
   }
   if (!best) return null;
@@ -127,7 +129,7 @@ function availabilityNudge(
     tier: tierName,
     currentBackend: current.backend,
     currentModel: current.model,
-    currentCost: blendedCost(currentEntry),
+    currentCost: blendedCostVia(currentEntry, current.backend),
     backend: "opencode",
     model: best.id,
     cost: best.cost,
@@ -184,7 +186,7 @@ export function adviseTiers(
 
     const currentEntry = catalog.models[current.model];
     if (!currentEntry) continue; // unknown model — nothing to compare against
-    const currentCost = blendedCost(currentEntry);
+    const currentCost = blendedCostVia(currentEntry, current.backend);
 
     // A successor at no extra cost wins outright: price-only advice would stay
     // silent here (nothing is saved), yet running the superseded model is
@@ -193,6 +195,7 @@ export function adviseTiers(
     const successor = findSuccessor(
       current.model,
       currentEntry,
+      current.backend,
       catalog,
       available,
     );
@@ -233,7 +236,7 @@ export function adviseTiers(
       if (currentEntry.fast && !m.fast) continue;
       const backend = m.backends.find((b) => available.has(b));
       if (!backend) continue;
-      const cost = blendedCost(m);
+      const cost = blendedCostVia(m, backend);
       if (cost >= currentCost * 0.8) continue; // demand a real (20%+) saving
       if (!best || cost < best.cost) best = { id, backend, cost };
     }

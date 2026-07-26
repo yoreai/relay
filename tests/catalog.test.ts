@@ -49,6 +49,32 @@ describe("catalog", () => {
     expect(kimi.class).not.toBe(fable.class);
   });
 
+  test("a reseller rate for a backend that can't serve the model is rejected", () => {
+    // Dead data in the one table receipts read from: the rate would never be
+    // looked up, so the run would quietly price at the vendor card instead.
+    expect(() =>
+      parseCatalog(`version: 1
+updated: "2026-07-26"
+classes: [cheap]
+models:
+  m1:
+    class: cheap
+    in: 1.0
+    out: 2.0
+    backends: [claude]
+    backend_prices: { opencode: { in: 0.5, out: 1.0 } }
+`),
+    ).toThrow(/prices backend "opencode"/);
+  });
+
+  test("every reseller rate names a backend the model actually has", () => {
+    for (const [id, m] of Object.entries(catalog.models)) {
+      for (const backend of Object.keys(m.backend_prices ?? {})) {
+        expect(m.backends, `${id} → ${backend}`).toContain(backend);
+      }
+    }
+  });
+
   test("opus-5 undercuts fable-5 without leaving the frontier class", () => {
     const opus5 = catalog.models["opus-5"]!;
     const fable = catalog.models["fable-5-high"]!;

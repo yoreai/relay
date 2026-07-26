@@ -373,6 +373,7 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
   receipt = makeReceipt({
     prices,
     usedModel: tier.model,
+    usedBackend: tier.backend,
     baselineModel: directive.baseline,
     usage,
   });

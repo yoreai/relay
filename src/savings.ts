@@ -46,8 +46,30 @@ export function loadPrices(cwd: string = process.cwd()): Prices {
   const catalogModels: Prices["models"] = {};
   for (const [id, m] of Object.entries(catalog.models)) {
     catalogModels[id] = { in: m.in, out: m.out, cache_read: m.cache_read };
+    // Reseller rates get a qualified key, so pricing a run is one lookup and a
+    // user's prices.yaml can pin "opencode/sonnet-5" the same way it pins any
+    // other entry.
+    for (const [backend, p] of Object.entries(m.backend_prices ?? {})) {
+      catalogModels[`${backend}/${id}`] = p;
+    }
   }
   return { ...parsed, models: { ...catalogModels, ...parsed.models } };
+}
+
+/**
+ * The rate key for a model as served by `backend`: a reseller's own rate when
+ * the catalog lists one, else the vendor rate. Unqualified on purpose when a
+ * backend isn't named — the baseline in a receipt is a counterfactual nobody
+ * ran, so it prices at the vendor card rather than at whoever happened to
+ * serve the real work.
+ */
+export function priceKey(
+  prices: Prices,
+  model: string,
+  backend?: string,
+): string {
+  const qualified = backend ? `${backend}/${model}` : undefined;
+  return qualified && prices.models[qualified] ? qualified : model;
 }
 
 export function priceTokens(
@@ -73,6 +95,8 @@ export function makeReceipt(opts: {
   prices: Prices;
   usedModel: string;
   baselineModel: string;
+  /** who served the run — priced at their rate when they resell (see priceKey) */
+  usedBackend?: string;
   usage?: Usage;
 }): Receipt | null {
   const tokensIn = opts.usage?.tokensIn ?? 0;
@@ -82,7 +106,7 @@ export function makeReceipt(opts: {
 
   const costUsed = priceTokens(
     opts.prices,
-    opts.usedModel,
+    priceKey(opts.prices, opts.usedModel, opts.usedBackend),
     tokensIn,
     tokensOut,
     tokensCacheRead,
