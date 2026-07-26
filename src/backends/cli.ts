@@ -32,23 +32,63 @@ export type CliBackendSpec = {
 
 /**
  * The managed kimi-code OAuth service (`kimi login`) serves models under
- * `kimi-code/*` aliases, not the open-platform ids the catalog names
- * (verified 2026-07-25 against kimi-code 0.29.1 via `kimi provider list
- * --json`). Map relay's canonical catalog ids to those aliases — the most
- * pinned handles the service offers: `kimi-code/k3` names a version, but
- * `kimi-for-coding` re-points with new coding releases, so catalog
- * maintenance re-checks this map against what the CLI actually serves.
- * `kimi-k2.6` is NOT on the managed service — open platform only — so it
- * (and any unknown id) passes through: users pin their own provider alias
- * (e.g. `moonshotai/kimi-k2.6`) rather than relay silently substituting one.
+ * `kimi-code/*` handles, not the open-platform ids the catalog names (verified
+ * 2026-07-25 against kimi-code 0.29.1 via `kimi provider list --json`), so a
+ * catalog id reached the CLI as nothing at all. These handles name a version,
+ * which is what the pinned-id rule asks for: `kimi-code/k3` is K3 and stays K3.
+ */
+const KIMI_PINNED_IDS: Record<string, string> = {
+  "kimi-k3": "kimi-code/k3",
+};
+
+/**
+ * The exception, declared rather than hidden: this service's *coding* models
+ * are published under role handles that re-point with each coding release —
+ * `kimi-for-coding` resolves to K2.7 Code today (models.dev, re-checked
+ * 2026-07-26) and will resolve to its successor without renaming. There is no
+ * versioned handle to use instead, so relay either can't route the managed
+ * service's main models at all, or accepts a handle that moves.
+ *
+ * It accepts them, and pays for that honestly: `relay doctor` marks a tier
+ * resolving through one, and catalog review re-checks what each handle points
+ * at (`kimiFloatingHandle`). What must never happen is a *silent* floating
+ * mapping — a receipt names one model while another ran — which is why the
+ * guard in tests/model_ids.test.ts requires every mapping to be listed in
+ * exactly one of these two tables.
+ */
+const KIMI_FLOATING_IDS: Record<string, string> = {
+  "kimi-k2.7-code": "kimi-code/kimi-for-coding",
+  "kimi-k2.7-code-highspeed": "kimi-code/kimi-for-coding-highspeed",
+};
+
+/**
+ * Canonical catalog id → what `kimi --model` accepts. `kimi-k2.6` is NOT on
+ * the managed service — open platform only — so it (and any unknown id)
+ * passes through: users pin their own provider alias (e.g.
+ * `moonshotai/kimi-k2.6`) rather than relay silently substituting one.
  */
 export function kimiModelId(canonical: string): string {
-  const map: Record<string, string> = {
-    "kimi-k2.7-code": "kimi-code/kimi-for-coding",
-    "kimi-k2.7-code-highspeed": "kimi-code/kimi-for-coding-highspeed",
-    "kimi-k3": "kimi-code/k3",
-  };
-  return map[canonical] ?? canonical;
+  return (
+    KIMI_PINNED_IDS[canonical] ?? KIMI_FLOATING_IDS[canonical] ?? canonical
+  );
+}
+
+/** Every kimi mapping, tagged by whether its handle names a version. */
+export function kimiIdMappings(): {
+  pinned: Record<string, string>;
+  floating: Record<string, string>;
+} {
+  return { pinned: { ...KIMI_PINNED_IDS }, floating: { ...KIMI_FLOATING_IDS } };
+}
+
+/**
+ * The moving handle a catalog id resolves to, or null when the id reaches the
+ * CLI as a versioned handle (or untouched). Routing surfaces this so "the
+ * model you were quoted may not be the model that ran" is visible rather than
+ * buried in a comment.
+ */
+export function kimiFloatingHandle(canonical: string): string | null {
+  return KIMI_FLOATING_IDS[canonical] ?? null;
 }
 
 export const CLI_SPECS: Record<string, CliBackendSpec> = {
