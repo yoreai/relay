@@ -11,8 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **k2.6, k2.7-code (+ a `fast` highspeed entry), and k3 are in the catalog, k3's effort
   levels work per tier, and the kimi adapter is flag-verified.** There is no `--effort`
-  flag, so a tier's `effort:` now spawns the CLI with `KIMI_MODEL_THINKING_EFFORT` — k3
-  takes low/high/max (default high); on boolean-thinking models (k2.6, k2.7-code) any
+  flag, so a tier's `effort:` now spawns the CLI with `KIMI_MODEL_THINKING_EFFORT`, which
+  forces `thinking.effort` on the wire and bypasses whatever the alias declares it
+  supports — necessary, as the managed `kimi-code/k3` alias declares only `max` while the
+  wire takes low/medium/high/xhigh/max. On boolean-thinking models (k2.6, k2.7-code) any
   value just means thinking on. The default router gains kimi fallbacks in every tier but
   nano — a kimi-only machine routed nothing before. k3 lands in opus-class provisionally:
   every published number is vendor-only, the same evidence rule that demoted k2.7-code
