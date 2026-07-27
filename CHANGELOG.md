@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Older cursor-agent versions no longer reject every cursor-routed run.** The cursor
+  posture args always included `--trust`, a flag cursor-agent only gained after its
+  2026.01 releases — so on versions without it, every run died with
+  `error: unknown option '--trust'` before the prompt was even read (found live on
+  cursor-agent 2026.01.23, where even the read-only `--mode ask` path never spawned).
+  `--trust` is now feature-detected from `--help` exactly the way `--mode` and
+  `--sandbox` already were: versions that have it keep the current behavior, versions
+  that don't simply run without it. Guarded by a regression test pinned to the
+  2026.01.x flag shape. Reported and fixed by [@Dav50505](https://github.com/Dav50505),
+  who hit it on a machine where a newer cursor-agent would have hidden it forever
+
 - **Every icon was cropped, and there were three different marks.** The lit path ran off the
   left edge of all four raster icons — its round cap simply wasn't there — while the favicon
   was a fourth drawing (grey path, ring node) and none of them agreed with the composed

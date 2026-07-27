@@ -45,14 +45,16 @@ export function cursorModelId(canonical: string, effort?: string): string {
   return map[canonical] ?? canonical;
 }
 
-export type CursorFlagSupport = { mode: boolean; sandbox: boolean };
+export type CursorFlagSupport = { mode: boolean; sandbox: boolean; trust: boolean };
 
 let flagSupportCache: CursorFlagSupport | null = null;
 
 /**
  * cursor-agent's flag surface drifts (AGENTS.md rule: feature-detect, never
  * crash). One `--help` spawn per process tells us whether the posture flags
- * below exist; absent flags degrade to plain `--trust`.
+ * below exist; absent flags are simply not passed. `--trust` itself is
+ * detected too — versions before it was added (e.g. 2026.01.x) rejected it
+ * as an unknown option, killing every cursor-routed run on that version.
  */
 export async function detectCursorFlags(bin: string): Promise<CursorFlagSupport> {
   if (flagSupportCache) return flagSupportCache;
@@ -62,9 +64,10 @@ export async function detectCursorFlags(bin: string): Promise<CursorFlagSupport>
     flagSupportCache = {
       mode: help.includes("--mode"),
       sandbox: help.includes("--sandbox"),
+      trust: help.includes("--trust"),
     };
   } catch {
-    flagSupportCache = { mode: false, sandbox: false };
+    flagSupportCache = { mode: false, sandbox: false, trust: false };
   }
   return flagSupportCache;
 }
@@ -85,12 +88,13 @@ export function cursorPostureArgs(
   autonomy: BackendRunOpts["autonomy"],
   supports: CursorFlagSupport,
 ): string[] {
+  const trust = supports.trust ? ["--trust"] : [];
   const canWrite = write === "tree" || write === "worktree";
   if (!canWrite) {
-    return supports.mode ? ["--trust", "--mode", "ask"] : ["--trust"];
+    return supports.mode ? [...trust, "--mode", "ask"] : trust;
   }
   if (autonomy === "full") return ["--force"];
-  return supports.sandbox ? ["--trust", "--sandbox", "enabled"] : ["--trust"];
+  return supports.sandbox ? [...trust, "--sandbox", "enabled"] : trust;
 }
 
 export class CursorBackend implements Backend {
@@ -185,7 +189,8 @@ export async function probeCursorAuth(bin: string): Promise<boolean | "unknown">
     clearTimeout(timeout);
     const text = out + err;
     // Workspace-trust prompt means auth already succeeded — trust is per-repo
-    // and real runs pass --trust. Don't mistake it for a login failure.
+    // and real runs pass --trust where the CLI supports it. Don't mistake it
+    // for a login failure.
     if (/workspace trust/i.test(text)) return true;
     if (/authentication required|not authenticated|login/i.test(text) && code !== 0) {
       return false;
