@@ -80,7 +80,9 @@ export default function Matrix() {
         every tier resolves even with a single CLI. Prices are $/MTok in / out; tinted
         cells cost more. Have more than one CLI? The first candidate in your{" "}
         <code>router.yaml</code> wins — the starter policy lists Cursor first because it
-        fronts every model. The order is yours to change.
+        fronts every model. The order is yours to change. Three columns shown; the starter
+        policy also falls back to <code>kimi</code> and <code>opencode</code> in every tier,
+        so those machines route too.
       </p>
       <div className="matrix-grid">
         <div className="m-row m-head">

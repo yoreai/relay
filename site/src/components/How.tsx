@@ -27,7 +27,8 @@ export default function How() {
           </li>
           <li>
             <b>run</b> — headless <code>cursor-agent</code> / <code>claude</code> /{" "}
-            <code>codex</code> in your working tree, with a thin curated brief
+            <code>codex</code> / <code>kimi</code> / <code>opencode</code> in your working tree,
+            with a thin curated brief
           </li>
           <li>
             <b>verify</b> — your own lint &amp; tests decide, not vibes
