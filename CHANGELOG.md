@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The site's own copy contradicted its backends table.** The table gained kimi and opencode
+  with the adapters, but the how-it-works step and the matrix intro still named
+  cursor/claude/codex as the whole set — the first thing a kimi or opencode user reads is
+  that relay doesn't drive their CLI. The matrix keeps three columns (five is unreadable at
+  that width) and now says so out loud
+
 ## [0.13.0] — 2026-07-27
 
 ### Added
