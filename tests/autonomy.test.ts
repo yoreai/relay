@@ -5,8 +5,10 @@ import { dirname, join } from "node:path";
 import { cursorPostureArgs } from "../src/backends/cursor.ts";
 import { loadDirectiveFromText, loadDirectiveWithSource } from "../src/directive.ts";
 
-const FULL_SUPPORT = { mode: true, sandbox: true };
-const NO_SUPPORT = { mode: false, sandbox: false };
+const FULL_SUPPORT = { mode: true, sandbox: true, trust: true };
+const NO_SUPPORT = { mode: false, sandbox: false, trust: false };
+// cursor-agent 2026.01.x: --mode and --sandbox exist, --trust does not yet
+const OLD_SUPPORT = { mode: true, sandbox: true, trust: false };
 
 describe("cursorPostureArgs", () => {
   // Empirical (2026-07): headless print mode auto-runs edits and sandboxed
@@ -36,9 +38,20 @@ describe("cursorPostureArgs", () => {
     expect(cursorPostureArgs("tree", undefined, FULL_SUPPORT)).not.toContain("--force");
   });
 
-  test("degrades to plain --trust when the CLI lacks the posture flags", () => {
-    expect(cursorPostureArgs("none", undefined, NO_SUPPORT)).toEqual(["--trust"]);
-    expect(cursorPostureArgs("tree", "safe", NO_SUPPORT)).toEqual(["--trust"]);
+  test("degrades to no posture flags when the CLI lacks them all", () => {
+    expect(cursorPostureArgs("none", undefined, NO_SUPPORT)).toEqual([]);
+    expect(cursorPostureArgs("tree", "safe", NO_SUPPORT)).toEqual([]);
+  });
+
+  test("--trust is never passed to a CLI that doesn't have it (2026.01.x drift)", () => {
+    // cursor-agent 2026.01.23 died with `unknown option '--trust'` on every
+    // run because posture args always included it. It has --mode/--sandbox,
+    // so the posture itself still applies — only the unknown flag drops.
+    expect(cursorPostureArgs("none", undefined, OLD_SUPPORT)).toEqual(["--mode", "ask"]);
+    expect(cursorPostureArgs("tree", "safe", OLD_SUPPORT)).toEqual([
+      "--sandbox",
+      "enabled",
+    ]);
   });
 });
 
