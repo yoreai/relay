@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] — 2026-07-27
+
 ### Added
 
 - **k2.6, k2.7-code (+ a `fast` highspeed entry), and k3 are in the catalog, k3's effort
@@ -34,6 +36,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   would have blessed the exact thing it exists to catch. Also corrected two model facts against
   models.dev: k2.7-code has no thinking toggle (k2.6 does), and k3 alone has effort levels
 
+- **OpenCode backend (verified adapter).** An opencode-only machine routed nothing before;
+  relay now drives it — live-tested 2026-07-25 against opencode 1.18.5: headless
+  `opencode run --model provider/model`, login `opencode providers login`. The CLI requires
+  provider/model ids, so a pinned map translates relay's canonical catalog ids to the built-in
+  zen provider's ids (`opencode/glm-5.2`, `opencode/claude-opus-5`); unknown ids pass through,
+  so users can pin their own provider/model (e.g. `openai/gpt-5.6-sol`). opencode is now a
+  fallback in every default tier, and the 11 catalog models zen serves list it as a backend.
+  Zen's free models (big-pickle, `*-free`) are deliberately not cataloged — no independent
+  benchmarks (the evidence rule), and $0 would poison advise's cheaper-in-class rule; pin them
+  manually if wanted. Permission posture stays with the user's opencode config — relay never
+  passes `--auto`
+- **The catalog can price a model by who served it.** Reviewing the opencode adapter turned up
+  a receipt bug hiding inside a reasonable-sounding sentence — "zen's rate card can differ
+  slightly from direct API prices". Checked against models.dev, four of the eleven models zen
+  serves differ, and not slightly: gemini-3-flash is 0.5/3 against Google's 0.30/2.50 and
+  haiku-4.5 is 1/5 against Anthropic's 0.80/4 (relay understated those by ~40% and ~25%),
+  while sonnet-5 and gemini-3.1-pro are *cheaper* through zen (overstated by ~33% and ~20%).
+  Two of the four are candidates in the shipped default tiers, so this was not hypothetical.
+  A model has one identity but not always one rate card, so `backend_prices` in the catalog
+  names the exceptions and a receipt prices whoever actually served the run. Deliberately in
+  the catalog rather than a new file — still one price table that `relay update` can correct,
+  which is the whole reason `prices.yaml` ships empty. The baseline stays at vendor rates
+  because nobody served the counterfactual, and `relay advise` costs candidates the same way,
+  since quoting a zen-served pick at the vendor card would promise a saving the user never
+  gets (and for two of these models, overstate it)
+- **Servable-model awareness for opencode: installed ≠ servable.** A machine can have the
+  opencode CLI present with only foreign provider logins (OpenAI, Abacus, …) and no zen
+  billing — in which case every shipped opencode fallback would fail at runtime, because
+  `which opencode` says nothing about what the CLI can actually serve. Relay now probes
+  `opencode models` (24h cache, fail-open — a broken probe changes nothing), skips unservable
+  opencode candidates when routing and doctoring, and `relay advise` can suggest pinnable
+  provider ids for models your own logins do serve (`via your OpenAI login`). It never applies
+  them — routing policy stays the user's
+
 ### Fixed
 
 - **The kimi backend passed catalog ids verbatim to `kimi --model`, which resolved to
@@ -43,6 +79,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   map now translates catalog ids (verified against kimi-code 0.29.1); k2.6, which the
   managed service does not serve, still passes through so users pin their own provider
   alias (e.g. `moonshotai/kimi-k2.6`)
+- **A failed servable probe filtered routing with a different install's answer.** Caught by
+  installing opencode 1.18.5 and then pointing `RELAY_OPENCODE_BIN` at a deliberately broken
+  one: the probe's cache is keyed per binary, but only the fresh-hit path checked that key —
+  on failure it reached for whatever entry was there. So the documented fail-open (a broken
+  probe changes nothing) quietly became filter-by-stranger, which is worse than no probe,
+  because the models it hides are exactly the ones a new install would serve. The entry is
+  now scoped to the current binary once, up front, so both paths agree; a stale answer from
+  *this* binary is still preferred over nothing
 
 ## [0.12.2] — 2026-07-25
 
@@ -186,40 +230,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `SECURITY.md` scope section deliberately names the *non*-vulnerabilities too — a worker
   reading a repo's AGENTS.md, an approved verify command running, `autonomy: full` doing what
   it says — so a reporter isn't guessing where the design boundary is
-- **OpenCode backend (verified adapter).** An opencode-only machine routed nothing before;
-  relay now drives it — live-tested 2026-07-25 against opencode 1.18.5: headless
-  `opencode run --model provider/model`, login `opencode providers login`. The CLI requires
-  provider/model ids, so a pinned map translates relay's canonical catalog ids to the built-in
-  zen provider's ids (`opencode/glm-5.2`, `opencode/claude-opus-5`); unknown ids pass through,
-  so users can pin their own provider/model (e.g. `openai/gpt-5.6-sol`). opencode is now a
-  fallback in every default tier, and the 11 catalog models zen serves list it as a backend.
-  Zen's free models (big-pickle, `*-free`) are deliberately not cataloged — no independent
-  benchmarks (the evidence rule), and $0 would poison advise's cheaper-in-class rule; pin them
-  manually if wanted. Permission posture stays with the user's opencode config — relay never
-  passes `--auto`
-- **The catalog can price a model by who served it.** Reviewing the opencode adapter turned up
-  a receipt bug hiding inside a reasonable-sounding sentence — "zen's rate card can differ
-  slightly from direct API prices". Checked against models.dev, four of the eleven models zen
-  serves differ, and not slightly: gemini-3-flash is 0.5/3 against Google's 0.30/2.50 and
-  haiku-4.5 is 1/5 against Anthropic's 0.80/4 (relay understated those by ~40% and ~25%),
-  while sonnet-5 and gemini-3.1-pro are *cheaper* through zen (overstated by ~33% and ~20%).
-  Two of the four are candidates in the shipped default tiers, so this was not hypothetical.
-  A model has one identity but not always one rate card, so `backend_prices` in the catalog
-  names the exceptions and a receipt prices whoever actually served the run. Deliberately in
-  the catalog rather than a new file — still one price table that `relay update` can correct,
-  which is the whole reason `prices.yaml` ships empty. The baseline stays at vendor rates
-  because nobody served the counterfactual, and `relay advise` costs candidates the same way,
-  since quoting a zen-served pick at the vendor card would promise a saving the user never
-  gets (and for two of these models, overstate it)
-- **Servable-model awareness for opencode: installed ≠ servable.** A machine can have the
-  opencode CLI present with only foreign provider logins (OpenAI, Abacus, …) and no zen
-  billing — in which case every shipped opencode fallback would fail at runtime, because
-  `which opencode` says nothing about what the CLI can actually serve. Relay now probes
-  `opencode models` (24h cache, fail-open — a broken probe changes nothing), skips unservable
-  opencode candidates when routing and doctoring, and `relay advise` can suggest pinnable
-  provider ids for models your own logins do serve (`via your OpenAI login`). It never applies
-  them — routing policy stays the user's
-
 ### Fixed
 
 - **A dry run now names the grants it refused a repo-committed directive.** Real runs emit
@@ -813,7 +823,8 @@ the OS's most permissive file defaults, and neither was a decision anyone had ac
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.12.2...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/yoreai/relay/compare/v0.12.2...v0.13.0
 [0.12.2]: https://github.com/yoreai/relay/compare/v0.12.1...v0.12.2
 [0.12.1]: https://github.com/yoreai/relay/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/yoreai/relay/compare/v0.11.0...v0.12.0
