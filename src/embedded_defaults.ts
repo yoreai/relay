@@ -232,8 +232,11 @@ models:
     # released 2026-07-16), but every published number is vendor-only — the
     # same evidence rule that demoted k2.7-code from frontier keeps this out
     # of frontier until independent suites land. The only kimi model with
-    # effort levels: low/high/max (default high), chosen per tier via
-    # \`effort:\` (relay passes KIMI_MODEL_THINKING_EFFORT to the CLI).
+    # effort levels, chosen per tier via \`effort:\`. relay sets
+    # KIMI_MODEL_THINKING_EFFORT, which forces thinking.effort on the wire and
+    # bypasses the alias's declared support_efforts — which matters, because the
+    # managed kimi-code/k3 alias declares only "max". Wire values: low, medium,
+    # high, xhigh, max (Kimi Code env-var docs, checked 2026-07-27).
     # Managed alias kimi-code/k3.
     class: opus-class
     in: 3.0
