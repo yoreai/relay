@@ -73,13 +73,14 @@ export async function servableModels(
   if (!bin) return null;
 
   const cache = loadServableCache();
-  const hit = cache[backend];
-  if (
-    !opts.fresh &&
-    hit &&
-    hit.binary === bin &&
-    Date.now() - hit.ts < SERVABLE_TTL_MS
-  ) {
+  // Only this binary's own answer may be reused. A cache entry written by a
+  // different opencode (an upgrade that moved the path, RELAY_OPENCODE_BIN
+  // pointing elsewhere) describes someone else's providers, and on the failure
+  // path below it would turn fail-open into filter-by-stranger — which is how
+  // this was found: a broken probe kept filtering with the previous install's
+  // model list.
+  const hit = cache[backend]?.binary === bin ? cache[backend] : undefined;
+  if (!opts.fresh && hit && Date.now() - hit.ts < SERVABLE_TTL_MS) {
     return new Set(hit.models);
   }
 
@@ -90,6 +91,8 @@ export async function servableModels(
   } catch {
     // spawn-level failure — same as any other probe failure
   }
+  // A stale answer from THIS binary still beats nothing (providers rarely
+  // vanish); no usable entry means allow-all rather than a guess.
   if (models.length === 0) return hit ? new Set(hit.models) : null;
 
   cache[backend] = { binary: bin, ts: Date.now(), models };
