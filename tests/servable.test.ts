@@ -113,6 +113,26 @@ describe("servableModels cache", () => {
     expect(models).toEqual(new Set(["opencode/glm-5.2"]));
   });
 
+  // Found live: with the real opencode cached and RELAY_OPENCODE_BIN pointed
+  // at a broken one, the failed probe kept filtering with the other install's
+  // model list — so the fail-open promise quietly didn't hold.
+  test("a cache entry from a different binary is never reused", async () => {
+    const { cacheFile } = setup("#!/bin/sh\nexit 1\n");
+    writeFileSync(
+      cacheFile,
+      JSON.stringify({
+        opencode: {
+          binary: "/some/other/opencode",
+          ts: Date.now(),
+          models: ["opencode/glm-5.2"],
+        },
+      }),
+    );
+    // fresh cache, but it belongs to a different install → fail open
+    expect(await servableModels("opencode")).toBeNull();
+    expect(await servableModels("opencode", { fresh: true })).toBeNull();
+  });
+
   test("invalidateServableCache drops the entry so the next call re-probes", async () => {
     const { bin } = setup(LIST_SCRIPT);
     await servableModels("opencode");
