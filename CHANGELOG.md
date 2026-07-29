@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Read-only cursor lanes no longer silently run writable on older CLIs.** A
+  cursor-agent without `--mode` cannot enforce relay's required `--mode ask`
+  posture, but relay previously dropped the flag and launched the lane anyway.
+  Such lanes now fail before spawn with an actionable upgrade-or-reroute message;
+  write lanes retain their existing feature-detected behavior. Guarded by a
+  regression test for a CLI with no posture flags.
+
 ## [0.13.1] — 2026-07-29
 
 ### Fixed

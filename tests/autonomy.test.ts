@@ -38,8 +38,10 @@ describe("cursorPostureArgs", () => {
     expect(cursorPostureArgs("tree", undefined, FULL_SUPPORT)).not.toContain("--force");
   });
 
-  test("degrades to no posture flags when the CLI lacks them all", () => {
-    expect(cursorPostureArgs("none", undefined, NO_SUPPORT)).toEqual([]);
+  test("rejects read-only lanes when the CLI cannot enforce ask mode", () => {
+    expect(() => cursorPostureArgs("none", undefined, NO_SUPPORT)).toThrow(
+      /cannot enforce read-only lanes.*lacks `--mode`/,
+    );
     expect(cursorPostureArgs("tree", "safe", NO_SUPPORT)).toEqual([]);
   });
 

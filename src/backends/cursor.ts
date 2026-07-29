@@ -91,7 +91,12 @@ export function cursorPostureArgs(
   const trust = supports.trust ? ["--trust"] : [];
   const canWrite = write === "tree" || write === "worktree";
   if (!canWrite) {
-    return supports.mode ? [...trust, "--mode", "ask"] : trust;
+    if (!supports.mode) {
+      throw new Error(
+        "cursor backend: this cursor-agent version cannot enforce read-only lanes because it lacks `--mode`. Upgrade cursor-agent or route this lane to another backend.",
+      );
+    }
+    return [...trust, "--mode", "ask"];
   }
   if (autonomy === "full") return ["--force"];
   return supports.sandbox ? [...trust, "--sandbox", "enabled"] : trust;
