@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.1] — 2026-07-29
+
 ### Fixed
 
 - **Older cursor-agent versions no longer reject every cursor-routed run.** The cursor
@@ -851,7 +853,8 @@ the OS's most permissive file defaults, and neither was a decision anyone had ac
 - Homebrew tap formula path + curl install script
 - GitHub Actions: CI (test/typecheck) and tag-triggered multi-arch release
 
-[Unreleased]: https://github.com/yoreai/relay/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/yoreai/relay/compare/v0.13.1...HEAD
+[0.13.1]: https://github.com/yoreai/relay/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/yoreai/relay/compare/v0.12.2...v0.13.0
 [0.12.2]: https://github.com/yoreai/relay/compare/v0.12.1...v0.12.2
 [0.12.1]: https://github.com/yoreai/relay/compare/v0.12.0...v0.12.1
