@@ -9,6 +9,7 @@ import { memoryRepoKey } from "./memory.ts";
 import { redactSecrets } from "./redact.ts";
 import { nextEscalation, type EscalationState } from "./escalate.ts";
 import { loadPrices, makeReceipt, type Receipt } from "./savings.ts";
+import { backendPostureWarning } from "./posture.ts";
 import { servableModels, servablePredicate } from "./servable.ts";
 import {
   appendEvent,
@@ -55,6 +56,12 @@ export type RunOutcome = {
   escalations: number;
   receipt: Receipt | null;
   output: string;
+  /**
+   * Set when the CLI that served this run couldn't honor the lane's full
+   * posture (an old cursor-agent with no `--mode`, say). Reported per run
+   * rather than only in `doctor` because this is the run it applied to.
+   */
+  postureWarning?: string | null;
   dryRun?: boolean;
   prUrl?: string | null;
   /** Worktree lanes: the branch holding the finished work… */
@@ -413,6 +420,7 @@ export async function runTask(opts: RunOpts): Promise<RunOutcome> {
     escalations,
     receipt,
     output: lastOutput,
+    postureWarning: await backendPostureWarning(tier.backend),
     prUrl,
     workBranch,
     workDir: workBranch ? workCwd : undefined,
@@ -463,6 +471,7 @@ export function formatOutcome(outcome: RunOutcome): string {
       `  reconcile: review the branch, then \`git merge ${outcome.workBranch}\` — the work does NOT auto-merge`,
     );
   }
+  if (outcome.postureWarning) lines.push(`  ⚠ ${outcome.postureWarning}`);
   if (outcome.receipt) lines.push(outcome.receipt.line);
   return lines.join("\n");
 }

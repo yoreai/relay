@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **relay now says when your agent CLI is too old to enforce the lane you asked for.** The
+  `--trust` fix in 0.13.1 made an older cursor-agent *work*, which quietly exposed the real
+  problem: relay feature-detects posture flags and degrades, but never told anyone it had.
+  A cursor-agent without `--mode` can't be held to a read-only lane — relay asks in the
+  prompt and hopes — and the user's `doctor` still read a clean "ready". Installed CLIs
+  missing a consequential flag now get one sentence naming the flag, what it costs, and
+  `cursor-agent update` as the fix, on both surfaces that are read fresh: `relay doctor`
+  (and `posture_warnings` in the MCP result) and the run that was actually degraded
+  (`posture_warning`). Capability, not version numbers — a version→flag map would need a
+  pull from a third party's release feed and would rot the first time a flag is renamed.
+  Silent when only `--trust` is missing, because nothing is reduced there; a warning that
+  fires when nothing is wrong is a warning people learn to skip. relay never runs the
+  upgrade itself — the user's environment is theirs, same rule as `relay login`
+
 ## [0.13.1] — 2026-07-29
 
 ### Fixed

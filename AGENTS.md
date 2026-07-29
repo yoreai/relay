@@ -114,6 +114,10 @@ Change these only deliberately — each one is load-bearing.
 - **Auth is delegated; relay stores no credentials.** Never pass
   `--dangerously-skip-permissions` on the user's behalf — permission posture is theirs.
 - **Backend CLI flags drift.** Feature-detect, fail with an actionable message, never crash core.
+ And *say when you degraded*: a CLI too old for `--mode` turns a read-only lane into a writable
+ one, which is a permission change the user never agreed to. `posture.ts` composes that sentence
+ for doctor and for the run itself. Detect capability, never a version number — a version→flag
+ map needs a third party's release feed and rots on the first rename.
   Codex also needs `tool_timeout_sec` + tool-approval keys set at setup or it cancels MCP calls
   silently.
 - **No telemetry, no phone-home.** Local `runs.jsonl` only, no task text unless `--log-tasks`.

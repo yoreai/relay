@@ -28,6 +28,7 @@ import { loadDirective, resolveTier } from "./directive.ts";
 import { pricesShadowWarning } from "./doctor.ts";
 import { findDirectivePath, hardenRelayDataDir } from "./paths.ts";
 import { refreshActivationHints } from "./activation.ts";
+import { postureWarnings } from "./posture.ts";
 import { staleServerWarning } from "./staleness.ts";
 import { RELAY_VERSION } from "./version.ts";
 
@@ -222,7 +223,9 @@ export async function serveMcp(): Promise<void> {
           "where each tier actually routes on this machine, the catalog's freshness, and any warning " +
           "that would make a receipt wrong. Use before delegating (or when a run fails with an auth " +
           "error). Report the tier routing and warnings too, not just tool status — a stale tier or a " +
-          "local prices.yaml silently costs the user money. Pass fresh=true to bypass the 24h auth cache.",
+          "local prices.yaml silently costs the user money, and a posture_warnings entry means an " +
+          "installed CLI is too old to enforce the lane's permissions. Pass fresh=true to bypass the " +
+          "24h auth cache.",
         inputSchema: {
           type: "object",
           properties: {
@@ -433,6 +436,9 @@ export async function serveMcp(): Promise<void> {
                       }
                     : {}),
                   outputTail: redactSecrets(outcome.output.slice(-2_000)),
+                  ...(outcome.postureWarning
+                    ? { posture_warning: outcome.postureWarning }
+                    : {}),
                   ...(await staleServerField()),
                 },
                 null,
@@ -512,6 +518,12 @@ export async function serveMcp(): Promise<void> {
         const servable = availableBackends().has("opencode")
           ? servablePredicate(await servableModels("opencode"))
           : undefined;
+        // Sits beside stale_server rather than inside `tools`, because a tool
+        // entry that reads installed + signed_in gets summarized as "ready"
+        // and the gap goes with it.
+        const posture = await postureWarnings(
+          tools.filter((t) => t.cliPresent).map((t) => t.id),
+        );
         return {
           content: [
             {
@@ -523,6 +535,7 @@ export async function serveMcp(): Promise<void> {
                   // against `relay --version` themselves; relay does the
                   // comparison now and only speaks up when it fails.
                   ...(await staleServerField()),
+                  ...(posture.length ? { posture_warnings: posture } : {}),
                   ...routingSnapshot(cwd, servable),
                   tools: tools.map((t) => ({
                     tool: t.id,

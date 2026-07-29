@@ -5,6 +5,7 @@ import {
   opencodeCatalogId,
 } from "./backends/cli.ts";
 import { disabledBackends } from "./settings.ts";
+import { backendPostureWarning } from "./posture.ts";
 import { probeTools } from "./probe.ts";
 import { servableModels, servablePredicate } from "./servable.ts";
 import { loadCatalog } from "./catalog.ts";
@@ -60,6 +61,27 @@ export function floatingHandleSuffix(backend: string, model: string): string {
   return handle ? `  (via ${handle} — handle re-points on release)` : "";
 }
 
+/**
+ * Soft-wrap for terminal output. The posture and prices warnings are whole
+ * sentences with a consequence and a fix in them — a single 250-column line
+ * is technically the same information and practically unreadable.
+ */
+function wrap(text: string, first: string, rest: string, width = 88): string[] {
+  const out: string[] = [];
+  let line = first;
+  for (const word of text.split(/\s+/)) {
+    const indent = out.length === 0 ? first : rest;
+    if (line.length > indent.length && line.length + 1 + word.length > width) {
+      out.push(line);
+      line = rest + word;
+    } else {
+      line += (line.length > indent.length ? " " : "") + word;
+    }
+  }
+  if (line.trim()) out.push(line);
+  return out;
+}
+
 export async function runDoctor(
   cwd: string = process.cwd(),
   fresh = false,
@@ -84,6 +106,13 @@ export async function runDoctor(
     }
     if (!t.cliPresent && t.appDetected && t.install) {
       lines.push(`      fix: ${t.install}`);
+    }
+    // Installed and signed in still isn't the same as capable: a CLI old
+    // enough to lack the posture flags reports "ready" while quietly running
+    // lanes at a permission level the user didn't pick.
+    if (t.cliPresent && !off) {
+      const gap = await backendPostureWarning(t.id);
+      if (gap) lines.push(...wrap(gap, "      ⚠ ", "        "));
     }
   }
   lines.push(

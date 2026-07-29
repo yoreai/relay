@@ -49,6 +49,11 @@ export type CursorFlagSupport = { mode: boolean; sandbox: boolean; trust: boolea
 
 let flagSupportCache: CursorFlagSupport | null = null;
 
+/** Test seam: forget the `--help` probe so the next call re-detects. */
+export function resetCursorFlagCache(): void {
+  flagSupportCache = null;
+}
+
 /**
  * cursor-agent's flag surface drifts (AGENTS.md rule: feature-detect, never
  * crash). One `--help` spawn per process tells us whether the posture flags
