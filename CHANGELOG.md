@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Every icon was cropped, and there were three different marks.** The lit path ran off the
+  left edge of all four raster icons — its round cap simply wasn't there — while the favicon
+  was a fourth drawing (grey path, ring node) and none of them agreed with the composed
+  artwork. All five now come from one vector in `site/scripts/render-icons.mjs`
+  (`bun run icons` in `site/`), matching the og/banner mark, sitting 7.5% clear of the left
+  and right edges with the ink block centred. `assets/social.png` is generated from `og.png`
+  too, because the old crop cut the "y" off "relay" — the wordmark was clipped in the image
+  we hand to Twitter and GitHub
+
 - **The site's own copy contradicted its backends table.** The table gained kimi and opencode
   with the adapters, but the how-it-works step and the matrix intro still named
   cursor/claude/codex as the whole set — the first thing a kimi or opencode user reads is
