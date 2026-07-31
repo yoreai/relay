@@ -62,6 +62,12 @@ or goes 45 days without review.
 - **Core loop:** `src/run.ts` — route → assemble → backend → verify → widen/escalate → receipt
 - **Directive:** `src/directive.ts` (zod) loads `~/.config/relay`/repo/bundled `router.yaml`
   — user config first, and repo-sourced directives get their permission grants clamped
+- **Worker method:** `src/methodology.ts` + `defaults/worker.md` — the standing discipline every
+  worker prompt carries, lane-aware (diff rules for write lanes, answer contract for read lanes).
+  User override at `~/.config/relay/worker.md` replaces it entirely; an empty file disables it.
+  The safety guards (recursion / no-op / read-only) stay in `brief.ts` as code, out of the
+  override's reach — and there is deliberately no repo-level worker.md, because a prompt sourced
+  from a cloned repo is an injection channel with no `relay trust` gate on it
 - **Catalog:** `src/catalog.ts` — model facts; resolution is user config → newer of (fetched, embedded)
 - **Backends:** `src/backends/` — common `Backend` interface. `cursor.ts` and `claude.ts` are
   hand-written; codex/gemini/grok/kimi/opencode are spec-driven entries in `cli.ts`

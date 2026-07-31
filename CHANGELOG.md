@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Every worker now carries the same standing method, whichever CLI serves it.** relay
+  already injected three discipline rules into every worker prompt — recursion guard, no-op
+  guard, read-only guard — each hardcoded after a real incident. The rest of the discipline
+  users complain about (workers that over-edit, over-explain, invent structure, drift from
+  repo conventions) had no home at all, and nobody configures that per-CLI by hand. It's now
+  policy-as-data like the router: `defaults/worker.md` ships ~20 lines, lane-aware (smallest
+  correct diff and test rules for write lanes; answer-first, evidence-cited replies for read
+  lanes), plus a fixed four-line SUMMARY/CHANGED/VERIFIED/RISKS block ending every reply —
+  rules chosen to shape the artifacts relay actually parses and relays back, not vibes. A
+  user file at `~/.config/relay/worker.md` replaces it; an empty file disables it. Two
+  boundaries drawn on purpose: the safety guards stay in code where no override can remove
+  them, and there is no repo-level worker.md, because a prompt sourced from a cloned repo is
+  an injection channel with no `relay trust` gate on it. The whole method costs ~250 tokens
+  per run — each line has to earn its place, since long method prompts dilute the brief on
+  exactly the cheap models relay routes to
+
 - **relay now says when your agent CLI is too old to enforce the lane you asked for.** The
   `--trust` fix in 0.13.1 made an older cursor-agent *work*, which quietly exposed the real
   problem: relay feature-detects posture flags and degrades, but never told anyone it had.

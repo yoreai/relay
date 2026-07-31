@@ -107,7 +107,13 @@ org hasn't approved (change anytime: `relay backends enable|disable <tool>`).
    zero config. `relay doctor` shows exactly where each tier lands on your machine.
 2. **Route** — rules-first (verbs, file hints, walkaway); default lane if unsure
 3. **Run** — headless `cursor-agent`, `claude`, `codex`, `kimi`, or `opencode` in your
-   working tree (experimental adapters: `gemini`, `grok`). kimi notes: `kimi-k2.6` is
+   working tree (experimental adapters: `gemini`, `grok`). Every worker gets the same
+   standing method, whichever CLI serves it: smallest correct diff, repo conventions
+   over model defaults, honest reporting, a fixed four-line summary ending each reply.
+   It ships as data (`defaults/worker.md`); create `~/.config/relay/worker.md` to
+   replace it, or leave that file empty to turn it off — relay's safety guards
+   (recursion, no-op, read-only) live in code, out of the override's reach.
+   kimi notes: `kimi-k2.6` is
    open-platform only — pin your provider alias (e.g. `moonshotai/kimi-k2.6`); `kimi-k3`
    takes `effort: low|high|max` per tier. opencode routes through its built-in zen provider
    (`opencode/<model>`), and relay only routes there for models your opencode can actually

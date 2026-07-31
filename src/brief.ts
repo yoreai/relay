@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { workerMethod } from "./methodology.ts";
 
 /** Agents across ecosystems pass single strings where we want lists — coerce
  * instead of erroring at the MCP boundary. */
@@ -57,6 +58,11 @@ export function renderBriefPrompt(
 ): string {
   const parts: string[] = [WORKER_GUARD, NOOP_GUARD, `Goal: ${brief.goal}`];
   if (write === "none") parts.splice(2, 0, READ_ONLY_GUARD);
+  // The standing method (src/methodology.ts) sits after the guards and before
+  // the brief: guards are non-negotiable and come first; the brief is the
+  // task and comes last so it's freshest in the worker's attention.
+  const method = workerMethod(write);
+  if (method) parts.splice(parts.length - 1, 0, `Method:\n${method}`);
   if (brief.why) parts.push(`Why: ${brief.why}`);
   if (brief.files?.length) parts.push(`Files:\n- ${brief.files.join("\n- ")}`);
   if (brief.constraints?.length) {
