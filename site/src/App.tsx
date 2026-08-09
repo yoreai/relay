@@ -13,6 +13,7 @@ import Install from "./components/Install";
 import Activate from "./components/Activate";
 import About from "./components/About";
 import Footer from "./components/Footer";
+import { Analytics } from "@vercel/analytics/react";
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
       <Activate />
       <About />
       <Footer />
+      <Analytics />
     </>
   );
 }

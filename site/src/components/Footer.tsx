@@ -9,6 +9,11 @@ export default function Footer() {
       <span>
         <code>brew install yoreai/tap/relay</code>
       </span>
+      <span style={{ flexBasis: "100%", fontSize: 12, opacity: 0.7 }}>
+        This page counts visits with Vercel Web Analytics — cookieless, no cross-site tracking.
+        That's the website only: the <code>relay</code> binary itself still reports nothing, to us
+        or anyone else. See <a href="#trust">trust</a>.
+      </span>
     </footer>
   );
 }
