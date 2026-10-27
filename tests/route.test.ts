@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { loadDirectiveFromText } from "../src/directive.ts";
 import { routeTask } from "../src/route.ts";
+import { EMBEDDED_ROUTER_YAML } from "../src/embedded_defaults.ts";
 
 const directive = loadDirectiveFromText(
   readFileSync(join(import.meta.dir, "..", "defaults", "router.yaml"), "utf8"),
@@ -82,3 +83,20 @@ describe("route", () => {
     expect(d.confidence).toBe("low");
   });
 });
+
+for (const [source, planningDirective] of [
+  ["file", directive],
+  ["embedded", loadDirectiveFromText(EMBEDDED_ROUTER_YAML)],
+] as const) {
+  describe(`${source} planning defaults`, () => {
+    for (const verb of ["plan", "design", "architect", "propose"]) {
+      test(`${verb} routes to a read-only review-tier lane`, () => {
+        const decision = routeTask(planningDirective, `${verb} the migration to SQLite`);
+        expect(decision.lane.name).toBe("plan");
+        expect(decision.tier).toBe("review");
+        expect(decision.lane.write).toBe("none");
+        expect(decision.confidence).toBe("high");
+      });
+    }
+  });
+}
