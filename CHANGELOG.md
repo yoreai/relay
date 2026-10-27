@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add a read-only `plan` lane to the shipped and embedded defaults so planning
+  requests use the review tier instead of falling back to the writable quickfix lane.
+
 - **Every worker now carries the same standing method, whichever CLI serves it.** relay
   already injected three discipline rules into every worker prompt — recursion guard, no-op
   guard, read-only guard — each hardcoded after a real incident. The rest of the discipline

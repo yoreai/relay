@@ -61,6 +61,10 @@ lanes:
     match: { verbs: [status, summarize, watch, check, list, read] }
     tier: nano
     write: none
+  - name: plan
+    match: { verbs: [plan, design, architect, propose] }
+    tier: review
+    write: none
   - name: quickfix
     match: { verbs: [fix, rename, update, bump, add-test], max_files: 5 }
     tier: work
