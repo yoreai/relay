@@ -17,10 +17,23 @@ import {
   relayConfigDir,
   relayDataDir,
 } from "./paths.ts";
-import { loadDirective, resolveTier } from "./directive.ts";
+import { loadDirective, resolveTier, type Directive } from "./directive.ts";
 import { RELAY_VERSION } from "./version.ts";
 import { existsSync, readFileSync } from "node:fs";
 import { parse as parseYaml } from "yaml";
+
+/**
+ * Report effective permission grants, after repo-local grants are clamped.
+ * Full autonomy does not enable unattended commands on read-only lanes.
+ */
+export function autonomyWarnings(directive: Directive): string[] {
+  return directive.lanes
+    .filter((lane) => lane.autonomy === "full" && lane.write !== "none")
+    .map(
+      (lane) =>
+        `lane "${lane.name}": autonomy: full allows unattended command execution (cursor: --force)`,
+    );
+}
 
 /**
  * A local `prices.yaml` wins over the catalog for every model it lists, and
@@ -152,6 +165,9 @@ export async function runDoctor(
     lines.push(
       `directive: ${dirPath ?? "(bundled default)"} · ${d.lanes.length} lanes · baseline ${d.baseline}`,
     );
+    for (const warning of autonomyWarnings(d)) {
+      lines.push(...wrap(warning, "  ⚠ ", "    "));
+    }
   } catch (e) {
     lines.push(`directive: ERROR ${(e as Error).message}`);
   }
