@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Warn about write lanes with `autonomy: full` in terminal and MCP doctor output,
+  so an earlier opt-in to unattended commands stays visible. Warnings use the
+  effective directive: clamped repo-local grants and read-only lanes do not imply
+  permission to bypass command approval.
+
 - **Every worker now carries the same standing method, whichever CLI serves it.** relay
   already injected three discipline rules into every worker prompt — recursion guard, no-op
   guard, read-only guard — each hardcoded after a real incident. The rest of the discipline

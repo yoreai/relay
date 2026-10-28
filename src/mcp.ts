@@ -25,7 +25,7 @@ import { listBackendChoices, runBackendsCommand } from "./backends_cmd.ts";
 import { availableBackends } from "./backends/index.ts";
 import { loadCatalog } from "./catalog.ts";
 import { loadDirective, resolveTier } from "./directive.ts";
-import { pricesShadowWarning } from "./doctor.ts";
+import { autonomyWarnings, pricesShadowWarning } from "./doctor.ts";
 import { findDirectivePath, hardenRelayDataDir } from "./paths.ts";
 import { refreshActivationHints } from "./activation.ts";
 import { postureWarnings } from "./posture.ts";
@@ -61,8 +61,10 @@ export function routingSnapshot(
   servable?: (backend: string, model: string) => boolean,
 ): Record<string, unknown> {
   const snapshot: Record<string, unknown> = {};
+  const warnings: string[] = [];
   try {
     const d = loadDirective(cwd);
+    warnings.push(...autonomyWarnings(d));
     const available = availableBackends();
     const tiers: Record<string, string> = {};
     for (const tierName of Object.keys(d.tiers)) {
@@ -92,7 +94,7 @@ export function routingSnapshot(
   } catch (e) {
     snapshot.catalog_error = (e as Error).message;
   }
-  const warnings = pricesShadowWarning(cwd);
+  warnings.push(...pricesShadowWarning(cwd));
   if (warnings.length) snapshot.warnings = warnings;
   return snapshot;
 }
